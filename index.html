@@ -2,7 +2,17 @@
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f0f9ff" />
+    
+    <!-- iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Mundo Miguel" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
     <title>O Mundo do Miguel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,10 +56,15 @@
     </script>
     <style>
       body {
-        overscroll-behavior-y: contain;
+        overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */
         user-select: none;
         -webkit-tap-highlight-color: transparent;
-        background-color: #f0f9ff; /* Azul claro conforme solicitado */
+        background-color: #f0f9ff;
+        /* Safe Area Support variables */
+        --sat: env(safe-area-inset-top);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+        --sar: env(safe-area-inset-right);
       }
       /* Clean scrollbar */
       .scrollbar-hide::-webkit-scrollbar {

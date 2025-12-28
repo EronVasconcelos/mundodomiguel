@@ -1,0 +1,21 @@
+{
+  "short_name": "Mundo Miguel",
+  "name": "O Mundo do Miguel",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/4205/4205652.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/4205/4205652.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#f0f9ff",
+  "background_color": "#f0f9ff",
+  "orientation": "portrait"
+}

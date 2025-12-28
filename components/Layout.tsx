@@ -14,9 +14,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const isHome = location.pathname === '/';
 
   return (
-    <div className="h-full flex flex-col font-sans relative bg-sky-50 text-slate-800">
+    <div 
+      className="h-full flex flex-col font-sans relative bg-sky-50 text-slate-800"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
+    >
       {/* Modern Minimal Header */}
-      <div className="px-4 pt-4 pb-2 z-20">
+      <div className="px-4 pt-2 pb-2 z-20">
         <header className="flex items-center justify-between py-2">
           {!isHome ? (
             <button 
@@ -29,7 +37,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title }) => {
             <div className="w-12" />
           )}
           
-          <h1 className="text-xl md:text-2xl font-black uppercase tracking-wide text-center flex-1 mx-2 text-slate-700">
+          <h1 className="text-xl md:text-2xl font-black uppercase tracking-wide text-center flex-1 mx-2 text-slate-700 truncate">
             {title}
           </h1>
 
