@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Settings, Users, Plus, Check, Target } from 'lucide-react';
+import { ArrowLeft, Users, Plus, Check, Target, LogOut, Camera, Loader2 } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -23,6 +23,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
   const [activeProfile, setActiveProfile] = useState<ChildProfile | null>(null);
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
+  
+  // Upload State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadProfiles();
@@ -93,6 +97,62 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     navigate(AppRoute.PROFILE);
   };
 
+  const handleLogout = async () => {
+      if (window.confirm("Tem certeza que deseja sair?")) {
+          await supabase.auth.signOut();
+          localStorage.clear();
+          navigate(AppRoute.WELCOME);
+      }
+  };
+
+  const handleAvatarClick = () => {
+      if (isHome) {
+          fileInputRef.current?.click();
+      }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !activeProfile) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+          alert("A foto é muito grande! Tente uma menor.");
+          return;
+      }
+
+      setUploading(true);
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+          const base64 = event.target?.result as string;
+          
+          try {
+              // Update Supabase
+              const { error } = await supabase
+                  .from('child_profiles')
+                  .update({ photo_url: base64 })
+                  .eq('id', activeProfile.id);
+
+              if (error) throw error;
+
+              // Update Local State & Storage
+              const updatedProfile = { ...activeProfile, photoUrl: base64 };
+              const updatedList = profiles.map(p => p.id === activeProfile.id ? updatedProfile : p);
+              
+              setActiveProfile(updatedProfile);
+              setProfiles(updatedList);
+              localStorage.setItem('child_profiles', JSON.stringify(updatedList));
+              localStorage.setItem('child_profile', JSON.stringify(updatedProfile));
+
+          } catch (err) {
+              console.error("Failed to update avatar", err);
+              alert("Erro ao atualizar foto. Tente novamente.");
+          } finally {
+              setUploading(false);
+          }
+      };
+      reader.readAsDataURL(file);
+  };
+
   const getProfileImage = (p: ChildProfile | null) => {
       if (!p) return DEFAULT_AVATAR;
       return p.photoUrl || p.avatarBase || DEFAULT_AVATAR;
@@ -110,24 +170,37 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         backgroundSize: '24px 24px'
       }}
     >
+      {/* Hidden File Input for Avatar Change */}
+      <input 
+          type="file" 
+          ref={fileInputRef} 
+          accept="image/*" 
+          className="hidden" 
+          onChange={handleAvatarUpload}
+      />
+
       {/* --- HEADER --- */}
       <div className="px-4 pt-4 pb-2 z-20">
         <header className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border-2 border-slate-100 p-2 flex items-center justify-between relative">
           
-          {/* Left: Avatar (Switcher) or Back Button */}
+          {/* Left: Avatar (Upload) or Back Button */}
           <div className="flex items-center gap-3">
             {isHome ? (
               <button 
-                onClick={() => setShowProfileSwitcher(true)}
-                className="relative group"
+                onClick={handleAvatarClick}
+                className="relative group active:scale-95 transition-transform"
+                disabled={uploading}
               >
-                <div className="w-12 h-12 rounded-full bg-slate-100 border-2 border-white shadow-sm overflow-hidden group-active:scale-95 transition-transform">
-                   <img src={getProfileImage(activeProfile)} alt="Profile" className="w-full h-full object-cover" />
+                <div className="w-12 h-12 rounded-full bg-slate-100 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center">
+                   {uploading ? (
+                       <Loader2 className="animate-spin text-blue-500" />
+                   ) : (
+                       <img src={getProfileImage(activeProfile)} alt="Profile" className="w-full h-full object-cover" />
+                   )}
                 </div>
-                {/* Badge if multiple profiles */}
-                {profiles.length > 1 && (
-                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-sm border border-slate-200">
-                        <Users size={10} className="text-slate-500"/>
+                {!uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera size={16} className="text-white"/>
                     </div>
                 )}
               </button>
@@ -144,8 +217,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                {isHome ? (
                  <>
                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">Bem-vindo ao</span>
-                   <button onClick={() => setShowProfileSwitcher(true)} className="text-left">
-                       <span className="text-lg font-black text-slate-800 leading-tight">Mundo d{activeProfile?.gender === 'girl' ? 'a' : 'o'} {activeProfile?.name || 'Miguel'}</span>
+                   <button onClick={() => setShowProfileSwitcher(true)} className="text-left group">
+                       <span className="text-lg font-black text-slate-800 leading-tight group-active:text-blue-500 transition-colors">
+                           Mundo d{activeProfile?.gender === 'girl' ? 'a' : 'o'} {activeProfile?.name || 'Miguel'}
+                       </span>
                    </button>
                  </>
                ) : (
@@ -157,12 +232,25 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
             </div>
           </div>
 
-          {/* Right: Settings (Home) OR Mission Counter (Activity) */}
-          <div className="flex items-center">
+          {/* Right: Actions or Counters */}
+          <div className="flex items-center gap-2">
              {isHome ? (
-                <button onClick={() => setShowProfileSwitcher(true)} className="w-10 h-10 rounded-full bg-slate-50 border-2 border-slate-100 flex items-center justify-center text-slate-300">
-                   <Settings size={18} />
-                </button>
+                <>
+                    <button 
+                        onClick={handleAddProfile} 
+                        className="w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-blue-500 active:scale-95 transition-transform"
+                        title="Adicionar Criança"
+                    >
+                        <Plus size={20} strokeWidth={3} />
+                    </button>
+                    <button 
+                        onClick={handleLogout} 
+                        className="w-10 h-10 rounded-full bg-red-50 border-2 border-red-100 flex items-center justify-center text-red-400 active:scale-95 transition-transform"
+                        title="Sair"
+                    >
+                        <LogOut size={18} />
+                    </button>
+                </>
              ) : missionTarget && (
                 <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full">
                     <Target size={16} className="text-slate-400" />

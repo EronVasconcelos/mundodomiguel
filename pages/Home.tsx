@@ -163,34 +163,34 @@ const Home: React.FC = () => {
            </div>
 
            <div className="grid grid-cols-2 gap-3">
-              {/* MAZE */}
+              {/* MAZE - Light Orange bg, Orange Check */}
               <button 
                   onClick={() => navigate(AppRoute.CHALLENGE)}
-                  className="bg-white/10 rounded-2xl p-4 text-left hover:bg-white/20 transition-colors active:scale-95 border border-white/10 relative"
+                  className="bg-orange-100 rounded-2xl p-4 text-left hover:bg-orange-200 transition-colors active:scale-95 border border-white/10 relative"
               >
-                  <div className="absolute bottom-2 right-2 text-[10px] font-bold bg-orange-900/50 px-2 py-0.5 rounded-full text-orange-100">
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold bg-orange-200 px-2 py-0.5 rounded-full text-orange-700">
                      {progress.mazesSolved}/{GOALS.MAZES}
                   </div>
                   <div className="flex justify-between items-start mb-2">
                      <div className="text-3xl">🧩</div>
-                     {isMazesDone && <CheckCircle size={16} className="text-green-300"/>}
+                     {isMazesDone && <CheckCircle size={16} className="text-orange-500"/>}
                   </div>
-                  <span className="block font-black text-white leading-tight">Labirinto</span>
+                  <span className="block font-black text-orange-600 leading-tight">Labirinto</span>
               </button>
 
-              {/* WORD SEARCH */}
+              {/* WORD SEARCH - Light Orange bg */}
               <button 
                   onClick={() => navigate(AppRoute.WORD_SEARCH)}
-                  className="bg-white/10 rounded-2xl p-4 text-left hover:bg-white/20 transition-colors active:scale-95 border border-white/10 relative"
+                  className="bg-orange-100 rounded-2xl p-4 text-left hover:bg-orange-200 transition-colors active:scale-95 border border-white/10 relative"
               >
-                  <div className="absolute bottom-2 right-2 text-[10px] font-bold bg-orange-900/50 px-2 py-0.5 rounded-full text-orange-100">
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold bg-orange-200 px-2 py-0.5 rounded-full text-orange-700">
                      {(progress.wordSearchSolved || 0)}/{GOALS.WORD_SEARCH}
                   </div>
                   <div className="flex justify-between items-start mb-2">
                      <div className="text-3xl">🔎</div>
-                     {isWordSearchDone && <CheckCircle size={16} className="text-green-300"/>}
+                     {isWordSearchDone && <CheckCircle size={16} className="text-orange-500"/>}
                   </div>
-                  <span className="block font-black text-white leading-tight">Caça Palavras</span>
+                  <span className="block font-black text-orange-600 leading-tight">Caça Palavras</span>
               </button>
            </div>
         </div>

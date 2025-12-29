@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { Star, RefreshCw, Plus, Minus, X, Divide, Check, Trophy } from 'lucide-react';
 import { incrementMath, getDailyProgress, getGoals } from '../services/progressService';
@@ -82,6 +82,7 @@ const MathBlocks: React.FC = () => {
   const [showMissionComplete, setShowMissionComplete] = useState(false);
   
   const [missionStats, setMissionStats] = useState({ current: 0, target: 20 });
+  const historyRef = useRef<string[]>([]); // To prevent duplicates
 
   useEffect(() => {
     const p = getDailyProgress();
@@ -101,37 +102,57 @@ const MathBlocks: React.FC = () => {
     setShowMissionComplete(false);
     setUserAnswer(null);
     
-    // RANDOMIZE OPERATION
     const ops: Operation[] = ['ADD', 'SUB', 'MUL', 'DIV'];
-    const nextOp = ops[Math.floor(Math.random() * ops.length)];
-    setOperation(nextOp);
+    
+    let isValid = false;
+    let attempts = 0;
+    
+    let newOp: Operation = 'ADD';
+    let n1 = 0;
+    let n2 = 0;
 
-    let n1 = 0, n2 = 0;
-
-    switch (nextOp) {
-      case 'ADD':
-        if (Math.random() > 0.7) {
-           n1 = (Math.floor(Math.random() * 3) + 1) * 10; 
-           n2 = 10;
-        } else {
-           n1 = Math.floor(Math.random() * 5) + 1; 
-           n2 = Math.floor(Math.random() * 5) + 1;
+    // Loop to find a unique problem not in recent history
+    while (!isValid && attempts < 50) {
+        attempts++;
+        newOp = ops[Math.floor(Math.random() * ops.length)];
+        
+        switch (newOp) {
+          case 'ADD':
+            if (Math.random() > 0.7) {
+               n1 = (Math.floor(Math.random() * 3) + 1) * 10; 
+               n2 = 10;
+            } else {
+               n1 = Math.floor(Math.random() * 5) + 1; 
+               n2 = Math.floor(Math.random() * 5) + 1;
+            }
+            break;
+          case 'SUB':
+            n1 = Math.floor(Math.random() * 8) + 2; 
+            n2 = Math.floor(Math.random() * (n1 - 1)) + 1; 
+            break;
+          case 'MUL':
+            n2 = 2; 
+            n1 = Math.floor(Math.random() * 4) + 1;
+            break;
+          case 'DIV':
+            n2 = 2;
+            n1 = n2 * (Math.floor(Math.random() * 4) + 1); 
+            break;
         }
-        break;
-      case 'SUB':
-        n1 = Math.floor(Math.random() * 8) + 2; 
-        n2 = Math.floor(Math.random() * (n1 - 1)) + 1; 
-        break;
-      case 'MUL':
-        n2 = 2; 
-        n1 = Math.floor(Math.random() * 4) + 1;
-        break;
-      case 'DIV':
-        n2 = 2;
-        n1 = n2 * (Math.floor(Math.random() * 4) + 1); 
-        break;
+
+        const problemKey = `${n1}${newOp}${n2}`;
+        if (!historyRef.current.includes(problemKey)) {
+            isValid = true;
+            // Add to history
+            historyRef.current.push(problemKey);
+            // Keep history limited to last 40
+            if (historyRef.current.length > 40) {
+                historyRef.current.shift();
+            }
+        }
     }
     
+    setOperation(newOp);
     setNum1(n1);
     setNum2(n2);
   };

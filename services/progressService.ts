@@ -52,6 +52,7 @@ export const getDailyProgress = (): DailyProgress => {
   if (stored) {
     const parsed = JSON.parse(stored) as DailyProgress;
     if (parsed.date === today && parsed.profileId === profileId) {
+      // Robust initialization for new fields
       if (typeof parsed.wordSearchSolved === 'undefined') parsed.wordSearchSolved = 0;
       return parsed;
     }
@@ -95,7 +96,7 @@ export const fetchRemoteProgress = async (): Promise<DailyProgress | null> => {
             wordLevel: data.word_level,
             faithDone: data.faith_done,
             mazesSolved: data.mazes_solved,
-            wordSearchSolved: data.word_search_solved || 0,
+            wordSearchSolved: data.word_search_solved || 0, // Ensure default
             arcadeUnlocked: data.arcade_unlocked,
             profileId: data.profile_id
         };
@@ -149,7 +150,9 @@ export const incrementMath = (): boolean => {
 
 export const incrementWordSearch = (): boolean => {
   const p = getDailyProgress();
+  // Ensure number
   const current = p.wordSearchSolved || 0;
+  
   if (current < GOALS.WORD_SEARCH) {
     p.wordSearchSolved = current + 1;
     checkUnlock(p);

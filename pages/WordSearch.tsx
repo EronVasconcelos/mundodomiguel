@@ -5,7 +5,11 @@ import { Trophy, RefreshCw, Check, Star } from 'lucide-react';
 import { incrementWordSearch, getDailyProgress, getGoals } from '../services/progressService';
 
 const GRID_SIZE = 8;
-const WORDS_POOL = ['PATO', 'GATO', 'BOLA', 'CASA', 'UVA', 'OVO', 'SOL', 'LUA', 'DADO', 'MALA', 'VACA', 'FACA', 'REI', 'PÉ', 'MÃO'];
+const WORDS_POOL = [
+  'PATO', 'GATO', 'BOLA', 'CASA', 'UVA', 'OVO', 'SOL', 'LUA', 
+  'DADO', 'MALA', 'VACA', 'FACA', 'REI', 'PÉ', 'MÃO',
+  'BANANA', 'TOMATE', 'ESCOLA', 'TAPETE', 'BONITA', 'CAMISA', 'JANELA', 'SAPATO', 'PIPOCA'
+];
 
 type Cell = {
   letter: string;
@@ -25,6 +29,8 @@ const WordSearch: React.FC = () => {
   
   const [missionStats, setMissionStats] = useState({ current: 0, target: 3 });
   
+  // Track used words to prevent repeats
+  const usedWordsRef = useRef<string[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,8 +43,22 @@ const WordSearch: React.FC = () => {
 
   const startNewGame = () => {
     setShowMissionComplete(false);
-    const shuffled = [...WORDS_POOL].sort(() => Math.random() - 0.5);
+    
+    // Filter out words already used in this session
+    let availableWords = WORDS_POOL.filter(w => !usedWordsRef.current.includes(w));
+    
+    // Reset used list if we ran out of words
+    if (availableWords.length < 3) {
+        usedWordsRef.current = [];
+        availableWords = WORDS_POOL;
+    }
+
+    const shuffled = [...availableWords].sort(() => Math.random() - 0.5);
     const chosen = shuffled.slice(0, 3);
+    
+    // Add chosen words to used list
+    usedWordsRef.current = [...usedWordsRef.current, ...chosen];
+
     setTargetWords(chosen);
     setFoundWords([]);
     setWon(false);
