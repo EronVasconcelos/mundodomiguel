@@ -9,6 +9,7 @@ const ColoringBook: React.FC = () => {
   const [tool, setTool] = useState<'pen' | 'eraser' | 'bucket'>('bucket');
   const [brushSize, setBrushSize] = useState(8);
   const [showGallery, setShowGallery] = useState(true);
+  const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
   
   // Gallery State (Persisted in LocalStorage)
   const [savedImages, setSavedImages] = useState<string[]>([]);
@@ -27,15 +28,29 @@ const ColoringBook: React.FC = () => {
     }
   }, []);
 
+  // Initialize Canvas Logic - Unifies the loading flow
   useEffect(() => {
     if (!showGallery) {
-      // Small delay to ensure container is rendered
-      setTimeout(initCanvas, 100);
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        initCanvas();
+        
+        // If there is an active template selected, draw it AFTER initialization
+        if (activeTemplate) {
+           drawImageTemplate(activeTemplate);
+        }
+      }, 100);
+    } else {
+       // Reset active template when going back to gallery
+       setActiveTemplate(null);
     }
-  }, [showGallery]); 
+  }, [showGallery, activeTemplate]); 
 
   const saveToGallery = (imageBase64: string) => {
     try {
+      // Avoid duplicates
+      if (savedImages.includes(imageBase64)) return;
+      
       const newGallery = [imageBase64, ...savedImages];
       setSavedImages(newGallery);
       localStorage.setItem('miguel_coloring_gallery', JSON.stringify(newGallery));
@@ -44,10 +59,13 @@ const ColoringBook: React.FC = () => {
     }
   };
 
-  const deleteFromGallery = (e: React.MouseEvent, index: number) => {
+  const deleteFromGallery = (e: React.MouseEvent | React.TouchEvent, indexToDelete: number) => {
+    // CRITICAL: Stop event from bubbling to parent elements
     e.stopPropagation();
-    if (confirm("Quer apagar esse desenho?")) {
-      const newGallery = savedImages.filter((_, i) => i !== index);
+    e.preventDefault();
+
+    if (window.confirm("Quer mesmo apagar este desenho?")) {
+      const newGallery = savedImages.filter((_, i) => i !== indexToDelete);
       setSavedImages(newGallery);
       localStorage.setItem('miguel_coloring_gallery', JSON.stringify(newGallery));
     }
@@ -71,14 +89,11 @@ const ColoringBook: React.FC = () => {
     }
   };
 
-  const loadTemplate = (src: string) => {
+  const drawImageTemplate = (src: string) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = src;
     img.onload = () => {
-      setShowGallery(false);
-      setTimeout(() => {
-        initCanvas();
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext('2d');
         if (canvas && ctx) {
@@ -90,12 +105,18 @@ const ColoringBook: React.FC = () => {
           const x = (rect.width - w) / 2;
           const y = (rect.height - h) / 2;
           
+          // Ensure white background behind transparent PNGs
           ctx.fillStyle = "white";
-          ctx.fillRect(0,0,rect.width, rect.height);
+          ctx.fillRect(0,0, rect.width, rect.height);
+          
           ctx.drawImage(img, x, y, w, h);
         }
-      }, 100);
     };
+  };
+
+  const loadTemplate = (src: string) => {
+    setActiveTemplate(src);
+    setShowGallery(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,7 +126,7 @@ const ColoringBook: React.FC = () => {
       reader.onload = (event) => {
         const src = event.target?.result as string;
         saveToGallery(src);
-        loadTemplate(src);
+        // We don't automatically open it, user sees it in gallery
       };
       reader.readAsDataURL(file);
     }
@@ -287,18 +308,23 @@ const ColoringBook: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-2 gap-3 content-start">
                         {savedImages.map((src, i) => (
-                        <div key={i} className="relative group animate-pop">
+                        <div key={src.substring(0, 100) + i} className="relative group animate-pop">
                             <button 
-                            onClick={() => loadTemplate(src)}
-                            className="w-full aspect-square bg-white rounded-3xl border border-slate-100 p-2 flex items-center justify-center transition-all overflow-hidden active:scale-95 shadow-sm"
+                              onClick={() => loadTemplate(src)}
+                              className="w-full aspect-square bg-white rounded-3xl border border-slate-100 p-2 flex items-center justify-center transition-all overflow-hidden active:scale-95 shadow-sm"
                             >
-                            <img src={src} className="w-full h-full object-contain" />
+                               <img src={src} className="w-full h-full object-contain" alt="Gallery item" />
                             </button>
+                            
+                            {/* Delete Button - Improved Event Handling */}
                             <button 
-                            onClick={(e) => deleteFromGallery(e, i)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full shadow-md active:scale-90 transition-transform"
+                              type="button"
+                              onClick={(e) => deleteFromGallery(e, i)}
+                              onTouchStart={(e) => e.stopPropagation()} // Stop touch propagation specifically
+                              className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-500 hover:bg-red-600 text-white w-10 h-10 rounded-full shadow-md active:scale-90 transition-all flex items-center justify-center z-50 border-4 border-white cursor-pointer"
+                              aria-label="Deletar desenho"
                             >
-                            <Trash2 size={16} />
+                              <Trash2 size={18} />
                             </button>
                         </div>
                         ))}
