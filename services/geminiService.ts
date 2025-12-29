@@ -1,5 +1,5 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { StoryData } from '../types';
+import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { StoryData, DevotionalData } from '../types';
 
 // --- OFFLINE CONTENT DATABASE ---
 // Simpler, Flat Design SVGs (Storybook Style) to ensure compatibility and reliability.
@@ -24,6 +24,8 @@ const OFFLINE_IMAGES = {
   HERO: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="%23dbeafe"/><path d="M200 20 L250 150 L380 150 L270 230 L320 380 L200 280 L80 380 L130 230 L20 150 L150 150 Z" fill="%2360a5fa" opacity="0.3"/><text x="200" y="240" font-size="160" text-anchor="middle">🦸</text><text x="320" y="80" font-size="60" text-anchor="middle">⚡</text></svg>`,
   
   NUMBERS: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="%23f3f4f6"/><rect x="50" y="50" width="140" height="140" fill="%23f87171" rx="20"/><rect x="210" y="50" width="140" height="140" fill="%2360a5fa" rx="20"/><rect x="50" y="210" width="140" height="140" fill="%23facc15" rx="20"/><rect x="210" y="210" width="140" height="140" fill="%234ade80" rx="20"/><text x="200" y="260" font-size="120" text-anchor="middle">123</text></svg>`,
+  
+  PRAYER: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="%23f0f9ff"/><circle cx="200" cy="200" r="150" fill="%23e0f2fe"/><path d="M200 100 L230 180 L310 180 L250 230 L270 310 L200 260 L130 310 L150 230 L90 180 L170 180 Z" fill="%23fde047" stroke="%23facc15" stroke-width="10"/><text x="200" y="350" font-size="60" text-anchor="middle">🙏</text></svg>`
 };
 
 // Map topics directly to specific stories to ensure relevance.
@@ -40,6 +42,7 @@ const SPECIFIC_STORIES: Record<string, StoryData & { image: string }> = {
     moral: "Mesmo quando algo dá errado, consertar e tentar de novo nos leva à vitória.",
     image: OFFLINE_IMAGES.SOCCER
   },
+  // ... other existing stories ...
   "Bombeiro Herói": {
     title: "O Resgate do Dragãozinho",
     content: "Miguel era o chefe dos bombeiros da Floresta Encantada. Seu caminhão vermelho era enorme e soltava bolhas de sabão em vez de fumaça.\nUm dia, o telefone tocou: 'Chefe Miguel! O bebê dragão espirrou fogo sem querer e prendeu a cauda na árvore mais alta!'.\nMiguel colocou seu capacete e correu para lá. O caminhão voou por cima do rio e chegou na montanha.\nO dragãozinho estava assustado. Miguel esticou a escada magica, que crescia, crescia e crescia até tocar as nuvens.\nCom muito cuidado, Miguel subiu. Ele não usou água para apagar o fogo, mas sim cócegas! Ele fez cócegas na barriga do dragão, que riu tanto que soltou a cauda da árvore.\nO dragão desceu no colo de Miguel e prometeu só espirrar fogo para acender velas de aniversário.",
@@ -95,6 +98,18 @@ const GENERIC_BACKUP_STORY: StoryData & { image: string } = {
   content: "Miguel é um menino muito curioso que adora descobrir coisas novas. Seja lendo um livro, brincando no parque ou desenhando, ele sempre encontra uma forma de se divertir.\nHoje, ele aprendeu que usar a imaginação é como ter uma chave mágica que abre portas para qualquer lugar do mundo. Ele pode ser um astronauta, um pirata ou um cientista, tudo isso sem sair do seu quarto.\nE você? O que quer imaginar hoje?",
   moral: "A imaginação é o brinquedo mais divertido que existe.",
   image: OFFLINE_IMAGES.HERO
+};
+
+// --- BACKUP DEVOTIONAL ---
+const OFFLINE_DEVOTIONAL: DevotionalData = {
+  date: new Date().toDateString(),
+  verse: "O Senhor é o meu pastor; de nada terei falta.",
+  reference: "Salmos 23:1",
+  devotional: "Isso significa que Deus cuida de você como um pastor cuida de suas ovelhinhas. Ele garante que você tenha tudo o que precisa, como comida, família e amor. Você não precisa ter medo, porque Ele está sempre por perto!",
+  storyTitle: "A Ovelhinha Perdida",
+  storyContent: "Miguel estava brincando de fazendinha com seus animais de brinquedo. Ele tinha muitas ovelhinhas brancas, mas percebeu que a menorzinha, a 'Algodão', tinha sumido!\nEle procurou debaixo do sofá, atrás da cortina e até dentro da caixa de sapatos. Nada da Algodão.\nMiguel ficou preocupado, assim como o pastor da Bíblia fica quando uma ovelha se perde. Ele não desistiu. 'Eu vou te achar, Algodão!', disse ele.\nDepois de muito procurar, ele viu uma pontinha branca atrás do travesseiro. Era ela! Miguel ficou tão feliz que deu um abraço na ovelhinha.\nEle entendeu que Deus faz a mesma coisa com a gente. Se a gente se perde ou fica triste, Deus vem nos buscar e nos dá um abraço quentinho no coração.",
+  prayer: "Querido Deus, obrigado por cuidar de mim como um pastor cuida da ovelhinha. Obrigado por nunca me deixar sozinho. Amém.",
+  imagePrompt: "A cute fluffy sheep hiding behind a pillow in a cozy child's room, soft lighting, pixar style, 3d render"
 };
 
 // Helper to get a local story directly
@@ -195,6 +210,112 @@ export const generateStoryText = async (topic: string): Promise<StoryData> => {
   }
 };
 
+// --- FAITH / DEVOTIONAL GENERATOR ---
+export const generateDevotionalContent = async (): Promise<DevotionalData> => {
+  const today = new Date().toDateString();
+  const stored = localStorage.getItem('miguel_daily_devotional');
+  
+  // Check if we already have today's devotional saved
+  if (stored) {
+    const parsed = JSON.parse(stored) as DevotionalData;
+    if (parsed.date === today) {
+      return parsed;
+    }
+  }
+
+  // If No API key, return offline content immediately
+  if (!process.env.API_KEY) {
+    return { ...OFFLINE_DEVOTIONAL, date: today };
+  }
+
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = `
+    Crie um devocional cristão diário para uma criança de 5 anos chamada Miguel.
+    
+    Gere um objeto JSON com:
+    1. 'verse': Um versículo bíblico curto e fácil de entender (NVI).
+    2. 'reference': A referência bíblica (ex: Salmos 23:1).
+    3. 'devotional': Uma explicação muito simples e carinhosa do versículo para uma criança. Use linguagem como "Isso significa que...".
+    4. 'storyTitle': Título de uma história curta.
+    5. 'storyContent': Uma história curta (aprox 150 palavras) onde o menino Miguel aplica o ensinamento do versículo no dia a dia dele.
+    6. 'prayer': Uma oração curta de 2 frases para o Miguel repetir.
+    7. 'imagePrompt': Um prompt em inglês para gerar uma imagem 3D estilo Pixar relacionada à história, fofa e pacífica.
+
+    Retorne APENAS JSON.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            verse: { type: Type.STRING },
+            reference: { type: Type.STRING },
+            devotional: { type: Type.STRING },
+            storyTitle: { type: Type.STRING },
+            storyContent: { type: Type.STRING },
+            prayer: { type: Type.STRING },
+            imagePrompt: { type: Type.STRING },
+          },
+          required: ["verse", "reference", "devotional", "storyTitle", "storyContent", "prayer", "imagePrompt"],
+        },
+      },
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Falha na API");
+    
+    const data = JSON.parse(text) as Omit<DevotionalData, 'date'>;
+    const finalData: DevotionalData = { ...data, date: today };
+    
+    // Save to localStorage so we don't regenerate today
+    localStorage.setItem('miguel_daily_devotional', JSON.stringify(finalData));
+    
+    return finalData;
+
+  } catch (error) {
+    console.error("Faith API Error", error);
+    return { ...OFFLINE_DEVOTIONAL, date: today };
+  }
+};
+
+// --- AUDIO GENERATION (TTS) ---
+export const generateDevotionalAudio = async (text: string): Promise<string | null> => {
+  if (!process.env.API_KEY) return null;
+
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-preview-tts',
+      contents: { parts: [{ text: text }] },
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: 'Kore' }, // 'Kore' is usually calm/soothing
+          },
+        },
+      },
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return part.inlineData.data;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("TTS Generation failed:", error);
+    return null;
+  }
+};
+
+
 export const generateStoryImage = async (storyPrompt: string): Promise<string> => {
   // Check session first (set by local fallback or previous generation)
   const storedOfflineImage = sessionStorage.getItem('last_offline_image');
@@ -208,7 +329,7 @@ export const generateStoryImage = async (storyPrompt: string): Promise<string> =
   
   try {
     // 3D Realistic / Pixar / Unreal Engine Style Prompting
-    const prompt = `Masterpiece 3D render, cute styling, Pixar style, Disney animation style, 8k resolution, unreal engine 5 render, cinematic lighting, volumetric light, highly detailed 3D textures, vivid colors: ${storyPrompt.substring(0, 300)}`;
+    const prompt = `Masterpiece 3D render, cute styling, Pixar style, Disney animation style, 8k resolution, unreal engine 5 render, cinematic lighting, volumetric light, highly detailed 3D textures, vivid colors, peaceful, biblical or moral theme if applicable: ${storyPrompt.substring(0, 300)}`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',

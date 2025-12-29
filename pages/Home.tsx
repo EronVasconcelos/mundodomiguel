@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
 import { Layout } from '../components/Layout';
+import { Gamepad2, Heart } from 'lucide-react';
 
 // --- STICKER ILLUSTRATIONS ---
 const MathIllustration = () => (
@@ -56,6 +57,17 @@ const ColoringIllustration = () => (
     <path d="M40 20 L50 5 L60 20" fill="#FBCFE8" transform="rotate(15 50 50)" />
   </svg>
 );
+
+const FaithIllustration = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+    <circle cx="50" cy="50" r="40" fill="#E0F2FE" />
+    <path d="M30 60 Q50 80 70 60 L80 40 L50 50 L20 40 Z" fill="#fff" opacity="0.8"/>
+    <path d="M25 45 Q50 20 75 45" stroke="#0EA5E9" strokeWidth="4" fill="none" strokeLinecap="round" />
+    <path d="M50 25 L50 75" stroke="#0EA5E9" strokeWidth="4" strokeLinecap="round"/>
+    <path d="M30 40 L70 40" stroke="#0EA5E9" strokeWidth="4" strokeLinecap="round"/>
+  </svg>
+);
+
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -135,13 +147,45 @@ const Home: React.FC = () => {
            </button>
         </div>
 
-        {/* --- ROW 3: ACTION (Blue Wide Card) --- */}
+        {/* --- ROW 3: FAITH (New!) --- */}
+        <button 
+          onClick={() => navigate(AppRoute.FAITH)}
+          className="bg-sky-400 rounded-[2.5rem] p-6 text-left text-white shadow-[0_15px_30px_-10px_rgba(56,189,248,0.5)] active:scale-95 transition-transform relative overflow-hidden group flex items-center gap-6 border-b-8 border-sky-500 active:border-b-0 active:translate-y-2 h-36 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-blend-overlay"
+        >
+           <div className="w-20 h-20 flex-shrink-0 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-white/30">
+               <Heart className="w-10 h-10 text-white fill-white animate-pulse" />
+           </div>
+           
+           <div className="relative z-10 flex-1">
+              <span className="text-xs font-bold text-sky-100 uppercase tracking-wider block">Devocional Diário</span>
+              <span className="text-3xl font-black leading-none text-white">Cantinho da Fé</span>
+              <span className="text-sky-100 text-xs font-bold mt-2 block">Histórias e Orações</span>
+           </div>
+        </button>
+
+        {/* --- ROW 4: ARCADE --- */}
+        <button 
+          onClick={() => navigate(AppRoute.ARCADE)}
+          className="bg-slate-800 rounded-[2.5rem] p-6 text-left text-white shadow-[0_15px_30px_-10px_rgba(15,23,42,0.5)] active:scale-95 transition-transform relative overflow-hidden group flex items-center gap-6 border-b-8 border-slate-900 active:border-b-0 active:translate-y-2 h-36"
+        >
+           <div className="w-20 h-20 flex-shrink-0 bg-slate-700 rounded-2xl flex items-center justify-center text-yellow-400 shadow-inner">
+               <Gamepad2 size={40} />
+           </div>
+           
+           <div className="relative z-10 flex-1">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Joguinhos</span>
+              <span className="text-3xl font-black leading-none bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-pink-500">Arcade</span>
+              <span className="text-slate-400 text-xs font-bold mt-2 block">Memória, Snake e mais!</span>
+           </div>
+        </button>
+
+        {/* --- ROW 5: ACTION (Blue Wide Card) --- */}
         <button 
           onClick={() => navigate(AppRoute.CHALLENGE)}
           className="bg-blue-500 rounded-[2.5rem] p-6 text-left text-white shadow-[0_15px_30px_-10px_rgba(59,130,246,0.5)] active:scale-95 transition-transform relative overflow-hidden group flex items-center justify-between border-b-8 border-blue-600 active:border-b-0 active:translate-y-2 h-36"
         >
            <div className="relative z-10 flex flex-col gap-1">
-              <span className="inline-block bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-1 rounded-md self-start uppercase shadow-sm">Novo</span>
+              <span className="inline-block bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-1 rounded-md self-start uppercase shadow-sm">Labirinto</span>
               <span className="text-xs font-bold text-blue-100 uppercase tracking-wider mt-1">Ação</span>
               <h2 className="text-3xl font-black leading-none">Arena de <br/> Desafios</h2>
            </div>
@@ -154,7 +198,7 @@ const Home: React.FC = () => {
            <div className="absolute right-0 top-0 h-full w-2/3 bg-gradient-to-l from-blue-400/30 to-transparent skew-x-12" />
         </button>
 
-        {/* --- ROW 4: STORY (Green Wide Card) --- */}
+        {/* --- ROW 6: STORY (Green Wide Card) --- */}
         <button 
           onClick={() => navigate(AppRoute.STORY)}
           className="bg-emerald-400 rounded-[2.5rem] p-6 text-left text-white shadow-[0_15px_30px_-10px_rgba(52,211,153,0.5)] active:scale-95 transition-transform relative overflow-hidden group flex items-center gap-6 border-b-8 border-emerald-500 active:border-b-0 active:translate-y-2 h-36"
