@@ -95,7 +95,6 @@ const WORDS_DB = [
 ];
 
 const WordLearning: React.FC = () => {
-  // Sync state with global daily progress on mount
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -103,9 +102,9 @@ const WordLearning: React.FC = () => {
   const [shuffledSyllables, setShuffledSyllables] = useState<string[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
   const [filteredWords, setFilteredWords] = useState(WORDS_DB.filter(w => w.level === 1));
+  const [showMissionComplete, setShowMissionComplete] = useState(false);
 
   useEffect(() => {
-    // Resume from saved daily progress if higher
     const progress = getDailyProgress();
     if (progress.wordLevel > 1) {
         setLevel(Math.min(progress.wordLevel, 4));
@@ -113,9 +112,8 @@ const WordLearning: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Filter words by current level
     const words = WORDS_DB.filter(w => w.level === level);
-    setFilteredWords(words.sort(() => Math.random() - 0.5)); // Shuffle order
+    setFilteredWords(words.sort(() => Math.random() - 0.5));
     setCurrentWordIndex(0);
   }, [level]);
 
@@ -128,7 +126,6 @@ const WordLearning: React.FC = () => {
   const startLevel = () => {
     setSelectedSyllables([]);
     setIsSuccess(false);
-    // Shuffle syllables
     const syls = [...currentWord.syllables].sort(() => Math.random() - 0.5);
     setShuffledSyllables(syls);
   };
@@ -145,7 +142,6 @@ const WordLearning: React.FC = () => {
        setIsSuccess(true);
        setScore(prev => prev + 1);
     } else if (!targetString.startsWith(currentString)) {
-       // Wrong sequence, shake effect (implied) and reset
        setTimeout(() => {
          setSelectedSyllables([]);
        }, 400);
@@ -154,10 +150,10 @@ const WordLearning: React.FC = () => {
 
   const nextWord = () => {
     if (score > 0 && score % 5 === 0 && level < 4) {
-      // Level Up!
       const newLevel = level + 1;
       setLevel(newLevel);
-      updateWordLevel(newLevel); // Sync global progress
+      const reached = updateWordLevel(newLevel); 
+      if (reached) setTimeout(() => setShowMissionComplete(true), 800);
     } else {
       setCurrentWordIndex((prev) => (prev + 1) % filteredWords.length);
     }
@@ -197,7 +193,6 @@ const WordLearning: React.FC = () => {
     <Layout title={getLevelName()} color={getLevelTextColor()}>
       <div className="flex flex-col h-full items-center justify-between p-4 pb-8">
         
-        {/* Progress Bar & Level Indicator */}
         <div className="w-full max-w-xs flex flex-col gap-2 mb-4">
            <div className="flex justify-between items-center px-2">
              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Progresso</span>
@@ -215,14 +210,12 @@ const WordLearning: React.FC = () => {
            </div>
         </div>
 
-        {/* Image Display */}
         <div className="flex-1 flex flex-col items-center justify-center w-full">
             <div className={`w-56 h-56 bg-white rounded-[3rem] flex items-center justify-center text-[8rem] mb-8 border-b-8 border-slate-200 relative`}>
               {level === 4 && <Crown className="absolute -top-6 -right-6 text-yellow-400 fill-yellow-400 w-16 h-16 animate-bounce" />}
               {currentWord?.icon}
             </div>
 
-            {/* Success Feedback */}
             {isSuccess ? (
             <div className="flex flex-col items-center animate-slide-up">
                 <div className="flex items-center gap-2 mb-2">
@@ -247,11 +240,9 @@ const WordLearning: React.FC = () => {
             )}
         </div>
 
-        {/* Syllable Keyboard */}
         {!isSuccess && (
           <div className="flex flex-wrap gap-3 justify-center max-w-md w-full">
             {shuffledSyllables.map((syl, idx) => {
-              // Simple usage tracking logic
               const timesInWord = currentWord?.syllables.filter(x => x === syl).length || 0;
               const timesSelected = selectedSyllables.filter(x => x === syl).length;
               const isUsed = timesSelected >= timesInWord;
@@ -279,6 +270,26 @@ const WordLearning: React.FC = () => {
              <RefreshCw size={16} /> Reiniciar palavra
            </button>
         </div>
+
+        {/* Mission Complete Popup */}
+        {showMissionComplete && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
+               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+                  <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                     <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 text-center mb-2">PARABÉNS!</h2>
+                  <p className="text-slate-500 font-bold text-center mb-6">Você completou o Nível {level-1}!</p>
+                  
+                  <button 
+                    onClick={() => setShowMissionComplete(false)}
+                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
+                  >
+                    CONTINUAR
+                  </button>
+               </div>
+            </div>
+        )}
       </div>
     </Layout>
   );

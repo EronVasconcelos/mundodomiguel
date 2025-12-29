@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from './services/supabase';
@@ -10,6 +11,7 @@ import MathBlocks from './pages/MathBlocks';
 import ArtStudio from './pages/ArtStudio';
 import ColoringBook from './pages/ColoringBook';
 import ChallengeArena from './pages/ChallengeArena';
+import WordSearch from './pages/WordSearch';
 import WordLearning from './pages/WordLearning';
 import StoryTime from './pages/StoryTime';
 import FaithCorner from './pages/FaithCorner';
@@ -83,6 +85,7 @@ function App() {
           <Route path={AppRoute.ART} element={<ArtStudio />} />
           <Route path={AppRoute.COLORING} element={<ColoringBook />} />
           <Route path={AppRoute.CHALLENGE} element={<ChallengeArena />} />
+          <Route path={AppRoute.WORD_SEARCH} element={<WordSearch />} />
           <Route path={AppRoute.WORDS} element={<WordLearning />} />
           <Route path={AppRoute.STORY} element={<StoryTime />} />
           <Route path={AppRoute.FAITH} element={<FaithCorner />} />

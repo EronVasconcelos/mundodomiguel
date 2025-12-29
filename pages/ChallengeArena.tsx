@@ -25,9 +25,11 @@ const ChallengeArena: React.FC = () => {
   const [playerPos, setPlayerPos] = useState({ x: 0, y: 0 });
   const [won, setWon] = useState(false);
   const [theme, setTheme] = useState(THEMES[0]);
+  const [showMissionComplete, setShowMissionComplete] = useState(false);
 
   // DFS Maze Generation
   const generateMaze = () => {
+    setShowMissionComplete(false);
     setTheme(THEMES[Math.floor(Math.random() * THEMES.length)]);
 
     const grid: Cell[] = [];
@@ -107,7 +109,8 @@ const ChallengeArena: React.FC = () => {
       setPlayerPos({ x: newX, y: newY });
       if (newX === SIZE - 1 && newY === SIZE - 1) {
         setWon(true);
-        incrementMaze(); // Track progress
+        const reached = incrementMaze(); // Track progress
+        if (reached) setTimeout(() => setShowMissionComplete(true), 1000);
       }
     }
   };
@@ -184,6 +187,26 @@ const ChallengeArena: React.FC = () => {
           <button onClick={generateMaze} className="mt-8 flex items-center gap-2 text-slate-400 font-bold px-6 py-2 rounded-full hover:bg-white transition-colors">
             <RefreshCcw className="w-4 h-4"/> Mudar Missão
           </button>
+        )}
+
+        {/* Mission Complete Popup */}
+        {showMissionComplete && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
+               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+                  <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                     <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 text-center mb-2">MISSÃO LABIRINTO!</h2>
+                  <p className="text-slate-500 font-bold text-center mb-6">Você completou 3 labirintos hoje.</p>
+                  
+                  <button 
+                    onClick={() => setShowMissionComplete(false)}
+                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
+                  >
+                    CONTINUAR JOGANDO
+                  </button>
+               </div>
+            </div>
         )}
       </div>
     </Layout>

@@ -4,7 +4,7 @@ import { AppRoute, GameState } from '../../types';
 import { ArrowLeft, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 
 const GRID_SIZE = 15;
-const SPEED = 200;
+const INITIAL_SPEED = 200;
 
 type Point = { x: number, y: number };
 
@@ -12,24 +12,27 @@ const SnakeGame: React.FC = () => {
   const navigate = useNavigate();
   const [snake, setSnake] = useState<Point[]>([{ x: 7, y: 7 }]);
   const [food, setFood] = useState<Point>({ x: 5, y: 5 });
-  const [direction, setDirection] = useState<Point>({ x: 0, y: 0 }); // Start static
+  const [direction, setDirection] = useState<Point>({ x: 0, y: 0 }); 
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [score, setScore] = useState(0);
+  const [currentSpeed, setCurrentSpeed] = useState(INITIAL_SPEED);
   const gameLoopRef = useRef<any>(null);
 
   useEffect(() => {
     if (gameState === GameState.PLAYING) {
-      gameLoopRef.current = setInterval(moveSnake, SPEED);
+      if (gameLoopRef.current) clearInterval(gameLoopRef.current);
+      gameLoopRef.current = setInterval(moveSnake, currentSpeed);
     } else {
       if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     }
     return () => { if (gameLoopRef.current) clearInterval(gameLoopRef.current); };
-  }, [gameState, snake, direction]);
+  }, [gameState, snake, direction, currentSpeed]);
 
   const startGame = () => {
     setSnake([{ x: 7, y: 7 }, { x: 7, y: 8 }]);
-    setDirection({ x: 0, y: -1 }); // Moving Up
+    setDirection({ x: 0, y: -1 });
     setScore(0);
+    setCurrentSpeed(INITIAL_SPEED);
     spawnFood();
     setGameState(GameState.PLAYING);
   };
@@ -44,13 +47,11 @@ const SnakeGame: React.FC = () => {
     const head = snake[0];
     const newHead = { x: head.x + direction.x, y: head.y + direction.y };
 
-    // Check Wall Collision
     if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
       setGameState(GameState.GAME_OVER);
       return;
     }
 
-    // Check Self Collision
     if (snake.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
       setGameState(GameState.GAME_OVER);
       return;
@@ -58,12 +59,16 @@ const SnakeGame: React.FC = () => {
 
     const newSnake = [newHead, ...snake];
 
-    // Check Food
     if (newHead.x === food.x && newHead.y === food.y) {
-      setScore(s => s + 1);
+      const newScore = score + 1;
+      setScore(newScore);
       spawnFood();
+      // Increase speed every 2 points, capping at 80ms
+      if (newScore % 2 === 0) {
+        setCurrentSpeed(prev => Math.max(80, prev - 10));
+      }
     } else {
-      newSnake.pop(); // Remove tail
+      newSnake.pop(); 
     }
 
     setSnake(newSnake);
@@ -71,7 +76,6 @@ const SnakeGame: React.FC = () => {
 
   const changeDirection = (x: number, y: number) => {
     if (gameState !== GameState.PLAYING) return;
-    // Prevent 180 turn
     if (direction.x + x === 0 && direction.y + y === 0) return;
     setDirection({ x, y });
   };

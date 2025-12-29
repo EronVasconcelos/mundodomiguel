@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Layout } from '../components/Layout';
-import { Star, RefreshCw, Plus, Minus, X, Divide, Check } from 'lucide-react';
+import { Star, RefreshCw, Plus, Minus, X, Divide, Check, Trophy } from 'lucide-react';
 import { incrementMath } from '../services/progressService';
 
 const getCharacterStyle = (numberValue: number, blockIndex: number) => {
@@ -10,7 +10,6 @@ const getCharacterStyle = (numberValue: number, blockIndex: number) => {
   }
   if (numberValue >= 10 && numberValue % 10 === 0) return 'bg-white border-2 border-red-500 text-red-500';
   
-  // Flat vibrant colors
   switch (numberValue) {
     case 1: return 'bg-red-500 text-white';
     case 2: return 'bg-orange-500 text-white';
@@ -79,6 +78,7 @@ const MathBlocks: React.FC = () => {
   const [operation, setOperation] = useState<Operation>('ADD');
   const [userAnswer, setUserAnswer] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showMissionComplete, setShowMissionComplete] = useState(false);
 
   // Calculate correct answer
   let target = 0;
@@ -89,6 +89,7 @@ const MathBlocks: React.FC = () => {
 
   const generateProblem = () => {
     setShowConfetti(false);
+    setShowMissionComplete(false);
     setUserAnswer(null);
     
     // RANDOMIZE OPERATION
@@ -130,8 +131,11 @@ const MathBlocks: React.FC = () => {
     if (showConfetti) return;
     setUserAnswer(val);
     if (val === target) {
-      incrementMath(); // Track progress
+      const reached = incrementMath(); // Track progress
       setShowConfetti(true);
+      if (reached) {
+        setTimeout(() => setShowMissionComplete(true), 800);
+      }
     }
   };
 
@@ -210,7 +214,7 @@ const MathBlocks: React.FC = () => {
         </div>
 
         {/* Success Popup */}
-        {showConfetti && (
+        {showConfetti && !showMissionComplete && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
              <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl">
                 <div className="flex items-center gap-2 mb-4">
@@ -231,6 +235,26 @@ const MathBlocks: React.FC = () => {
                 </button>
              </div>
           </div>
+        )}
+
+        {/* Mission Complete Popup */}
+        {showMissionComplete && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
+               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+                  <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                     <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 text-center mb-2">MISSÃO MATEMÁTICA!</h2>
+                  <p className="text-slate-500 font-bold text-center mb-6">Você atingiu a meta de hoje.</p>
+                  
+                  <button 
+                    onClick={() => generateProblem()}
+                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
+                  >
+                    CONTINUAR JOGANDO
+                  </button>
+               </div>
+            </div>
         )}
       </div>
     </Layout>

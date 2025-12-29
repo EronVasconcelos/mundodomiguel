@@ -60,7 +60,7 @@ const RacingGame: React.FC = () => {
     ctx.fillRect(x + 4, y + height * 0.2, width - 8, height * 0.25);
     
     // Roof
-    ctx.fillStyle = color; // Darker version of color usually, but keeping simple
+    ctx.fillStyle = color; 
     ctx.fillRect(x + 2, y + height * 0.45, width - 4, height * 0.3);
 
     // Lights
@@ -95,13 +95,8 @@ const RacingGame: React.FC = () => {
     roadOffsetRef.current += speedRef.current;
     if (roadOffsetRef.current > 40) roadOffsetRef.current = 0;
 
-    // Increase difficulty slowly
-    speedRef.current += 0.002;
-
-    // Move Player (Smooth Steering)
-    // We update playerSmoothXRef based on input state if we had continuous input,
-    // but for simple touch buttons, we will just interpolate towards target if we implemented lanes.
-    // Here we assume playerSmoothXRef is updated by buttons directly.
+    // Increase difficulty slowly based on SCORE + Base increment
+    speedRef.current = 6 + (score / 50);
 
     // Spawn Enemies & Coins
     if (time - lastSpawnRef.current > (20000 / speedRef.current)) {
@@ -111,7 +106,7 @@ const RacingGame: React.FC = () => {
        if (Math.random() > 0.3) {
            // Spawn Enemy
            enemiesRef.current.push({
-               x: spawnX, // Logical lane
+               x: spawnX, 
                y: -100,
                color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)]
            });
@@ -143,7 +138,6 @@ const RacingGame: React.FC = () => {
     let crash = false;
     enemiesRef.current.forEach(e => {
         // Enemy Pixel Position
-        // Map logical lane 0,1,2 to 0.16, 0.5, 0.83 road percentage
         const enemyPct = (e.x * 0.333) + 0.166;
         const enemyPixelX = roadX + (enemyPct * roadW) - (playerCarW / 2);
         const enemyPixelY = e.y;
@@ -239,7 +233,7 @@ const RacingGame: React.FC = () => {
     enemiesRef.current.forEach(e => {
         const enemyPct = (e.x * 0.333) + 0.166;
         const ex = roadX + (enemyPct * roadW) - (playerCarW / 2);
-        // Note: Enemies face DOWN (lights logic inverted in helper)
+        // Note: Enemies face DOWN
         drawCar(ctx, ex, e.y, playerCarW, playerCarH, e.color, false);
     });
 

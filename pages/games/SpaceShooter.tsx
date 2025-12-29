@@ -46,12 +46,14 @@ const SpaceShooter: React.FC = () => {
       lastShotRef.current = time;
     }
 
-    // Spawn Enemies
-    if (time - spawnTimerRef.current > 1000) {
+    // Spawn Enemies - Increase spawn rate slightly with score
+    const spawnRate = Math.max(400, 1000 - (score * 5)); 
+    if (time - spawnTimerRef.current > spawnRate) {
        enemiesRef.current.push({
           x: Math.random() * (canvas.width - 30),
           y: -30,
-          speed: 2 + Math.random() * 2
+          // Speed increases with score
+          speed: 2 + Math.random() * 2 + (score / 100)
        });
        spawnTimerRef.current = time;
     }

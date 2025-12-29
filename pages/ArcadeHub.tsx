@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
-import { ArrowLeft, Gamepad2, Brain, Rocket, Bug, Flag } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Brain, Rocket, Activity, Flag } from 'lucide-react';
 
 const ArcadeHub: React.FC = () => {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ const ArcadeHub: React.FC = () => {
           <p className="text-indigo-400 font-bold text-sm">Escolha seu jogo favorito</p>
         </div>
 
-        {/* RACING GAME (NEW) */}
+        {/* RACING GAME */}
         <button 
           onClick={() => navigate(AppRoute.GAME_RACING)}
           className="group relative bg-gradient-to-br from-orange-500 to-red-600 rounded-[2.5rem] p-6 border-b-8 border-red-800 active:border-b-0 active:translate-y-2 transition-all shadow-lg shadow-orange-900/50 overflow-hidden"
@@ -53,7 +53,6 @@ const ArcadeHub: React.FC = () => {
                  <span className="block text-sm text-orange-100 mt-1 opacity-80">Desvie dos carros!</span>
               </div>
            </div>
-           {/* Decor Icons */}
            <div className="absolute -right-2 -bottom-2 opacity-20 transform rotate-12">
              <Flag size={120} />
            </div>
@@ -84,7 +83,7 @@ const ArcadeHub: React.FC = () => {
         >
            <div className="flex items-center gap-6 relative z-10">
               <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-white backdrop-blur-sm">
-                 <Bug size={40} />
+                 <Activity size={40} />
               </div>
               <div className="text-left">
                  <span className="block text-xs font-bold text-emerald-200 uppercase tracking-widest">Clássico</span>
@@ -92,7 +91,7 @@ const ArcadeHub: React.FC = () => {
                  <span className="block text-sm text-emerald-100 mt-1 opacity-80">Coma as frutinhas!</span>
               </div>
            </div>
-           <Bug className="absolute -right-4 -bottom-4 w-32 h-32 text-emerald-400/20 rotate-12 group-hover:scale-110 transition-transform" />
+           <Activity className="absolute -right-4 -bottom-4 w-32 h-32 text-emerald-400/20 rotate-12 group-hover:scale-110 transition-transform" />
         </button>
 
         {/* SPACE GAME */}

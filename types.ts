@@ -1,3 +1,4 @@
+
 export enum AppRoute {
   WELCOME = '/welcome',
   LOGIN = '/login',
@@ -8,6 +9,7 @@ export enum AppRoute {
   ART = '/art', 
   COLORING = '/coloring',
   CHALLENGE = '/challenge',
+  WORD_SEARCH = '/challenge/word-search', // New Route
   WORDS = '/words',
   STORY = '/story',
   FAITH = '/faith',
@@ -38,6 +40,7 @@ export interface DailyProgress {
   wordLevel: number;      // Target: 4
   faithDone: boolean;     // Target: true
   mazesSolved: number;    // Target: 3
+  wordSearchSolved: number; // Target: 2 (New)
   arcadeUnlocked: boolean;
 }
 

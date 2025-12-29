@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
-import { Cloud, Sun, Volume2, Star, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, ShieldCheck, Zap } from 'lucide-react';
+import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, Zap, Trophy } from 'lucide-react';
 import { completeFaith } from '../services/progressService';
 
 const FaithCorner: React.FC = () => {
@@ -11,45 +11,41 @@ const FaithCorner: React.FC = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [profile, setProfile] = useState<ChildProfile | null>(null);
+  const [showMissionComplete, setShowMissionComplete] = useState(false);
   
   const [showPremiumGate, setShowPremiumGate] = useState(false);
   const [aiActiveGlobal, setAiActiveGlobal] = useState(false);
   const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
 
-  // Audio State
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   useEffect(() => {
-    // 1. Load Profile
     const storedProfile = localStorage.getItem('child_profile');
     if (storedProfile) setProfile(JSON.parse(storedProfile));
 
-    // 2. Check Global AI Status
     const globalStatus = localStorage.getItem('ai_active_global') === 'true';
     setAiActiveGlobal(globalStatus);
 
     if (!globalStatus) {
-        // Only ask if not globally active and no decision made
         const decision = localStorage.getItem('ai_enabled_decision');
         if (decision === null) {
             setShowPremiumGate(true);
             setLoading(false);
-        } else if (decision === 'true' && hasAIStudio) {
-            // Should be active but flag missing? Try loading anyway
-            // In a real app we might re-verify token here
         }
     }
     
-    // Mark progress as completed just by visiting/reading
-    completeFaith();
+    // Mark progress on load
+    const reached = completeFaith();
+    if (reached) {
+      setTimeout(() => setShowMissionComplete(true), 2000); // Small delay to let content load first
+    }
   }, []);
 
   useEffect(() => {
     if (profile) {
-        // If gate is showing, wait. Otherwise load.
         if (!showPremiumGate) {
             loadContent(profile);
         }
@@ -59,7 +55,6 @@ const FaithCorner: React.FC = () => {
 
   const loadContent = async (currentProfile: ChildProfile) => {
     setLoading(true);
-    // Passing profile handles both AI and Offline generation internally in service
     const content = await generateDevotionalContent(currentProfile);
     setData(content);
     setLoading(false);
@@ -70,8 +65,6 @@ const FaithCorner: React.FC = () => {
     if (savedImg) {
         setImageUrl(savedImg);
     } else if (content.imagePrompt) {
-        // Only generate image if we have a prompt (implies AI was used or we have a prompt strategy)
-        // If offline mode returned no prompt, we get offline image.
         if (aiActiveGlobal || localStorage.getItem('ai_enabled_decision') === 'true') {
             setImageLoading(true);
             const img = await generateStoryImage(content.imagePrompt, currentProfile);
@@ -169,7 +162,6 @@ const FaithCorner: React.FC = () => {
         }
     }
 
-    // Fallback
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.lang = 'pt-BR';
     utterance.rate = 0.9; 
@@ -190,7 +182,6 @@ const FaithCorner: React.FC = () => {
                 </div>
             ) : data ? (
                 <div className="space-y-6 pb-12">
-                    {/* Header Card */}
                     <div className="bg-gradient-to-br from-sky-400 to-blue-500 rounded-[2.5rem] p-6 text-white shadow-lg relative overflow-hidden">
                         <Cloud className="absolute -top-4 -right-4 w-32 h-32 text-white/20" />
                         <Sun className="absolute top-4 left-4 w-12 h-12 text-yellow-300 animate-spin-slow" />
@@ -213,13 +204,11 @@ const FaithCorner: React.FC = () => {
                         {isGeneratingAudio ? "Preparando Voz..." : isSpeaking ? "Parar Áudio" : "Ouvir Devocional"}
                     </button>
 
-                    {/* Explanation */}
                     <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative">
                         <div className="absolute -top-3 left-6 bg-sky-100 text-sky-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">Para {profile?.name}</div>
                         <p className="text-lg leading-relaxed text-slate-600 font-medium">{data.devotional}</p>
                     </div>
 
-                    {/* Story */}
                     <div className="bg-white rounded-[2rem] p-6 border-l-8 border-sky-300 shadow-sm">
                         <div className="flex items-center gap-2 mb-4">
                             <BookOpen className="text-sky-500" size={24} />
@@ -230,7 +219,6 @@ const FaithCorner: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Image */}
                     <div className="relative aspect-square w-full bg-slate-200 rounded-[2.5rem] overflow-hidden shadow-inner border-4 border-white">
                         {imageLoading ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2">
@@ -246,7 +234,6 @@ const FaithCorner: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Prayer */}
                     <div className="bg-yellow-50 rounded-[2rem] p-6 border-2 border-yellow-100 text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1 bg-yellow-300" />
                         <h4 className="font-black text-yellow-600 uppercase tracking-widest mb-3 flex items-center justify-center gap-2"><Heart size={16} fill="#ca8a04" /> Hora de Orar</h4>
@@ -258,7 +245,25 @@ const FaithCorner: React.FC = () => {
             )}
         </Layout>
 
-        {/* --- PREMIUM GATE MODAL --- */}
+        {showMissionComplete && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
+               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+                  <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                     <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 text-center mb-2">DEVOCIONAL LIDO!</h2>
+                  <p className="text-slate-500 font-bold text-center mb-6">Que papai do céu te abençoe.</p>
+                  
+                  <button 
+                    onClick={() => setShowMissionComplete(false)}
+                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
+                  >
+                    AMÉM!
+                  </button>
+               </div>
+            </div>
+        )}
+
       {showPremiumGate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
            <div className="bg-white p-6 rounded-[2.5rem] max-w-md w-full relative shadow-2xl text-center">
