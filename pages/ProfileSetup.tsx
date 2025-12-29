@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, ChildProfile } from '../types';
 import { supabase } from '../services/supabase';
-import { ArrowRight, Check, Loader2 } from 'lucide-react';
+import { ArrowRight, Check, Loader2, Camera, Upload } from 'lucide-react';
 
 const ProfileSetup: React.FC = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [existingCount, setExistingCount] = useState(0);
@@ -19,6 +21,7 @@ const ProfileSetup: React.FC = () => {
     hairStyle: 'short',
     eyeColor: 'brown',
     skinTone: 'light',
+    photoUrl: undefined
   });
 
   useEffect(() => {
@@ -34,6 +37,22 @@ const ProfileSetup: React.FC = () => {
     }
   };
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+          alert("A foto é muito grande! Tente uma menor.");
+          return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const src = event.target?.result as string;
+        setProfile({ ...profile, photoUrl: src });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Helper function to generate SVG avatar string based on traits
   const generateAvatar = (p: ChildProfile): string => {
     const skinColors: Record<string, string> = { light: '#fde68a', medium: '#d4a373', dark: '#5c3a21' };
@@ -41,38 +60,29 @@ const ProfileSetup: React.FC = () => {
     
     const skin = skinColors[p.skinTone] || skinColors.light;
     const hair = hairColors[p.hairColor] || hairColors.brown;
-    const bg = p.gender === 'girl' ? '#fce7f3' : '#e0f2fe'; // pink-100 or sky-100
+    const bg = p.gender === 'girl' ? '#fce7f3' : '#e0f2fe'; 
 
-    // Hair Path Logic (Simplified)
     let hairSvg = '';
     if (p.hairStyle === 'short') {
-        hairSvg = `<path d="M70 60 C70 30 130 30 130 60 L130 90 C130 80 120 70 100 70 C80 70 70 80 70 90 Z" fill="${hair}"/>`; // Top crop
+        hairSvg = `<path d="M70 60 C70 30 130 30 130 60 L130 90 C130 80 120 70 100 70 C80 70 70 80 70 90 Z" fill="${hair}"/>`; 
     } else if (p.hairStyle === 'long') {
         hairSvg = `<path d="M60 60 C60 20 140 20 140 60 L140 140 C140 150 120 150 120 140 L120 100 L80 100 L80 140 C80 150 60 150 60 140 Z" fill="${hair}"/>`;
     } else if (p.hairStyle === 'curly') {
         hairSvg = `<path d="M65 60 C60 40 80 20 100 25 C120 20 140 40 135 60 C145 70 145 90 135 100 C135 120 115 130 100 125 C85 130 65 120 65 100 C55 90 55 70 65 60 Z" fill="${hair}"/>`;
     } else {
-        // Straight/Default
         hairSvg = `<path d="M65 60 C65 20 135 20 135 60 L135 120 L65 120 Z" fill="${hair}"/>`;
     }
 
     const svgString = `
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
         <rect width="200" height="200" fill="${bg}"/>
-        <!-- Hair Back (for long hair) -->
         ${p.hairStyle === 'long' ? `<path d="M70 80 L130 80 L130 150 L70 150 Z" fill="${hair}"/>` : ''}
-        <!-- Neck -->
         <rect x="85" y="140" width="30" height="40" fill="${skin}"/>
-        <!-- Shirt -->
         <path d="M50 200 Q100 160 150 200" fill="${p.gender === 'girl' ? '#f472b6' : '#60a5fa'}"/>
-        <!-- Face -->
         <circle cx="100" cy="100" r="45" fill="${skin}"/>
-        <!-- Eyes -->
         <circle cx="85" cy="95" r="5" fill="#1e293b"/>
         <circle cx="115" cy="95" r="5" fill="#1e293b"/>
-        <!-- Smile -->
         <path d="M90 120 Q100 130 110 120" stroke="#78350f" stroke-width="3" fill="none"/>
-        <!-- Hair Front -->
         ${hairSvg}
       </svg>
     `;
@@ -83,17 +93,14 @@ const ProfileSetup: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      // FIX: Use getUser() to ensure we have the correct user object
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         throw new Error("Sessão expirou. Por favor, faça login novamente.");
       }
 
-      // Generate visual avatar
       const generatedAvatar = generateAvatar(profile);
 
-      // Insert into Supabase
       const { data, error } = await supabase.from('child_profiles').insert({
           user_id: user.id,
           name: profile.name,
@@ -103,13 +110,13 @@ const ProfileSetup: React.FC = () => {
           hair_style: profile.hairStyle,
           eye_color: profile.eyeColor,
           skin_tone: profile.skinTone,
-          avatar_base: generatedAvatar // Save the generated SVG
+          avatar_base: generatedAvatar,
+          photo_url: profile.photoUrl // Saving base64 string directly
       }).select().single();
 
       if (error) throw error;
 
       if (data) {
-          // Set Active in Local Storage for Session
           const newProfile: ChildProfile = {
             id: data.id,
             name: data.name,
@@ -119,13 +126,12 @@ const ProfileSetup: React.FC = () => {
             hairStyle: data.hair_style,
             eyeColor: data.eye_color,
             skinTone: data.skin_tone,
-            avatarBase: data.avatar_base
+            avatarBase: data.avatar_base,
+            photoUrl: data.photo_url
           };
           
-          // Update Local Cache for instant access
           localStorage.setItem('active_profile_id', newProfile.id);
           
-          // Append to local list cache
           const storedList = localStorage.getItem('child_profiles');
           const list = storedList ? JSON.parse(storedList) : [];
           list.push(newProfile);
@@ -147,6 +153,31 @@ const ProfileSetup: React.FC = () => {
        <div className="text-center">
           <h2 className="text-3xl font-black text-slate-800">Novo Aventureiro</h2>
           <p className="text-slate-400">Perfil {existingCount + 1} de 5</p>
+       </div>
+
+       {/* Photo Upload */}
+       <div className="flex flex-col items-center gap-4 mb-4">
+          <input 
+             type="file" 
+             accept="image/*" 
+             ref={fileInputRef} 
+             className="hidden" 
+             onChange={handlePhotoUpload} 
+          />
+          <button 
+             onClick={() => fileInputRef.current?.click()}
+             className="relative w-32 h-32 rounded-full bg-slate-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center group active:scale-95 transition-transform"
+          >
+             {profile.photoUrl ? (
+                <img src={profile.photoUrl} alt="Foto" className="w-full h-full object-cover" />
+             ) : (
+                <Camera size={40} className="text-slate-300 group-hover:text-blue-400 transition-colors" />
+             )}
+             <div className="absolute bottom-0 w-full bg-black/40 text-white text-[10px] py-1 text-center font-bold">
+               {profile.photoUrl ? 'ALTERAR' : 'FOTO'}
+             </div>
+          </button>
+          <span className="text-xs text-slate-400">Toque para adicionar uma foto real</span>
        </div>
 
        <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm">
@@ -204,14 +235,13 @@ const ProfileSetup: React.FC = () => {
   );
 
   const renderStep2 = () => {
-    // Preview Avatar
     const previewAvatar = generateAvatar(profile);
 
     return (
       <div className="space-y-6 animate-slide-up">
          <div className="text-center">
-            <h2 className="text-3xl font-black text-slate-800">Como você é?</h2>
-            <p className="text-slate-400">Monte seu personagem!</p>
+            <h2 className="text-3xl font-black text-slate-800">Personagem</h2>
+            <p className="text-slate-400">Monte seu avatar digital!</p>
          </div>
 
          {/* LIVE PREVIEW */}

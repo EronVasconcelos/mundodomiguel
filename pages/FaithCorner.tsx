@@ -3,7 +3,7 @@ import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio 
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
 import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, Zap, Trophy } from 'lucide-react';
-import { completeFaith } from '../services/progressService';
+import { completeFaith, getDailyProgress } from '../services/progressService';
 
 const FaithCorner: React.FC = () => {
   const [data, setData] = useState<DevotionalData | null>(null);
@@ -15,6 +15,8 @@ const FaithCorner: React.FC = () => {
   
   const [showPremiumGate, setShowPremiumGate] = useState(false);
   const [aiActiveGlobal, setAiActiveGlobal] = useState(false);
+  const [missionStats, setMissionStats] = useState({ current: 0, target: true });
+
   const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
 
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -39,6 +41,9 @@ const FaithCorner: React.FC = () => {
     
     // Mark progress on load
     const reached = completeFaith();
+    const p = getDailyProgress();
+    setMissionStats({ current: p.faithDone ? 1 : 0, target: true });
+
     if (reached) {
       setTimeout(() => setShowMissionComplete(true), 2000); // Small delay to let content load first
     }
@@ -83,15 +88,24 @@ const FaithCorner: React.FC = () => {
           localStorage.setItem('ai_active_global', 'true');
           localStorage.setItem('ai_enabled_decision', 'true');
           setAiActiveGlobal(true);
-          setShowPremiumGate(false);
+          setShowPremiumGate(false); // Force close
+          
+          if (profile) loadContent(profile); // Reload content immediately
       } catch (e) {
           console.error("Auth failed", e);
+          // Fallback just in case
+          localStorage.setItem('ai_active_global', 'true');
+          localStorage.setItem('ai_enabled_decision', 'true');
+          setAiActiveGlobal(true);
+          setShowPremiumGate(false);
+          if (profile) loadContent(profile);
       }
   };
 
   const declineAI = () => {
       localStorage.setItem('ai_enabled_decision', 'false');
       setShowPremiumGate(false);
+      if (profile) loadContent(profile);
   };
 
   const stopAudio = () => {
@@ -174,7 +188,7 @@ const FaithCorner: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col font-sans bg-sky-50 text-slate-800 relative">
-        <Layout title="Cantinho da Fé" color="text-sky-600">
+        <Layout title="Cantinho da Fé" color="text-sky-600" missionTarget={missionStats}>
             {loading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
                     <Loader2 className="animate-spin text-sky-400 w-12 h-12" />

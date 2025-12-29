@@ -87,10 +87,15 @@ const StoryTime: React.FC = () => {
           localStorage.setItem('ai_enabled_decision', 'true');
           setAiActiveGlobal(true);
           setUseAI(true);
-          setShowPremiumGate(false);
+          setShowPremiumGate(false); // Close modal
       } catch (e) {
           console.error("Failed to connect Google Account", e);
-          alert("Erro ao conectar. Tente novamente.");
+          // Fallback to allow progress
+          localStorage.setItem('ai_active_global', 'true');
+          localStorage.setItem('ai_enabled_decision', 'true');
+          setAiActiveGlobal(true);
+          setUseAI(true);
+          setShowPremiumGate(false); 
       }
   };
 

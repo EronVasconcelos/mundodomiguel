@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { Star, RefreshCw, Plus, Minus, X, Divide, Check, Trophy } from 'lucide-react';
-import { incrementMath } from '../services/progressService';
+import { incrementMath, getDailyProgress, getGoals } from '../services/progressService';
 
 const getCharacterStyle = (numberValue: number, blockIndex: number) => {
   if (numberValue === 7) {
@@ -79,6 +80,14 @@ const MathBlocks: React.FC = () => {
   const [userAnswer, setUserAnswer] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showMissionComplete, setShowMissionComplete] = useState(false);
+  
+  const [missionStats, setMissionStats] = useState({ current: 0, target: 20 });
+
+  useEffect(() => {
+    const p = getDailyProgress();
+    const g = getGoals();
+    setMissionStats({ current: p.mathCount, target: g.MATH });
+  }, []);
 
   // Calculate correct answer
   let target = 0;
@@ -132,6 +141,10 @@ const MathBlocks: React.FC = () => {
     setUserAnswer(val);
     if (val === target) {
       const reached = incrementMath(); // Track progress
+      
+      const p = getDailyProgress();
+      setMissionStats({ ...missionStats, current: p.mathCount });
+
       setShowConfetti(true);
       if (reached) {
         setTimeout(() => setShowMissionComplete(true), 800);
@@ -161,7 +174,7 @@ const MathBlocks: React.FC = () => {
   }, [target, operation]);
 
   return (
-    <Layout title="Matemática">
+    <Layout title="Matemática" missionTarget={missionStats}>
       <div className="flex flex-col h-full gap-4">
         
         {/* Challenge Area */}

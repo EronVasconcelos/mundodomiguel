@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { Trophy, RefreshCcw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
-import { incrementMaze } from '../services/progressService';
+import { incrementMaze, getDailyProgress, getGoals } from '../services/progressService';
 
 const SIZE = 8; // 8x8 Grid
 
@@ -26,6 +27,8 @@ const ChallengeArena: React.FC = () => {
   const [won, setWon] = useState(false);
   const [theme, setTheme] = useState(THEMES[0]);
   const [showMissionComplete, setShowMissionComplete] = useState(false);
+  
+  const [missionStats, setMissionStats] = useState({ current: 0, target: 3 });
 
   // DFS Maze Generation
   const generateMaze = () => {
@@ -90,6 +93,9 @@ const ChallengeArena: React.FC = () => {
 
   useEffect(() => {
     generateMaze();
+    const p = getDailyProgress();
+    const g = getGoals();
+    setMissionStats({ current: p.mazesSolved, target: g.MAZES });
   }, []);
 
   const move = (dx: number, dy: number) => {
@@ -110,13 +116,15 @@ const ChallengeArena: React.FC = () => {
       if (newX === SIZE - 1 && newY === SIZE - 1) {
         setWon(true);
         const reached = incrementMaze(); // Track progress
+        const p = getDailyProgress();
+        setMissionStats({ ...missionStats, current: p.mazesSolved });
         if (reached) setTimeout(() => setShowMissionComplete(true), 1000);
       }
     }
   };
 
   return (
-    <Layout title={theme.name}>
+    <Layout title={theme.name} missionTarget={missionStats}>
       <div className={`flex flex-col items-center justify-center h-full`}>
         
         {won ? (

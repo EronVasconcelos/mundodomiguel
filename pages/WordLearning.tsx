@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { Check, RefreshCw, Volume2, Trophy, Star, Crown } from 'lucide-react';
-import { updateWordLevel, getDailyProgress } from '../services/progressService';
+import { updateWordLevel, getDailyProgress, getGoals } from '../services/progressService';
 
 // Database expanded with 4 levels
 const WORDS_DB = [
@@ -103,9 +104,14 @@ const WordLearning: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [filteredWords, setFilteredWords] = useState(WORDS_DB.filter(w => w.level === 1));
   const [showMissionComplete, setShowMissionComplete] = useState(false);
+  
+  const [missionStats, setMissionStats] = useState({ current: 1, target: 4 });
 
   useEffect(() => {
     const progress = getDailyProgress();
+    const g = getGoals();
+    setMissionStats({ current: progress.wordLevel, target: g.WORDS_LEVEL });
+    
     if (progress.wordLevel > 1) {
         setLevel(Math.min(progress.wordLevel, 4));
     }
@@ -153,6 +159,10 @@ const WordLearning: React.FC = () => {
       const newLevel = level + 1;
       setLevel(newLevel);
       const reached = updateWordLevel(newLevel); 
+      
+      const p = getDailyProgress();
+      setMissionStats({ ...missionStats, current: p.wordLevel });
+
       if (reached) setTimeout(() => setShowMissionComplete(true), 800);
     } else {
       setCurrentWordIndex((prev) => (prev + 1) % filteredWords.length);
@@ -190,7 +200,7 @@ const WordLearning: React.FC = () => {
   }
 
   return (
-    <Layout title={getLevelName()} color={getLevelTextColor()}>
+    <Layout title={getLevelName()} color={getLevelTextColor()} missionTarget={missionStats}>
       <div className="flex flex-col h-full items-center justify-between p-4 pb-8">
         
         <div className="w-full max-w-xs flex flex-col gap-2 mb-4">

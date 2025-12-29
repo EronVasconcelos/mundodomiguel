@@ -1,6 +1,7 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import { Trash2, Eraser, PenTool, Circle } from 'lucide-react';
+import { Trash2, Eraser, PenTool, Circle, Undo2 } from 'lucide-react';
 
 const ArtStudio: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -8,6 +9,9 @@ const ArtStudio: React.FC = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [brushSize, setBrushSize] = useState(8);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
+  
+  // History for Undo
+  const [history, setHistory] = useState<ImageData[]>([]);
 
   // Palette with bright simple colors
   const palette = [
@@ -43,7 +47,31 @@ const ArtStudio: React.FC = () => {
         ctx.lineJoin = 'round';
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0,0, rect.width, rect.height);
+        saveState(); // Initial white state
       }
+    }
+  };
+
+  const saveState = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (canvas && ctx) {
+       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+       setHistory(prev => [...prev.slice(-9), imageData]); // Keep last 10 states
+    }
+  };
+
+  const handleUndo = () => {
+    if (history.length <= 1) return; // Always keep 1 state (blank/initial)
+    const newHistory = [...history];
+    newHistory.pop(); // Remove current state
+    const previousState = newHistory[newHistory.length - 1];
+    setHistory(newHistory);
+
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (canvas && ctx && previousState) {
+        ctx.putImageData(previousState, 0, 0);
     }
   };
 
@@ -53,9 +81,12 @@ const ArtStudio: React.FC = () => {
   };
 
   const stopDrawing = () => {
-    setIsDrawing(false);
-    const ctx = canvasRef.current?.getContext('2d');
-    if (ctx) ctx.beginPath();
+    if (isDrawing) {
+        setIsDrawing(false);
+        const ctx = canvasRef.current?.getContext('2d');
+        if (ctx) ctx.beginPath();
+        saveState(); // Save after stroke finishes
+    }
   };
 
   const draw = (e: React.TouchEvent | React.MouseEvent) => {
@@ -95,6 +126,7 @@ const ArtStudio: React.FC = () => {
       const rect = canvas.getBoundingClientRect();
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, rect.width, rect.height);
+      saveState();
     }
   };
 
@@ -122,6 +154,12 @@ const ArtStudio: React.FC = () => {
           {/* Top Row: Tools & Clear */}
           <div className="flex justify-between items-center">
              <div className="flex gap-2">
+                <button 
+                  onClick={handleUndo}
+                  className="p-3 rounded-2xl border bg-slate-50 border-slate-100 text-slate-400 active:scale-95 transition-transform"
+                >
+                  <Undo2 />
+                </button>
                 <button 
                   onClick={() => setTool('pen')} 
                   className={`p-3 rounded-2xl border transition-all active:scale-95 ${tool === 'pen' ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}

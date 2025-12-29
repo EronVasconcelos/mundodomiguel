@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, DailyProgress } from '../types';
@@ -8,16 +9,16 @@ import { getDailyProgress, getGoals, checkUnlock, fetchRemoteProgress } from '..
 // --- STICKER ILLUSTRATIONS ---
 const MathIllustration = () => (
   <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
-    <rect x="20" y="20" width="60" height="60" rx="12" fill="#FDBA74" />
-    <rect x="20" y="25" width="60" height="60" rx="12" fill="#F97316" />
+    <rect x="20" y="20" width="60" height="60" rx="12" fill="#86efac" /> 
+    <rect x="20" y="25" width="60" height="60" rx="12" fill="#22c55e" />
     <text x="50" y="68" fontSize="40" fontWeight="900" fill="white" textAnchor="middle">1+2</text>
-    <circle cx="85" cy="15" r="10" fill="#FECCA9" opacity="0.8" />
+    <circle cx="85" cy="15" r="10" fill="#dcfce7" opacity="0.8" />
   </svg>
 );
 
 const WordsIllustration = () => (
   <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
-    <rect x="25" y="25" width="50" height="50" rx="10" fill="#EAB308" />
+    <rect x="25" y="25" width="50" height="50" rx="10" fill="#3b82f6" />
     <text x="50" y="62" fontSize="36" fontWeight="900" fill="white" textAnchor="middle">Aa</text>
   </svg>
 );
@@ -120,43 +121,43 @@ const Home: React.FC = () => {
 
         {/* --- LINHA 1: MATEMÁTICA & PALAVRAS --- */}
         <div className="grid grid-cols-2 gap-4">
-          {/* MATH */}
+          {/* MATH (Now GREEN) */}
           <button 
             onClick={() => navigate(AppRoute.MATH)}
-            className="bg-orange-400 rounded-[2rem] p-5 text-left text-white shadow-[0_10px_20px_-5px_rgba(251,146,60,0.4)] active:scale-95 transition-transform relative overflow-hidden group h-48 flex flex-col justify-between border-b-8 border-orange-500 active:border-b-0 active:translate-y-2"
+            className="bg-green-500 rounded-[2rem] p-5 text-left text-white shadow-[0_10px_20px_-5px_rgba(34,197,94,0.4)] active:scale-95 transition-transform relative overflow-hidden group h-48 flex flex-col justify-between border-b-8 border-green-600 active:border-b-0 active:translate-y-2"
           >
              {isMathDone && <div className="absolute top-3 right-3 bg-white/20 rounded-full p-1"><CheckCircle size={16} className="text-white"/></div>}
              <div className="w-20 h-20 -ml-2">
                 <MathIllustration />
              </div>
              
-             <div className="relative z-10 mt-auto">
-                <span className="text-xs font-bold text-orange-100 uppercase tracking-wider block mb-1">Lógica</span>
+             <div className="relative z-10 mt-auto w-full">
+                <span className="text-xs font-bold text-green-100 uppercase tracking-wider block mb-1">Lógica</span>
                 <span className="text-xl font-black leading-tight block">Matemática</span>
-                {!isMathDone && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full inline-block mt-1">{progress.mathCount}/{GOALS.MATH}</span>}
+                {!isMathDone && <div className="absolute bottom-0 right-0 text-[10px] bg-black/20 px-2 py-0.5 rounded-full">{progress.mathCount}/{GOALS.MATH}</div>}
              </div>
           </button>
 
-          {/* WORDS */}
+          {/* WORDS (Now BLUE) */}
           <button 
             onClick={() => navigate(AppRoute.WORDS)}
-            className="bg-yellow-400 rounded-[2rem] p-5 text-left text-white shadow-[0_10px_20px_-5px_rgba(250,204,21,0.4)] active:scale-95 transition-transform relative overflow-hidden group h-48 flex flex-col justify-between border-b-8 border-yellow-500 active:border-b-0 active:translate-y-2"
+            className="bg-blue-500 rounded-[2rem] p-5 text-left text-white shadow-[0_10px_20px_-5px_rgba(59,130,246,0.4)] active:scale-95 transition-transform relative overflow-hidden group h-48 flex flex-col justify-between border-b-8 border-blue-600 active:border-b-0 active:translate-y-2"
           >
              {isWordsDone && <div className="absolute top-3 right-3 bg-white/20 rounded-full p-1"><CheckCircle size={16} className="text-white"/></div>}
              <div className="w-20 h-20 -ml-2">
                 <WordsIllustration />
              </div>
-             <div className="relative z-10 mt-auto">
-                <span className="text-xs font-bold text-yellow-100 uppercase tracking-wider block mb-1">Aprender</span>
+             <div className="relative z-10 mt-auto w-full">
+                <span className="text-xs font-bold text-blue-100 uppercase tracking-wider block mb-1">Aprender</span>
                 <span className="text-xl font-black leading-tight block">Palavras</span>
-                {!isWordsDone && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full inline-block mt-1">Nível {progress.wordLevel}</span>}
+                {!isWordsDone && <div className="absolute bottom-0 right-0 text-[10px] bg-black/20 px-2 py-0.5 rounded-full">Nível {progress.wordLevel}</div>}
              </div>
           </button>
         </div>
 
-        {/* --- LINHA 2: DESAFIOS (AGORA ACIMA DA ARTE) --- */}
-        <div className="bg-indigo-500 rounded-[2.5rem] p-6 shadow-lg relative overflow-hidden border-b-8 border-indigo-700">
-           <div className="flex items-center gap-2 mb-4 text-indigo-100">
+        {/* --- LINHA 2: DESAFIOS (Now ORANGE) --- */}
+        <div className="bg-orange-500 rounded-[2.5rem] p-6 shadow-lg relative overflow-hidden border-b-8 border-orange-600">
+           <div className="flex items-center gap-2 mb-4 text-orange-100">
               <Rocket size={20} />
               <span className="font-black uppercase tracking-widest text-sm">Arena de Desafios</span>
            </div>
@@ -167,7 +168,7 @@ const Home: React.FC = () => {
                   onClick={() => navigate(AppRoute.CHALLENGE)}
                   className="bg-white/10 rounded-2xl p-4 text-left hover:bg-white/20 transition-colors active:scale-95 border border-white/10 relative"
               >
-                  <div className="absolute top-2 right-2 text-[10px] font-bold bg-indigo-900/50 px-2 py-0.5 rounded-full text-indigo-100">
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold bg-orange-900/50 px-2 py-0.5 rounded-full text-orange-100">
                      {progress.mazesSolved}/{GOALS.MAZES}
                   </div>
                   <div className="flex justify-between items-start mb-2">
@@ -182,7 +183,7 @@ const Home: React.FC = () => {
                   onClick={() => navigate(AppRoute.WORD_SEARCH)}
                   className="bg-white/10 rounded-2xl p-4 text-left hover:bg-white/20 transition-colors active:scale-95 border border-white/10 relative"
               >
-                  <div className="absolute top-2 right-2 text-[10px] font-bold bg-indigo-900/50 px-2 py-0.5 rounded-full text-indigo-100">
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold bg-orange-900/50 px-2 py-0.5 rounded-full text-orange-100">
                      {(progress.wordSearchSolved || 0)}/{GOALS.WORD_SEARCH}
                   </div>
                   <div className="flex justify-between items-start mb-2">
@@ -194,7 +195,7 @@ const Home: React.FC = () => {
            </div>
         </div>
 
-        {/* --- LINHA 3: ARTE & COLORIR (ESTILO "QUADRO BRANCO" COM BORDAS COLORIDAS) --- */}
+        {/* --- LINHA 3: ARTE & COLORIR --- */}
         <div className="grid grid-cols-2 gap-4">
            {/* ART */}
            <button 
@@ -210,7 +211,7 @@ const Home: React.FC = () => {
              </div>
           </button>
 
-          {/* COLORING */}
+          {/* COLORING (Renamed) */}
           <button 
              onClick={() => navigate(AppRoute.COLORING)}
              className="bg-white rounded-[2rem] p-5 text-left border-2 border-pink-500 shadow-sm active:scale-95 transition-transform flex flex-col justify-between h-32 relative overflow-hidden"
@@ -219,7 +220,7 @@ const Home: React.FC = () => {
                  <Brush size={20} />
               </div>
               <div>
-                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Pintar</span>
+                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Colorir</span>
                  <span className="text-lg font-black leading-tight block text-pink-500">Desenhos</span>
               </div>
            </button>
@@ -274,13 +275,17 @@ const Home: React.FC = () => {
         </button>
 
         {/* FOOTER */}
-        <footer className="text-center mt-4 opacity-60 pb-4">
-          <p className="text-slate-400 text-xs font-bold mb-1">
-            Reinicia todos os dias à 00:00h
+        <footer className="text-center mt-8 opacity-60 pb-8">
+          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-4">
+            Reinicia diariamente à 00:00h
           </p>
-          <div className="mt-4">
-            <p className="text-slate-500 font-bold text-sm">Desenvolvido por Eron Vasconcelos</p>
-            <p className="text-slate-400 text-xs mt-1">2025 | Todos os direitos reservados</p>
+          <div className="flex flex-col gap-1">
+            <p className="text-slate-500 font-black text-[10px] tracking-wide">
+              2025 MUNDO MÁGICO KIDS | TODOS OS DIREITOS RESERVADOS
+            </p>
+            <p className="text-slate-400 text-[10px] font-bold">
+              Desenvolvido por Eron Vasconcelos
+            </p>
           </div>
         </footer>
 

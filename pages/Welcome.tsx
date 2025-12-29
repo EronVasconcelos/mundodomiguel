@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
@@ -12,14 +13,15 @@ const Welcome: React.FC = () => {
       <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       
       <div className="z-10 text-center animate-slide-up w-full max-w-sm">
-        <div className="mb-10 relative">
+        <div className="mb-8 relative">
            <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(59,130,246,0.5)] border-4 border-blue-400">
              <Rocket size={64} className="text-white ml-1 mb-1" />
            </div>
            <Star className="absolute top-0 right-1/4 text-yellow-400 fill-yellow-400 animate-spin-slow" size={32} />
         </div>
 
-        <h1 className="text-4xl font-black mb-2 tracking-tight">Mundo Mágico</h1>
+        <h1 className="text-4xl font-black tracking-tight leading-none">Mundo Mágico</h1>
+        <span className="text-xl font-bold text-yellow-400 uppercase tracking-[0.3em] block mb-2 opacity-90">Kids</span>
         <p className="text-slate-400 text-lg mb-12">Aprendizado e diversão <br/> com Inteligência Artificial.</p>
 
         <div className="space-y-4 w-full">

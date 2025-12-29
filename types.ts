@@ -31,16 +31,17 @@ export interface ChildProfile {
   eyeColor: string;
   skinTone: string;
   avatarBase?: string; 
+  photoUrl?: string; // New field for real photo
 }
 
 export interface DailyProgress {
   profileId?: string; // Link to profile
   date: string;
-  mathCount: number;      // Target: 30
+  mathCount: number;      // Target: 20
   wordLevel: number;      // Target: 4
   faithDone: boolean;     // Target: true
   mazesSolved: number;    // Target: 3
-  wordSearchSolved: number; // Target: 2 (New)
+  wordSearchSolved: number; // Target: 3
   arcadeUnlocked: boolean;
 }
 

@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { Trophy, RefreshCw, Check, Star } from 'lucide-react';
-import { incrementWordSearch } from '../services/progressService';
+import { incrementWordSearch, getDailyProgress, getGoals } from '../services/progressService';
 
 const GRID_SIZE = 8;
 const WORDS_POOL = ['PATO', 'GATO', 'BOLA', 'CASA', 'UVA', 'OVO', 'SOL', 'LUA', 'DADO', 'MALA', 'VACA', 'FACA', 'REI', 'PÉ', 'MÃO'];
@@ -22,10 +23,16 @@ const WordSearch: React.FC = () => {
   const [won, setWon] = useState(false);
   const [showMissionComplete, setShowMissionComplete] = useState(false);
   
+  const [missionStats, setMissionStats] = useState({ current: 0, target: 3 });
+  
   const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     startNewGame();
+    // Load Mission Progress
+    const p = getDailyProgress();
+    const g = getGoals();
+    setMissionStats({ current: p.wordSearchSolved || 0, target: g.WORD_SEARCH });
   }, []);
 
   const startNewGame = () => {
@@ -124,6 +131,21 @@ const WordSearch: React.FC = () => {
     }
   };
 
+  // Fixed touch handler
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Find the cell div via data attribute
+    const cellDiv = element?.closest('[data-cell-index]');
+    if (cellDiv) {
+       const idx = parseInt(cellDiv.getAttribute('data-cell-index') || '-1');
+       if (idx !== -1) {
+          handleEnter(idx);
+       }
+    }
+  };
+
   const handleEnd = () => {
     if (won || selection.length === 0) return;
     
@@ -150,12 +172,16 @@ const WordSearch: React.FC = () => {
     if (newFound.length === targetWords.length) {
       setWon(true);
       const reached = incrementWordSearch();
+      // Update local state to reflect new count immediately in header
+      const p = getDailyProgress();
+      setMissionStats({ ...missionStats, current: p.wordSearchSolved || 0 });
+      
       if (reached) setTimeout(() => setShowMissionComplete(true), 1000);
     }
   };
 
   return (
-    <Layout title="Caça Palavras" color="text-indigo-600">
+    <Layout title="Caça Palavras" color="text-indigo-600" missionTarget={missionStats}>
       <div className="flex flex-col h-full gap-4 items-center">
         
         <div className="bg-white rounded-2xl p-4 w-full shadow-sm border border-slate-100 mb-2">
@@ -170,10 +196,11 @@ const WordSearch: React.FC = () => {
         </div>
 
         <div 
-           className="relative bg-white p-3 rounded-2xl shadow-lg border-b-8 border-indigo-200"
+           className="relative bg-white p-3 rounded-2xl shadow-lg border-b-8 border-indigo-200 touch-none"
            onMouseLeave={handleEnd}
            onTouchEnd={handleEnd}
            onMouseUp={handleEnd}
+           onTouchMove={handleTouchMove} 
         >
            {won && !showMissionComplete && (
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-2xl animate-fade-in">
@@ -201,6 +228,7 @@ const WordSearch: React.FC = () => {
                return (
                  <div
                    key={idx}
+                   data-cell-index={idx} // Crucial for touch detection
                    onMouseDown={() => handleStart(idx)}
                    onMouseEnter={() => handleEnter(idx)}
                    onTouchStart={() => handleStart(idx)}

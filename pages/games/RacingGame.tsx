@@ -11,7 +11,7 @@ const RacingGame: React.FC = () => {
 
   // Game Logic Refs
   const roadOffsetRef = useRef(0);
-  const playerXRef = useRef(0); // 0 = Center, -1 = Left, 1 = Right (Logic) -> Converted to pixels in draw
+  const playerXRef = useRef(0); 
   const enemiesRef = useRef<{ x: number, y: number, color: string }[]>([]);
   const coinsRef = useRef<{ x: number, y: number }[]>([]);
   const speedRef = useRef(5);
@@ -19,7 +19,7 @@ const RacingGame: React.FC = () => {
   const lastSpawnRef = useRef(0);
   const playerSmoothXRef = useRef(0.5); // 0 to 1 (position in road width)
 
-  const CAR_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b']; // Blue, Green, Purple, Yellow
+  const CAR_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#06b6d4']; 
 
   const initGame = () => {
     setScore(0);
@@ -31,47 +31,79 @@ const RacingGame: React.FC = () => {
     setGameState(GameState.PLAYING);
   };
 
-  const drawCar = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, color: string, isPlayer: boolean) => {
-    // Shadow
+  const drawSportCar = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, color: string, isPlayer: boolean) => {
+    // Shadows
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(x + 5, y + 5, width, height);
-
-    // Tires
-    ctx.fillStyle = '#1e293b';
-    const tireW = width * 0.2;
-    const tireH = height * 0.25;
-    ctx.fillRect(x - 2, y + 5, tireW, tireH); // FL
-    ctx.fillRect(x + width - tireW + 2, y + 5, tireW, tireH); // FR
-    ctx.fillRect(x - 2, y + height - tireH - 5, tireW, tireH); // RL
-    ctx.fillRect(x + width - tireW + 2, y + height - tireH - 5, tireW, tireH); // RR
-
-    // Body
-    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.roundRect(x, y, width, height, 8);
+    ctx.ellipse(x + width/2, y + height/2 + 5, width/1.8, height/2, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Stripes / Decor
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    // Tires (Wider and sticking out slightly)
+    ctx.fillStyle = '#1e293b'; // Dark tire color
+    const tireW = width * 0.25;
+    const tireH = height * 0.2;
+    // FL
+    ctx.beginPath(); ctx.roundRect(x - 2, y + height * 0.15, tireW, tireH, 4); ctx.fill();
+    // FR
+    ctx.beginPath(); ctx.roundRect(x + width - tireW + 2, y + height * 0.15, tireW, tireH, 4); ctx.fill();
+    // RL
+    ctx.beginPath(); ctx.roundRect(x - 2, y + height * 0.7, tireW, tireH, 4); ctx.fill();
+    // RR
+    ctx.beginPath(); ctx.roundRect(x + width - tireW + 2, y + height * 0.7, tireW, tireH, 4); ctx.fill();
+
+    // Main Body Chassis (Curvier)
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x + width * 0.2, y); // Front nose start
+    ctx.lineTo(x + width * 0.8, y); // Front nose end
+    ctx.quadraticCurveTo(x + width, y + height * 0.2, x + width, y + height * 0.8); // Right side curve
+    ctx.lineTo(x + width, y + height); // Rear right
+    ctx.lineTo(x, y + height); // Rear left
+    ctx.quadraticCurveTo(x, y + height * 0.2, x + width * 0.2, y); // Left side curve
+    ctx.fill();
+
+    // Center Stripe (Racing look)
+    ctx.fillStyle = isPlayer ? '#ffffff' : 'rgba(0,0,0,0.2)';
     ctx.fillRect(x + width * 0.4, y, width * 0.2, height);
 
-    // Windshield
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillRect(x + 4, y + height * 0.2, width - 8, height * 0.25);
+    // Cabin / Windshield
+    ctx.fillStyle = '#1e293b'; // Dark glass
+    ctx.beginPath();
+    const cabinY = y + height * 0.35;
+    const cabinH = height * 0.3;
+    ctx.roundRect(x + 6, cabinY, width - 12, cabinH, 5);
+    ctx.fill();
     
-    // Roof
-    ctx.fillStyle = color; 
-    ctx.fillRect(x + 2, y + height * 0.45, width - 4, height * 0.3);
+    // Windshield Reflection
+    ctx.fillStyle = '#64748b';
+    ctx.beginPath();
+    ctx.moveTo(x + width - 10, cabinY + 2);
+    ctx.lineTo(x + width - 10, cabinY + cabinH - 2);
+    ctx.lineTo(x + width - 14, cabinY + cabinH - 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Spoiler (Rear Wing)
+    ctx.fillStyle = isPlayer ? '#b91c1c' : '#334155'; // Darker shade of car or black
+    ctx.fillRect(x - 2, y + height - 10, width + 4, 8);
 
     // Lights
     if (isPlayer) {
-      ctx.fillStyle = '#ef4444'; // Rear lights red
-      ctx.fillRect(x + 4, y + height - 4, 8, 4);
-      ctx.fillRect(x + width - 12, y + height - 4, 8, 4);
+      // Rear Lights (Red)
+      ctx.fillStyle = '#ef4444';
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = 10;
+      ctx.fillRect(x + 4, y + height - 2, 10, 4);
+      ctx.fillRect(x + width - 14, y + height - 2, 10, 4);
+      ctx.shadowBlur = 0;
     } else {
-      ctx.fillStyle = '#fef08a'; // Headlights yellow
+      // Headlights (Yellow/White facing down)
+      ctx.fillStyle = '#fef08a';
+      ctx.shadowColor = '#fef08a';
+      ctx.shadowBlur = 5;
       ctx.fillRect(x + 4, y + height - 4, 8, 4);
       ctx.fillRect(x + width - 12, y + height - 4, 8, 4);
+      ctx.shadowBlur = 0;
     }
   };
 
@@ -132,7 +164,7 @@ const RacingGame: React.FC = () => {
     const playerCarW = laneW * 0.6;
     const playerCarH = playerCarW * 1.6;
     const playerPixelX = roadX + (playerSmoothXRef.current * roadW) - (playerCarW / 2); // Center of car at position
-    const playerPixelY = H - 150;
+    const playerPixelY = H - 180; // Moved player up slightly
 
     // Check Enemy Collision
     let crash = false;
@@ -142,12 +174,12 @@ const RacingGame: React.FC = () => {
         const enemyPixelX = roadX + (enemyPct * roadW) - (playerCarW / 2);
         const enemyPixelY = e.y;
 
-        // Simple Rect Collision
+        // Simple Rect Collision (reduced bounding box for forgiveness)
         if (
-            playerPixelX < enemyPixelX + playerCarW &&
-            playerPixelX + playerCarW > enemyPixelX &&
-            playerPixelY < enemyPixelY + playerCarH &&
-            playerPixelY + playerCarH > enemyPixelY
+            playerPixelX + 5 < enemyPixelX + playerCarW - 5 &&
+            playerPixelX + playerCarW - 5 > enemyPixelX + 5 &&
+            playerPixelY + 5 < enemyPixelY + playerCarH - 5 &&
+            playerPixelY + playerCarH - 5 > enemyPixelY + 5
         ) {
             crash = true;
         }
@@ -168,7 +200,7 @@ const RacingGame: React.FC = () => {
         // Distance check
         const dx = (playerPixelX + playerCarW/2) - coinPixelX;
         const dy = (playerPixelY + playerCarH/2) - coinPixelY;
-        if (Math.sqrt(dx*dx + dy*dy) < 40) {
+        if (Math.sqrt(dx*dx + dy*dy) < 50) {
             coinsRef.current.splice(i, 1);
             setScore(s => s + 10);
         }
@@ -178,22 +210,29 @@ const RacingGame: React.FC = () => {
     // --- DRAWING ---
 
     // 1. Grass
-    ctx.fillStyle = '#4ade80';
+    ctx.fillStyle = '#16a34a';
     ctx.fillRect(0, 0, W, H);
 
     // 2. Road
-    ctx.fillStyle = '#475569'; // Slate 600
+    ctx.fillStyle = '#334155'; // Darker Slate
     ctx.fillRect(roadX, 0, roadW, H);
     
-    // Road Borders
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(roadX - 5, 0, 5, H);
-    ctx.fillRect(roadX + roadW, 0, 5, H);
+    // Road Borders (Red/White Strip)
+    const stripeH = 40;
+    const totalStripes = Math.ceil(H / stripeH) + 1;
+    const offset = roadOffsetRef.current % stripeH;
+    
+    for (let i = -1; i < totalStripes; i++) {
+        const y = (i * stripeH) + offset;
+        ctx.fillStyle = i % 2 === 0 ? '#ef4444' : '#ffffff';
+        ctx.fillRect(roadX - 10, y, 10, stripeH);
+        ctx.fillRect(roadX + roadW, y, 10, stripeH);
+    }
 
     // Lane Markers (Moving)
-    ctx.strokeStyle = '#ffffff';
-    ctx.setLineDash([20, 20]);
-    ctx.lineDashOffset = -roadOffsetRef.current;
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.setLineDash([30, 30]);
+    ctx.lineDashOffset = -roadOffsetRef.current * 1.5;
     ctx.lineWidth = 4;
     
     // Left Line
@@ -215,15 +254,20 @@ const RacingGame: React.FC = () => {
         const coinPct = (c.x * 0.333) + 0.166;
         const cx = roadX + (coinPct * roadW);
         
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 15;
         ctx.fillStyle = '#fbbf24'; // Amber
         ctx.beginPath();
         ctx.arc(cx, c.y + 20, 15, 0, Math.PI * 2);
         ctx.fill();
-        ctx.lineWidth = 2;
+        ctx.shadowBlur = 0;
+        
+        ctx.lineWidth = 3;
         ctx.strokeStyle = '#d97706';
         ctx.stroke();
+        
         ctx.fillStyle = '#d97706';
-        ctx.font = 'bold 16px sans-serif';
+        ctx.font = '900 18px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('$', cx, c.y + 20);
@@ -233,12 +277,13 @@ const RacingGame: React.FC = () => {
     enemiesRef.current.forEach(e => {
         const enemyPct = (e.x * 0.333) + 0.166;
         const ex = roadX + (enemyPct * roadW) - (playerCarW / 2);
-        // Note: Enemies face DOWN
-        drawCar(ctx, ex, e.y, playerCarW, playerCarH, e.color, false);
+        // Note: Enemies are drawn upside down implicitly by the shape, we might want to rotate if we get fancy, but simple rects are fine for now. 
+        // Actually, for the sport car design, let's keep them facing down (same direction) as if user is overtaking.
+        drawSportCar(ctx, ex, e.y, playerCarW, playerCarH, e.color, false);
     });
 
     // 5. Player
-    drawCar(ctx, playerPixelX, playerPixelY, playerCarW, playerCarH, '#ef4444', true);
+    drawSportCar(ctx, playerPixelX, playerPixelY, playerCarW, playerCarH, '#dc2626', true);
 
 
     frameIdRef.current = requestAnimationFrame(loop);
@@ -305,19 +350,19 @@ const RacingGame: React.FC = () => {
             </div>
          )}
 
-         {/* Touch Controls Layer */}
+         {/* Touch Controls Layer - MOVED UP (bottom-24) */}
          {gameState === GameState.PLAYING && (
-            <div className="absolute bottom-8 left-0 right-0 flex justify-between px-8 pb-safe">
+            <div className="absolute bottom-24 left-0 right-0 flex justify-between px-8 pb-safe pointer-events-auto">
                <button 
                  onPointerDown={moveLeft}
-                 className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-full border-2 border-white/50 flex items-center justify-center active:bg-white/40 active:scale-95 transition-all"
+                 className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-full border-4 border-white/50 flex items-center justify-center active:bg-white/40 active:scale-95 transition-all shadow-xl"
                >
                  <ChevronLeft size={48} />
                </button>
                
                <button 
                  onPointerDown={moveRight}
-                 className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-full border-2 border-white/50 flex items-center justify-center active:bg-white/40 active:scale-95 transition-all"
+                 className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-full border-4 border-white/50 flex items-center justify-center active:bg-white/40 active:scale-95 transition-all shadow-xl"
                >
                  <ChevronRight size={48} />
                </button>
