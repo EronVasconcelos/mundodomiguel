@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
 import { supabase } from '../services/supabase';
-import { ArrowLeft, Lock, Mail, LogIn, Loader2 } from 'lucide-react';
+import { ArrowLeft, Lock, Mail, LogIn, Loader2, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -71,13 +72,20 @@ const LoginPage: React.FC = () => {
         <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-3">
             <Lock className="text-slate-300" />
             <input 
-                type="password" 
+                type={showPassword ? "text" : "password"}
                 required
                 placeholder="Senha" 
                 className="flex-1 outline-none text-slate-700 font-bold placeholder-slate-300 bg-transparent"
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}
             />
+            <button 
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-slate-400 hover:text-slate-600 focus:outline-none p-1"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
         </div>
 
         <button 

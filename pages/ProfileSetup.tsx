@@ -34,15 +34,64 @@ const ProfileSetup: React.FC = () => {
     }
   };
 
+  // Helper function to generate SVG avatar string based on traits
+  const generateAvatar = (p: ChildProfile): string => {
+    const skinColors: Record<string, string> = { light: '#fde68a', medium: '#d4a373', dark: '#5c3a21' };
+    const hairColors: Record<string, string> = { blonde: '#fcd34d', brown: '#78350f', black: '#171717', red: '#ef4444' };
+    
+    const skin = skinColors[p.skinTone] || skinColors.light;
+    const hair = hairColors[p.hairColor] || hairColors.brown;
+    const bg = p.gender === 'girl' ? '#fce7f3' : '#e0f2fe'; // pink-100 or sky-100
+
+    // Hair Path Logic (Simplified)
+    let hairSvg = '';
+    if (p.hairStyle === 'short') {
+        hairSvg = `<path d="M70 60 C70 30 130 30 130 60 L130 90 C130 80 120 70 100 70 C80 70 70 80 70 90 Z" fill="${hair}"/>`; // Top crop
+    } else if (p.hairStyle === 'long') {
+        hairSvg = `<path d="M60 60 C60 20 140 20 140 60 L140 140 C140 150 120 150 120 140 L120 100 L80 100 L80 140 C80 150 60 150 60 140 Z" fill="${hair}"/>`;
+    } else if (p.hairStyle === 'curly') {
+        hairSvg = `<path d="M65 60 C60 40 80 20 100 25 C120 20 140 40 135 60 C145 70 145 90 135 100 C135 120 115 130 100 125 C85 130 65 120 65 100 C55 90 55 70 65 60 Z" fill="${hair}"/>`;
+    } else {
+        // Straight/Default
+        hairSvg = `<path d="M65 60 C65 20 135 20 135 60 L135 120 L65 120 Z" fill="${hair}"/>`;
+    }
+
+    const svgString = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+        <rect width="200" height="200" fill="${bg}"/>
+        <!-- Hair Back (for long hair) -->
+        ${p.hairStyle === 'long' ? `<path d="M70 80 L130 80 L130 150 L70 150 Z" fill="${hair}"/>` : ''}
+        <!-- Neck -->
+        <rect x="85" y="140" width="30" height="40" fill="${skin}"/>
+        <!-- Shirt -->
+        <path d="M50 200 Q100 160 150 200" fill="${p.gender === 'girl' ? '#f472b6' : '#60a5fa'}"/>
+        <!-- Face -->
+        <circle cx="100" cy="100" r="45" fill="${skin}"/>
+        <!-- Eyes -->
+        <circle cx="85" cy="95" r="5" fill="#1e293b"/>
+        <circle cx="115" cy="95" r="5" fill="#1e293b"/>
+        <!-- Smile -->
+        <path d="M90 120 Q100 130 110 120" stroke="#78350f" stroke-width="3" fill="none"/>
+        <!-- Hair Front -->
+        ${hairSvg}
+      </svg>
+    `;
+
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svgString.replace(/\n/g, '').trim())}`;
+  };
+
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getSession();
       if (!user) throw new Error("No user");
+
+      // Generate visual avatar
+      const generatedAvatar = generateAvatar(profile);
 
       // Insert into Supabase
       const { data, error } = await supabase.from('child_profiles').insert({
-          user_id: user.id,
+          user_id: user.user?.id || user.session?.user.id, // Handle safely
           name: profile.name,
           age: profile.age,
           gender: profile.gender,
@@ -50,7 +99,7 @@ const ProfileSetup: React.FC = () => {
           hair_style: profile.hairStyle,
           eye_color: profile.eyeColor,
           skin_tone: profile.skinTone,
-          avatar_base: profile.avatarBase
+          avatar_base: generatedAvatar // Save the generated SVG
       }).select().single();
 
       if (error) throw error;
@@ -71,6 +120,7 @@ const ProfileSetup: React.FC = () => {
           
           // Update Local Cache for instant access
           localStorage.setItem('active_profile_id', newProfile.id);
+          
           // Append to local list cache
           const storedList = localStorage.getItem('child_profiles');
           const list = storedList ? JSON.parse(storedList) : [];
@@ -80,9 +130,9 @@ const ProfileSetup: React.FC = () => {
           navigate(AppRoute.HOME);
       }
 
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Erro ao salvar perfil. Tente novamente.");
+      alert(`Erro ao salvar perfil: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -149,71 +199,83 @@ const ProfileSetup: React.FC = () => {
     </div>
   );
 
-  const renderStep2 = () => (
-    <div className="space-y-6 animate-slide-up">
-       <div className="text-center">
-          <h2 className="text-3xl font-black text-slate-800">Como você é?</h2>
-          <p className="text-slate-400">Para criarmos desenhos parecidos com você!</p>
-       </div>
+  const renderStep2 = () => {
+    // Preview Avatar
+    const previewAvatar = generateAvatar(profile);
 
-       {/* Hair Color */}
-       <div className="bg-white p-5 rounded-3xl border border-slate-100">
-          <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Cor do Cabelo</label>
-          <div className="flex gap-3">
-             {['blonde', 'brown', 'black', 'red'].map(c => (
-                <button 
-                  key={c} 
-                  onClick={() => setProfile({...profile, hairColor: c})}
-                  className={`w-12 h-12 rounded-full border-4 ${profile.hairColor === c ? 'border-blue-500 scale-110' : 'border-transparent'}`}
-                  style={{ backgroundColor: c === 'blonde' ? '#fcd34d' : c === 'brown' ? '#78350f' : c === 'black' ? '#171717' : '#ef4444' }}
-                />
-             ))}
-          </div>
-       </div>
+    return (
+      <div className="space-y-6 animate-slide-up">
+         <div className="text-center">
+            <h2 className="text-3xl font-black text-slate-800">Como você é?</h2>
+            <p className="text-slate-400">Monte seu personagem!</p>
+         </div>
 
-       {/* Hair Style */}
-       <div className="bg-white p-5 rounded-3xl border border-slate-100">
-          <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Estilo do Cabelo</label>
-          <div className="grid grid-cols-2 gap-2">
-             {['short', 'long', 'curly', 'straight'].map(s => (
-                <button 
-                  key={s} 
-                  onClick={() => setProfile({...profile, hairStyle: s})}
-                  className={`py-2 px-4 rounded-xl text-sm font-bold border-2 ${profile.hairStyle === s ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
-                >
-                  {s === 'short' ? 'Curto' : s === 'long' ? 'Longo' : s === 'curly' ? 'Cacheado' : 'Liso'}
-                </button>
-             ))}
-          </div>
-       </div>
+         {/* LIVE PREVIEW */}
+         <div className="flex justify-center -my-2">
+            <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100">
+                <img src={previewAvatar} alt="Preview" className="w-full h-full object-cover" />
+            </div>
+         </div>
 
-       {/* Skin Tone */}
-       <div className="bg-white p-5 rounded-3xl border border-slate-100">
-          <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Tom de Pele</label>
-          <div className="flex gap-3">
-             {['light', 'medium', 'dark'].map(s => (
-                <button 
-                  key={s} 
-                  onClick={() => setProfile({...profile, skinTone: s})}
-                  className={`w-12 h-12 rounded-full border-4 ${profile.skinTone === s ? 'border-blue-500 scale-110' : 'border-transparent'}`}
-                  style={{ backgroundColor: s === 'light' ? '#fde68a' : s === 'medium' ? '#d4a373' : '#5c3a21' }}
-                />
-             ))}
-          </div>
-       </div>
+         {/* Hair Color */}
+         <div className="bg-white p-5 rounded-3xl border border-slate-100">
+            <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Cor do Cabelo</label>
+            <div className="flex gap-3 justify-center">
+               {['blonde', 'brown', 'black', 'red'].map(c => (
+                  <button 
+                    key={c} 
+                    onClick={() => setProfile({...profile, hairColor: c})}
+                    className={`w-12 h-12 rounded-full border-4 shadow-sm transition-transform ${profile.hairColor === c ? 'border-blue-500 scale-110' : 'border-white'}`}
+                    style={{ backgroundColor: c === 'blonde' ? '#fcd34d' : c === 'brown' ? '#78350f' : c === 'black' ? '#171717' : '#ef4444' }}
+                  />
+               ))}
+            </div>
+         </div>
 
-       <button 
-         onClick={handleSave}
-         disabled={loading}
-         className="w-full py-4 bg-green-500 text-white rounded-2xl font-black text-xl shadow-lg shadow-green-200 mt-8 flex items-center justify-center gap-2 disabled:opacity-70"
-       >
-         {loading ? <Loader2 className="animate-spin" /> : <><Check /> SALVAR PERFIL</>}
-       </button>
-    </div>
-  );
+         {/* Hair Style */}
+         <div className="bg-white p-5 rounded-3xl border border-slate-100">
+            <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Estilo do Cabelo</label>
+            <div className="grid grid-cols-2 gap-2">
+               {['short', 'long', 'curly', 'straight'].map(s => (
+                  <button 
+                    key={s} 
+                    onClick={() => setProfile({...profile, hairStyle: s})}
+                    className={`py-2 px-4 rounded-xl text-sm font-bold border-2 ${profile.hairStyle === s ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                  >
+                    {s === 'short' ? 'Curto' : s === 'long' ? 'Longo' : s === 'curly' ? 'Cacheado' : 'Liso'}
+                  </button>
+               ))}
+            </div>
+         </div>
+
+         {/* Skin Tone */}
+         <div className="bg-white p-5 rounded-3xl border border-slate-100">
+            <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Tom de Pele</label>
+            <div className="flex gap-3 justify-center">
+               {['light', 'medium', 'dark'].map(s => (
+                  <button 
+                    key={s} 
+                    onClick={() => setProfile({...profile, skinTone: s})}
+                    className={`w-12 h-12 rounded-full border-4 shadow-sm transition-transform ${profile.skinTone === s ? 'border-blue-500 scale-110' : 'border-white'}`}
+                    style={{ backgroundColor: s === 'light' ? '#fde68a' : s === 'medium' ? '#d4a373' : '#5c3a21' }}
+                  />
+               ))}
+            </div>
+         </div>
+
+         <button 
+           onClick={handleSave}
+           disabled={loading}
+           className="w-full py-4 bg-green-500 text-white rounded-2xl font-black text-xl shadow-lg shadow-green-200 mt-4 flex items-center justify-center gap-2 disabled:opacity-70"
+         >
+           {loading ? <Loader2 className="animate-spin" /> : <><Check /> PRONTO!</>}
+         </button>
+      </div>
+    );
+  };
 
   return (
-    <div className="h-full bg-slate-50 p-6 flex flex-col pt-12">
+    <div className="h-full bg-slate-50 p-6 flex flex-col pt-12 overflow-y-auto">
        {step === 1 ? renderStep1() : renderStep2()}
     </div>
   );
