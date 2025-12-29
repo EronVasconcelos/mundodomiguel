@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Star, RefreshCw, Plus, Minus, X, Divide, Check } from 'lucide-react';
+import { incrementMath } from '../services/progressService';
 
 const getCharacterStyle = (numberValue: number, blockIndex: number) => {
   if (numberValue === 7) {
@@ -129,6 +130,7 @@ const MathBlocks: React.FC = () => {
     if (showConfetti) return;
     setUserAnswer(val);
     if (val === target) {
+      incrementMath(); // Track progress
       setShowConfetti(true);
     }
   };

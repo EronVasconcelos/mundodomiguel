@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { Trophy, RefreshCcw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { incrementMaze } from '../services/progressService';
 
 const SIZE = 8; // 8x8 Grid
 
@@ -25,7 +26,7 @@ const ChallengeArena: React.FC = () => {
   const [won, setWon] = useState(false);
   const [theme, setTheme] = useState(THEMES[0]);
 
-  // DFS Maze Generation (Same logic as before)
+  // DFS Maze Generation
   const generateMaze = () => {
     setTheme(THEMES[Math.floor(Math.random() * THEMES.length)]);
 
@@ -106,6 +107,7 @@ const ChallengeArena: React.FC = () => {
       setPlayerPos({ x: newX, y: newY });
       if (newX === SIZE - 1 && newY === SIZE - 1) {
         setWon(true);
+        incrementMaze(); // Track progress
       }
     }
   };

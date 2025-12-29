@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { Check, RefreshCw, Volume2, Trophy, Star, Crown } from 'lucide-react';
+import { updateWordLevel, getDailyProgress } from '../services/progressService';
 
 // Database expanded with 4 levels
 const WORDS_DB = [
@@ -94,6 +95,7 @@ const WORDS_DB = [
 ];
 
 const WordLearning: React.FC = () => {
+  // Sync state with global daily progress on mount
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -101,6 +103,14 @@ const WordLearning: React.FC = () => {
   const [shuffledSyllables, setShuffledSyllables] = useState<string[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
   const [filteredWords, setFilteredWords] = useState(WORDS_DB.filter(w => w.level === 1));
+
+  useEffect(() => {
+    // Resume from saved daily progress if higher
+    const progress = getDailyProgress();
+    if (progress.wordLevel > 1) {
+        setLevel(Math.min(progress.wordLevel, 4));
+    }
+  }, []);
 
   useEffect(() => {
     // Filter words by current level
@@ -145,7 +155,9 @@ const WordLearning: React.FC = () => {
   const nextWord = () => {
     if (score > 0 && score % 5 === 0 && level < 4) {
       // Level Up!
-      setLevel(prev => prev + 1);
+      const newLevel = level + 1;
+      setLevel(newLevel);
+      updateWordLevel(newLevel); // Sync global progress
     } else {
       setCurrentWordIndex((prev) => (prev + 1) % filteredWords.length);
     }
@@ -161,6 +173,16 @@ const WordLearning: React.FC = () => {
     }
   }
 
+  const getLevelTextColor = () => {
+    switch(level) {
+      case 1: return "text-orange-500";
+      case 2: return "text-emerald-500";
+      case 3: return "text-blue-500";
+      case 4: return "text-purple-600";
+      default: return "text-orange-500";
+    }
+  }
+
   const getLevelName = () => {
     switch(level) {
       case 1: return "Nível 1";
@@ -172,7 +194,7 @@ const WordLearning: React.FC = () => {
   }
 
   return (
-    <Layout title={getLevelName()} color={getLevelColor()}>
+    <Layout title={getLevelName()} color={getLevelTextColor()}>
       <div className="flex flex-col h-full items-center justify-between p-4 pb-8">
         
         {/* Progress Bar & Level Indicator */}

@@ -30,6 +30,15 @@ export interface ChildProfile {
   avatarBase?: string; // Base64 or URL of the avatar created/selected
 }
 
+export interface DailyProgress {
+  date: string;
+  mathCount: number;      // Target: 30
+  wordLevel: number;      // Target: 4
+  faithDone: boolean;     // Target: true
+  mazesSolved: number;    // Target: 3
+  arcadeUnlocked: boolean;
+}
+
 export interface StoryData {
   title: string;
   content: string;

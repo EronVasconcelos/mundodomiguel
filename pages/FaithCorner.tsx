@@ -3,6 +3,7 @@ import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio 
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
 import { Cloud, Sun, Volume2, Star, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, ShieldCheck, Zap } from 'lucide-react';
+import { completeFaith } from '../services/progressService';
 
 const FaithCorner: React.FC = () => {
   const [data, setData] = useState<DevotionalData | null>(null);
@@ -41,6 +42,9 @@ const FaithCorner: React.FC = () => {
             // In a real app we might re-verify token here
         }
     }
+    
+    // Mark progress as completed just by visiting/reading
+    completeFaith();
   }, []);
 
   useEffect(() => {
