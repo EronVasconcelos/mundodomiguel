@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { generateStoryText, generateStoryImage, generateStoryVideo } from '../services/geminiService';
-import { Sparkles, PlayCircle, Loader2, BookOpen, Gift, Moon, Edit3, Send } from 'lucide-react';
+import { Sparkles, PlayCircle, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff } from 'lucide-react';
 import { StoryData } from '../types';
 
 const StoryTime: React.FC = () => {
@@ -16,6 +16,18 @@ const StoryTime: React.FC = () => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [imageRevealed, setImageRevealed] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const predefinedTopics = [
     "Polícia e Ladrão", "Futebol de Robôs", "Bombeiro Herói", 
@@ -48,6 +60,10 @@ const StoryTime: React.FC = () => {
   };
 
   const handleCreateVideo = async () => {
+    if (!isOnline) {
+      alert("Precisamos de internet para fazer o vídeo mágico!");
+      return;
+    }
     if (!imageUrl || !story) return;
     setIsVideoLoading(true);
     try {
@@ -71,7 +87,9 @@ const StoryTime: React.FC = () => {
                <BookOpen />
             </button>
             <h1 className="text-xl font-black uppercase tracking-wider text-center flex-1 mx-2 text-yellow-400">Hora de Dormir</h1>
-            <div className="w-10"><Moon className="text-yellow-200 fill-yellow-200" /></div>
+            <div className="w-10 flex items-center justify-center">
+              {isOnline ? <Moon className="text-yellow-200 fill-yellow-200" /> : <WifiOff className="text-slate-500" size={20} />}
+            </div>
          </header>
        </div>
 
@@ -82,6 +100,12 @@ const StoryTime: React.FC = () => {
           <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 space-y-6">
             <h2 className="text-2xl font-black text-white text-center">Sobre o que vamos sonhar?</h2>
             
+            {!isOnline && (
+               <div className="bg-blue-900/50 p-3 rounded-xl border border-blue-800 text-center text-blue-200 text-sm">
+                 Modo Offline: Histórias especiais prontas para ler!
+               </div>
+            )}
+
             <div className="flex flex-wrap gap-3 justify-center">
               {predefinedTopics.map(t => (
                 <button 
@@ -176,7 +200,8 @@ const StoryTime: React.FC = () => {
                         </div>
                       )}
 
-                      {imageUrl && !videoUrl && !isVideoLoading && (
+                      {/* Only show 'Bring to Life' (Video) button if we have an image AND we are online */}
+                      {imageUrl && !videoUrl && !isVideoLoading && isOnline && (
                         <button 
                           onClick={handleCreateVideo}
                           className="absolute bottom-4 right-4 bg-black/60 backdrop-blur text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 border border-white/20"
