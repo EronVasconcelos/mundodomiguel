@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Users, Plus, Check, Target, LogOut, Camera, Loader2 } from 'lucide-react';
+import { ArrowLeft, Users, Plus, Check, Target, LogOut, Camera, Loader2, Trash2 } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -89,6 +89,42 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     }
   };
 
+  const handleDeleteProfile = async (e: React.MouseEvent, idToDelete: string) => {
+    e.stopPropagation(); // Prevent switching profile
+    
+    if (!window.confirm("Tem certeza que deseja apagar este perfil? Todo o progresso será perdido.")) {
+        return;
+    }
+
+    try {
+        const { error } = await supabase.from('child_profiles').delete().eq('id', idToDelete);
+        
+        if (error) throw error;
+
+        // Update local state
+        const updatedList = profiles.filter(p => p.id !== idToDelete);
+        setProfiles(updatedList);
+        localStorage.setItem('child_profiles', JSON.stringify(updatedList));
+
+        // Handle active profile deletion
+        if (activeProfile?.id === idToDelete) {
+            if (updatedList.length > 0) {
+                // Switch to the first available
+                handleSwitchProfile(updatedList[0]);
+            } else {
+                // No profiles left, go to setup
+                localStorage.removeItem('active_profile_id');
+                localStorage.removeItem('child_profile');
+                setActiveProfile(null);
+                navigate(AppRoute.PROFILE);
+            }
+        }
+    } catch (err) {
+        console.error("Error deleting profile:", err);
+        alert("Erro ao apagar perfil. Tente novamente.");
+    }
+  };
+
   const handleAddProfile = () => {
     if (profiles.length >= 5) {
         alert("Máximo de 5 perfis atingido.");
@@ -98,7 +134,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
   };
 
   const handleLogout = async () => {
-      if (window.confirm("Tem certeza que deseja sair?")) {
+      if (window.confirm("Tem certeza que deseja sair da conta dos pais?")) {
           await supabase.auth.signOut();
           localStorage.clear();
           navigate(AppRoute.WELCOME);
@@ -277,26 +313,36 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
                 <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
                     {profiles.map(p => (
-                        <button 
-                            key={p.id}
-                            onClick={() => handleSwitchProfile(p)}
-                            className={`w-full flex items-center gap-4 p-3 rounded-2xl border-2 transition-all
-                                ${activeProfile?.id === p.id 
-                                    ? 'border-blue-500 bg-blue-50 shadow-md' 
-                                    : 'border-slate-100 hover:border-slate-200 bg-white'}
-                            `}
-                        >
-                            <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0">
-                                <img src={getProfileImage(p)} className="w-full h-full object-cover" alt={p.name} />
-                            </div>
-                            <div className="flex-1 text-left">
-                                <span className={`block font-bold text-lg ${activeProfile?.id === p.id ? 'text-blue-700' : 'text-slate-700'}`}>
-                                    {p.name}
-                                </span>
-                                <span className="text-xs text-slate-400 font-bold">{p.age} anos</span>
-                            </div>
-                            {activeProfile?.id === p.id && <div className="text-blue-500"><Check /></div>}
-                        </button>
+                        <div key={p.id} className="flex gap-2 w-full">
+                            <button 
+                                onClick={() => handleSwitchProfile(p)}
+                                className={`flex-1 flex items-center gap-4 p-3 rounded-2xl border-2 transition-all
+                                    ${activeProfile?.id === p.id 
+                                        ? 'border-blue-500 bg-blue-50 shadow-md' 
+                                        : 'border-slate-100 hover:border-slate-200 bg-white'}
+                                `}
+                            >
+                                <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0">
+                                    <img src={getProfileImage(p)} className="w-full h-full object-cover" alt={p.name} />
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <span className={`block font-bold text-lg ${activeProfile?.id === p.id ? 'text-blue-700' : 'text-slate-700'}`}>
+                                        {p.name}
+                                    </span>
+                                    <span className="text-xs text-slate-400 font-bold">{p.age} anos</span>
+                                </div>
+                                {activeProfile?.id === p.id && <div className="text-blue-500"><Check /></div>}
+                            </button>
+                            
+                            {/* Delete Button */}
+                            <button 
+                                onClick={(e) => handleDeleteProfile(e, p.id)}
+                                className="w-14 bg-red-50 text-red-500 border-2 border-red-100 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
+                                title="Apagar Perfil"
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                        </div>
                     ))}
                 </div>
 
