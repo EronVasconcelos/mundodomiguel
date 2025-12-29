@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getInstantStory, generateStoryText, generateStoryImage } from '../services/geminiService';
-import { Sparkles, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Key, Download, Check } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Key, Download, Check, HelpCircle, X, ExternalLink } from 'lucide-react';
 import { StoryData } from '../types';
 
 const StoryTime: React.FC = () => {
@@ -18,6 +18,7 @@ const StoryTime: React.FC = () => {
   const [imageRevealed, setImageRevealed] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [downloaded, setDownloaded] = useState(false);
+  const [showKeyHelp, setShowKeyHelp] = useState(false);
   
   // Check for AI Studio environment
   const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
@@ -121,13 +122,21 @@ const StoryTime: React.FC = () => {
             <h1 className="text-xl font-black uppercase tracking-wider text-center flex-1 mx-2 text-yellow-400">Hora de Dormir</h1>
             <div className="flex items-center gap-2">
               {hasAIStudio && (
+                <>
+                  <button 
+                    onClick={() => setShowKeyHelp(true)}
+                    className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300 active:scale-95 transition-transform"
+                  >
+                    <HelpCircle size={18} />
+                  </button>
                   <button 
                     onClick={() => (window as any).aistudio.openSelectKey()}
-                    className="w-10 h-10 bg-yellow-500/20 border border-yellow-500/50 rounded-full flex items-center justify-center text-yellow-400 active:scale-95 transition-transform"
-                    title="Configurar Chave Mágica (Melhora as histórias)"
+                    className="w-10 h-10 bg-yellow-500/20 border border-yellow-500/50 rounded-full flex items-center justify-center text-yellow-400 active:scale-95 transition-transform animate-pulse"
+                    title="Configurar Chave Mágica"
                   >
                      <Key size={18} />
                   </button>
+                </>
               )}
               <div className="w-10 flex items-center justify-center">
                 {isOnline ? <Moon className="text-yellow-200 fill-yellow-200" /> : <WifiOff className="text-slate-500" size={20} />}
@@ -294,6 +303,42 @@ const StoryTime: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* --- INSTRUCTION MODAL (API KEY HELP) --- */}
+      {showKeyHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+           <div className="bg-slate-900 border-2 border-yellow-500/50 p-6 rounded-3xl max-w-md w-full relative shadow-2xl shadow-yellow-900/20">
+              <button onClick={() => setShowKeyHelp(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full"><X size={20}/></button>
+              
+              <div className="flex flex-col gap-4">
+                 <h2 className="text-2xl font-black text-yellow-400 flex items-center gap-3">
+                   <Key className="w-8 h-8 fill-yellow-500/20"/>
+                   Ativar a Mágica
+                 </h2>
+                 
+                 <div className="space-y-4 text-slate-300 text-sm leading-relaxed">
+                    <p className="font-medium text-white text-base">Olá Guardião! 👋</p>
+                    <p>Para criar histórias novas e infinitas, você precisa ativar a chave da inteligência artificial.</p>
+                    
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                       <h3 className="text-white font-bold mb-2">Como fazer?</h3>
+                       <ol className="list-decimal pl-5 space-y-2 text-slate-400">
+                          <li>Toque no botão <span className="text-yellow-400 font-bold">Selecionar Chave</span> abaixo.</li>
+                          <li>Isso abrirá uma janela do Google.</li>
+                          <li>Selecione ou crie um projeto (é gratuito para texto e imagens).</li>
+                       </ol>
+                    </div>
+
+                    <button onClick={() => { setShowKeyHelp(false); (window as any).aistudio.openSelectKey(); }} className="w-full py-4 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white font-black text-lg rounded-xl transition-all shadow-lg shadow-yellow-900/40 active:scale-95 flex items-center justify-center gap-2">
+                       <Key size={20} /> SELECIONAR CHAVE
+                    </button>
+                    
+                    <p className="text-center text-xs text-slate-500 mt-2">Se não ativar, continuaremos usando as histórias do livro offline.</p>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
 
     </div>
   );
