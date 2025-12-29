@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, Trash2, UserX, AlertTriangle } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -122,6 +122,47 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     } catch (err) {
         console.error("Error deleting profile:", err);
         alert("Erro ao apagar perfil. Verifique sua conexão.");
+    }
+  };
+
+  // --- DELETE ACCOUNT FUNCTIONALITY ---
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("ATENÇÃO: Isso excluirá sua conta de email e todos os perfis das crianças. Não há como desfazer.")) {
+        return;
+    }
+
+    const confirmText = prompt("Para confirmar, digite: DELETAR");
+    if (confirmText !== "DELETAR") return;
+
+    setUploading(true); // Show loading spinner
+
+    try {
+        // Call the robust SQL function we created
+        const { error } = await supabase.rpc('delete_user_account');
+        
+        if (error) {
+            console.error("RPC Error:", error);
+            // If RPC fails, throw to catch block, but verify if user is gone
+            throw new Error("Falha ao excluir no servidor. " + error.message);
+        }
+
+        // Success - Clear everything locally
+        localStorage.clear();
+        sessionStorage.clear();
+        await supabase.auth.signOut();
+        navigate(AppRoute.WELCOME);
+        alert("Conta excluída com sucesso.");
+
+    } catch (error: any) {
+        console.error("Deletion failed:", error);
+        alert("Erro ao excluir conta: " + error.message);
+        
+        // Fallback: Force logout anyway so user doesn't feel stuck
+        localStorage.clear();
+        await supabase.auth.signOut();
+        navigate(AppRoute.WELCOME);
+    } finally {
+        setUploading(false);
     }
   };
 
@@ -348,6 +389,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                         <Plus size={20} /> Adicionar Criança
                     </button>
                 )}
+
+                {/* DELETE ACCOUNT BUTTON - Re-added */}
+                <div className="border-t border-slate-100 pt-6 mt-6">
+                    <button 
+                        onClick={handleDeleteAccount}
+                        disabled={uploading}
+                        className="w-full py-3 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+                    >
+                        {uploading ? <Loader2 className="animate-spin" /> : <UserX size={18} />}
+                        Excluir Minha Conta (Responsável)
+                    </button>
+                    <p className="text-[10px] text-red-300 text-center mt-2 px-4">
+                        Isso apaga seu login e todos os perfis. Ação irreversível.
+                    </p>
+                </div>
+
             </div>
         </div>
       )}
