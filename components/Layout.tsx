@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Users, Plus, Check, Target, LogOut, Camera, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Users, Plus, Check, Target, LogOut, Camera, Loader2, Trash2, UserX, AlertTriangle } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -122,6 +122,52 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     } catch (err) {
         console.error("Error deleting profile:", err);
         alert("Erro ao apagar perfil. Tente novamente.");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("PERIGO: Isso excluirá PERMANENTEMENTE sua conta de login e TODOS os perfis das crianças. Essa ação é irreversível. Tem certeza?")) {
+        return;
+    }
+
+    const confirmText = prompt("Para confirmar, digite DELETAR abaixo:");
+    if (confirmText !== "DELETAR") return;
+
+    setUploading(true);
+
+    try {
+        // 1. Delete all data manually (RLS allows users to delete their own rows)
+        // Note: Due to foreign key constraints, deleting profiles usually deletes progress if configured with Cascade.
+        // But we do it explicitly to be sure.
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            // Delete profiles (RLS: auth.uid() = user_id)
+            await supabase.from('child_profiles').delete().neq('id', '000000'); 
+            
+            // 2. Attempt to delete the User Auth via RPC
+            // This requires you to create a function in Supabase SQL Editor.
+            // See instructions provided by the engineer.
+            const { error: rpcError } = await supabase.rpc('delete_user');
+            
+            if (rpcError) {
+                console.warn("RPC delete_user failed or not found. Just signing out.", rpcError);
+                alert("Seus dados foram limpos, mas para excluir o login totalmente, contate o administrador ou verifique a configuração do banco.");
+            }
+        }
+
+        // 3. Clear Local Storage
+        localStorage.clear();
+        
+        // 4. Sign Out
+        await supabase.auth.signOut();
+        navigate(AppRoute.WELCOME);
+
+    } catch (error: any) {
+        console.error("Error deleting account:", error);
+        alert("Erro ao excluir conta: " + error.message);
+    } finally {
+        setUploading(false);
     }
   };
 
@@ -305,13 +351,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
       {/* --- PROFILE SWITCHER MODAL --- */}
       {showProfileSwitcher && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowProfileSwitcher(false)}>
-            <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="text-center mb-6">
                     <h3 className="text-xl font-black text-slate-800">Quem vai brincar?</h3>
                     <p className="text-sm text-slate-400">Alternar perfil</p>
                 </div>
 
-                <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
+                <div className="space-y-3 mb-6">
                     {profiles.map(p => (
                         <div key={p.id} className="flex gap-2 w-full">
                             <button 
@@ -349,11 +395,25 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 {profiles.length < 5 && (
                     <button 
                         onClick={handleAddProfile}
-                        className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+                        className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-slate-600 transition-colors mb-6"
                     >
                         <Plus size={20} /> Adicionar Criança
                     </button>
                 )}
+                
+                {/* DANGER ZONE - DELETE PARENT ACCOUNT */}
+                <div className="border-t border-slate-100 pt-6 mt-6">
+                    <button 
+                        onClick={handleDeleteAccount}
+                        className="w-full py-3 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+                    >
+                        {uploading ? <Loader2 className="animate-spin" /> : <UserX size={18} />}
+                        Excluir Conta (Responsável)
+                    </button>
+                    <p className="text-[10px] text-red-300 text-center mt-2 px-4">
+                        Isso apaga seu login e todos os perfis cadastrados.
+                    </p>
+                </div>
             </div>
         </div>
       )}
