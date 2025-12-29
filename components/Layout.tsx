@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, Trash2, UserX } from 'lucide-react';
+import { ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, Trash2 } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -122,46 +122,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     } catch (err) {
         console.error("Error deleting profile:", err);
         alert("Erro ao apagar perfil. Verifique sua conexão.");
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!window.confirm("PERIGO: Isso excluirá sua conta e todos os dados do dispositivo. Tem certeza?")) {
-        return;
-    }
-
-    const confirmText = prompt("Para confirmar, digite DELETAR abaixo:");
-    if (confirmText !== "DELETAR") return;
-
-    setUploading(true);
-
-    try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            // 1. Try to fetch all child IDs to clean up dependencies
-            const { data: children } = await supabase.from('child_profiles').select('id');
-            const childIds = children?.map(c => c.id) || [];
-
-            if (childIds.length > 0) {
-                // Try deleting progress first
-                await supabase.from('daily_progress').delete().in('profile_id', childIds);
-                // Try deleting profiles
-                await supabase.from('child_profiles').delete().in('id', childIds);
-            }
-            
-            // 2. Try to delete the User Auth via RPC (requires backend setup)
-            // Even if this fails, we proceed to local cleanup
-            await supabase.rpc('delete_user');
-        }
-    } catch (error: any) {
-        console.warn("Backend deletion incomplete (likely missing permissions), but proceeding to local cleanup.", error);
-    } finally {
-        // 3. FORCE CLEANUP - Always runs
-        localStorage.clear();
-        sessionStorage.clear();
-        await supabase.auth.signOut();
-        navigate(AppRoute.WELCOME);
-        setUploading(false);
     }
   };
 
@@ -388,19 +348,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                         <Plus size={20} /> Adicionar Criança
                     </button>
                 )}
-                
-                <div className="border-t border-slate-100 pt-6 mt-6">
-                    <button 
-                        onClick={handleDeleteAccount}
-                        className="w-full py-3 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
-                    >
-                        {uploading ? <Loader2 className="animate-spin" /> : <UserX size={18} />}
-                        Excluir Conta (Responsável)
-                    </button>
-                    <p className="text-[10px] text-red-300 text-center mt-2 px-4">
-                        Limpa o login e dados do celular.
-                    </p>
-                </div>
             </div>
         </div>
       )}
