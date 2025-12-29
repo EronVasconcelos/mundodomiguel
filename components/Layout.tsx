@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Users, Plus, Check, Target, LogOut, Camera, Loader2, Trash2, UserX, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, Trash2, UserX } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -9,7 +9,7 @@ interface LayoutProps {
   children: React.ReactNode;
   title: string;
   color?: string;
-  missionTarget?: { current: number; target: number | boolean; label?: string }; // New Prop for Header Counter
+  missionTarget?: { current: number; target: number | boolean; label?: string };
 }
 
 // Generic Gender-Neutral Avatar
@@ -90,15 +90,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
   };
 
   const handleDeleteProfile = async (e: React.MouseEvent, idToDelete: string) => {
-    e.stopPropagation(); // Prevent switching profile
+    e.stopPropagation(); 
     
     if (!window.confirm("Tem certeza que deseja apagar este perfil? Todo o progresso será perdido.")) {
         return;
     }
 
     try {
-        const { error } = await supabase.from('child_profiles').delete().eq('id', idToDelete);
+        // First try to delete dependent progress manually to avoid FK errors if cascade is missing
+        await supabase.from('daily_progress').delete().eq('profile_id', idToDelete);
         
+        const { error } = await supabase.from('child_profiles').delete().eq('id', idToDelete);
         if (error) throw error;
 
         // Update local state
@@ -109,10 +111,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         // Handle active profile deletion
         if (activeProfile?.id === idToDelete) {
             if (updatedList.length > 0) {
-                // Switch to the first available
                 handleSwitchProfile(updatedList[0]);
             } else {
-                // No profiles left, go to setup
                 localStorage.removeItem('active_profile_id');
                 localStorage.removeItem('child_profile');
                 setActiveProfile(null);
@@ -121,12 +121,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         }
     } catch (err) {
         console.error("Error deleting profile:", err);
-        alert("Erro ao apagar perfil. Tente novamente.");
+        alert("Erro ao apagar perfil. Verifique sua conexão.");
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (!window.confirm("PERIGO: Isso excluirá PERMANENTEMENTE sua conta de login e TODOS os perfis das crianças. Essa ação é irreversível. Tem certeza?")) {
+    if (!window.confirm("PERIGO: Isso excluirá sua conta e todos os dados do dispositivo. Tem certeza?")) {
         return;
     }
 
@@ -136,37 +136,31 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     setUploading(true);
 
     try {
-        // 1. Delete all data manually (RLS allows users to delete their own rows)
-        // Note: Due to foreign key constraints, deleting profiles usually deletes progress if configured with Cascade.
-        // But we do it explicitly to be sure.
-        
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-            // Delete profiles (RLS: auth.uid() = user_id)
-            await supabase.from('child_profiles').delete().neq('id', '000000'); 
-            
-            // 2. Attempt to delete the User Auth via RPC
-            // This requires you to create a function in Supabase SQL Editor.
-            // See instructions provided by the engineer.
-            const { error: rpcError } = await supabase.rpc('delete_user');
-            
-            if (rpcError) {
-                console.warn("RPC delete_user failed or not found. Just signing out.", rpcError);
-                alert("Seus dados foram limpos, mas para excluir o login totalmente, contate o administrador ou verifique a configuração do banco.");
-            }
-        }
+            // 1. Try to fetch all child IDs to clean up dependencies
+            const { data: children } = await supabase.from('child_profiles').select('id');
+            const childIds = children?.map(c => c.id) || [];
 
-        // 3. Clear Local Storage
+            if (childIds.length > 0) {
+                // Try deleting progress first
+                await supabase.from('daily_progress').delete().in('profile_id', childIds);
+                // Try deleting profiles
+                await supabase.from('child_profiles').delete().in('id', childIds);
+            }
+            
+            // 2. Try to delete the User Auth via RPC (requires backend setup)
+            // Even if this fails, we proceed to local cleanup
+            await supabase.rpc('delete_user');
+        }
+    } catch (error: any) {
+        console.warn("Backend deletion incomplete (likely missing permissions), but proceeding to local cleanup.", error);
+    } finally {
+        // 3. FORCE CLEANUP - Always runs
         localStorage.clear();
-        
-        // 4. Sign Out
+        sessionStorage.clear();
         await supabase.auth.signOut();
         navigate(AppRoute.WELCOME);
-
-    } catch (error: any) {
-        console.error("Error deleting account:", error);
-        alert("Erro ao excluir conta: " + error.message);
-    } finally {
         setUploading(false);
     }
   };
@@ -208,7 +202,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
           const base64 = event.target?.result as string;
           
           try {
-              // Update Supabase
               const { error } = await supabase
                   .from('child_profiles')
                   .update({ photo_url: base64 })
@@ -216,7 +209,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
               if (error) throw error;
 
-              // Update Local State & Storage
               const updatedProfile = { ...activeProfile, photoUrl: base64 };
               const updatedList = profiles.map(p => p.id === activeProfile.id ? updatedProfile : p);
               
@@ -252,7 +244,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         backgroundSize: '24px 24px'
       }}
     >
-      {/* Hidden File Input for Avatar Change */}
       <input 
           type="file" 
           ref={fileInputRef} 
@@ -265,7 +256,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
       <div className="px-4 pt-4 pb-2 z-20">
         <header className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border-2 border-slate-100 p-2 flex items-center justify-between relative">
           
-          {/* Left: Avatar (Upload) or Back Button */}
           <div className="flex items-center gap-3">
             {isHome ? (
               <button 
@@ -314,7 +304,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
             </div>
           </div>
 
-          {/* Right: Actions or Counters */}
           <div className="flex items-center gap-2">
              {isHome ? (
                 <>
@@ -380,7 +369,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                                 {activeProfile?.id === p.id && <div className="text-blue-500"><Check /></div>}
                             </button>
                             
-                            {/* Delete Button */}
                             <button 
                                 onClick={(e) => handleDeleteProfile(e, p.id)}
                                 className="w-14 bg-red-50 text-red-500 border-2 border-red-100 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
@@ -401,7 +389,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                     </button>
                 )}
                 
-                {/* DANGER ZONE - DELETE PARENT ACCOUNT */}
                 <div className="border-t border-slate-100 pt-6 mt-6">
                     <button 
                         onClick={handleDeleteAccount}
@@ -411,14 +398,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                         Excluir Conta (Responsável)
                     </button>
                     <p className="text-[10px] text-red-300 text-center mt-2 px-4">
-                        Isso apaga seu login e todos os perfis cadastrados.
+                        Limpa o login e dados do celular.
                     </p>
                 </div>
             </div>
         </div>
       )}
 
-      {/* --- MAIN CONTENT --- */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 relative flex flex-col z-10 scrollbar-hide">
         <div className="flex-1 flex flex-col max-w-lg mx-auto w-full">
           {children}

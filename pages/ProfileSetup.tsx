@@ -26,20 +26,31 @@ const ProfileSetup: React.FC = () => {
   });
 
   useEffect(() => {
-    // Check local storage immediately for UI feedback (Back button)
+    // Check local storage
     const stored = localStorage.getItem('child_profiles');
     if (stored && JSON.parse(stored).length > 0) {
         setHasExistingProfiles(true);
     }
+    // Also Check DB immediately
     checkProfiles();
   }, []);
 
   const checkProfiles = async () => {
-    const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true });
-    setExistingCount(count || 0);
-    if ((count || 0) >= 5) {
-        alert("Você já atingiu o limite de 5 perfis.");
-        navigate(AppRoute.HOME);
+    try {
+        const { count, error } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true });
+        if (error) throw error;
+        
+        setExistingCount(count || 0);
+        if ((count || 0) > 0) {
+            setHasExistingProfiles(true);
+        }
+        
+        if ((count || 0) >= 5) {
+            alert("Você já atingiu o limite de 5 perfis.");
+            navigate(AppRoute.HOME);
+        }
+    } catch (e) {
+        console.warn("Could not check profiles", e);
     }
   };
 
