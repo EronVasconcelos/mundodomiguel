@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
-import { DevotionalData } from '../types';
+import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
 import { Cloud, Sun, Volume2, Star, BookOpen, Loader2, Sparkles, Heart, StopCircle } from 'lucide-react';
 
@@ -9,6 +9,7 @@ const FaithCorner: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
+  const [profile, setProfile] = useState<ChildProfile | null>(null);
   
   // Audio State
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -19,27 +20,37 @@ const FaithCorner: React.FC = () => {
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   useEffect(() => {
-    loadContent();
-    return () => {
-        stopAudio();
+    // Load profile
+    const storedProfile = localStorage.getItem('child_profile');
+    if (storedProfile) {
+        setProfile(JSON.parse(storedProfile));
     }
   }, []);
 
-  const loadContent = async () => {
+  useEffect(() => {
+    if (profile) {
+        loadContent(profile);
+    }
+    return () => {
+        stopAudio();
+    }
+  }, [profile]);
+
+  const loadContent = async (currentProfile: ChildProfile) => {
     setLoading(true);
-    const content = await generateDevotionalContent();
+    const content = await generateDevotionalContent(currentProfile);
     setData(content);
     setLoading(false);
 
     // Try to load image from session if available, else generate
-    const savedImgKey = `faith_img_${content.date}`;
+    const savedImgKey = `faith_img_${content.date}_${currentProfile.name}`;
     const savedImg = localStorage.getItem(savedImgKey);
     
     if (savedImg) {
         setImageUrl(savedImg);
     } else if (content.imagePrompt) {
         setImageLoading(true);
-        const img = await generateStoryImage(content.imagePrompt);
+        const img = await generateStoryImage(content.imagePrompt, currentProfile);
         setImageUrl(img);
         localStorage.setItem(savedImgKey, img);
         setImageLoading(false);
@@ -217,7 +228,7 @@ const FaithCorner: React.FC = () => {
                     {/* Explanation Section */}
                     <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative">
                         <div className="absolute -top-3 left-6 bg-sky-100 text-sky-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                            Para o Miguel
+                            Para {profile?.name}
                         </div>
                         <p className="text-lg leading-relaxed text-slate-600 font-medium">
                             {data.devotional}

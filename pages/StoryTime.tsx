@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { getInstantStory, generateStoryText, generateStoryImage } from '../services/geminiService';
 import { Sparkles, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Key, Download, Check, HelpCircle, X, ExternalLink } from 'lucide-react';
-import { StoryData } from '../types';
+import { StoryData, ChildProfile } from '../types';
 
 const StoryTime: React.FC = () => {
   const [topic, setTopic] = useState("Aventura Espacial");
   const [customTopic, setCustomTopic] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [profile, setProfile] = useState<ChildProfile | null>(null);
   
   // State for Mode Selection
   const [useAI, setUseAI] = useState(false); // Default to Local (False)
@@ -24,6 +25,12 @@ const StoryTime: React.FC = () => {
   const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
 
   useEffect(() => {
+    // Load Profile
+    const stored = localStorage.getItem('child_profile');
+    if (stored) {
+      setProfile(JSON.parse(stored));
+    }
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
@@ -50,6 +57,7 @@ const StoryTime: React.FC = () => {
   ];
 
   const handleCreateStory = async (selectedTopic: string) => {
+    if (!profile) return;
     setLoading(true);
     setStory(null);
     setImageUrl(null);
@@ -63,7 +71,7 @@ const StoryTime: React.FC = () => {
         // Small delay for UI feel
         await new Promise(r => setTimeout(r, 600)); 
         
-        const localStory = getInstantStory(selectedTopic);
+        const localStory = getInstantStory(selectedTopic, profile);
         setStory({
           title: localStory.title,
           content: localStory.content,
@@ -80,11 +88,11 @@ const StoryTime: React.FC = () => {
         }
 
         setLoadingPhase("A Mágica está escrevendo...");
-        const storyData = await generateStoryText(selectedTopic);
+        const storyData = await generateStoryText(selectedTopic, profile);
         setStory(storyData);
 
         setLoadingPhase("Pintando o desenho...");
-        const img = await generateStoryImage(storyData.content);
+        const img = await generateStoryImage(storyData.content, profile);
         setImageUrl(img);
       }
 
@@ -101,7 +109,7 @@ const StoryTime: React.FC = () => {
     
     const link = document.createElement('a');
     link.href = imageUrl;
-    link.download = `Historia-Miguel-${Date.now()}.png`;
+    link.download = `Historia-${profile?.name}-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

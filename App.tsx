@@ -1,5 +1,7 @@
-import React from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import Welcome from './pages/Welcome';
+import ProfileSetup from './pages/ProfileSetup';
 import Home from './pages/Home';
 import MathBlocks from './pages/MathBlocks';
 import ArtStudio from './pages/ArtStudio';
@@ -15,26 +17,48 @@ import SpaceShooter from './pages/games/SpaceShooter';
 import RacingGame from './pages/games/RacingGame';
 import { AppRoute } from './types';
 
+// Auth Guard Component
+const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const profile = localStorage.getItem('child_profile');
+    const publicRoutes = [AppRoute.WELCOME, AppRoute.PROFILE];
+    
+    if (!profile && !publicRoutes.includes(location.pathname as AppRoute)) {
+      navigate(AppRoute.WELCOME);
+    }
+  }, [location, navigate]);
+
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <HashRouter>
-      <Routes>
-        <Route path={AppRoute.HOME} element={<Home />} />
-        <Route path={AppRoute.MATH} element={<MathBlocks />} />
-        <Route path={AppRoute.ART} element={<ArtStudio />} />
-        <Route path={AppRoute.COLORING} element={<ColoringBook />} />
-        <Route path={AppRoute.CHALLENGE} element={<ChallengeArena />} />
-        <Route path={AppRoute.WORDS} element={<WordLearning />} />
-        <Route path={AppRoute.STORY} element={<StoryTime />} />
-        <Route path={AppRoute.FAITH} element={<FaithCorner />} />
-        
-        {/* Arcade Routes */}
-        <Route path={AppRoute.ARCADE} element={<ArcadeHub />} />
-        <Route path={AppRoute.GAME_MEMORY} element={<MemoryGame />} />
-        <Route path={AppRoute.GAME_SNAKE} element={<SnakeGame />} />
-        <Route path={AppRoute.GAME_SPACE} element={<SpaceShooter />} />
-        <Route path={AppRoute.GAME_RACING} element={<RacingGame />} />
-      </Routes>
+      <AuthGuard>
+        <Routes>
+          <Route path={AppRoute.WELCOME} element={<Welcome />} />
+          <Route path={AppRoute.PROFILE} element={<ProfileSetup />} />
+          
+          <Route path={AppRoute.HOME} element={<Home />} />
+          <Route path={AppRoute.MATH} element={<MathBlocks />} />
+          <Route path={AppRoute.ART} element={<ArtStudio />} />
+          <Route path={AppRoute.COLORING} element={<ColoringBook />} />
+          <Route path={AppRoute.CHALLENGE} element={<ChallengeArena />} />
+          <Route path={AppRoute.WORDS} element={<WordLearning />} />
+          <Route path={AppRoute.STORY} element={<StoryTime />} />
+          <Route path={AppRoute.FAITH} element={<FaithCorner />} />
+          
+          {/* Arcade Routes */}
+          <Route path={AppRoute.ARCADE} element={<ArcadeHub />} />
+          <Route path={AppRoute.GAME_MEMORY} element={<MemoryGame />} />
+          <Route path={AppRoute.GAME_SNAKE} element={<SnakeGame />} />
+          <Route path={AppRoute.GAME_SPACE} element={<SpaceShooter />} />
+          <Route path={AppRoute.GAME_RACING} element={<RacingGame />} />
+        </Routes>
+      </AuthGuard>
     </HashRouter>
   );
 }

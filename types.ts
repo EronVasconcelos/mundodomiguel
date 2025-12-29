@@ -1,17 +1,30 @@
 export enum AppRoute {
+  WELCOME = '/welcome',
+  PROFILE = '/profile-setup',
   HOME = '/',
   MATH = '/math',
-  ART = '/art', // Free draw (Lousa)
-  COLORING = '/coloring', // Coloring Book (Templates + Bucket)
+  ART = '/art', 
+  COLORING = '/coloring',
   CHALLENGE = '/challenge',
-  WORDS = '/words', // New Word Learning module
+  WORDS = '/words',
   STORY = '/story',
-  FAITH = '/faith', // New Faith Corner
+  FAITH = '/faith',
   ARCADE = '/arcade',
   GAME_MEMORY = '/arcade/memory',
   GAME_SNAKE = '/arcade/snake',
   GAME_SPACE = '/arcade/space',
   GAME_RACING = '/arcade/racing',
+}
+
+export interface ChildProfile {
+  name: string;
+  age: number;
+  gender: 'boy' | 'girl';
+  hairColor: string;
+  hairStyle: string;
+  eyeColor: string;
+  skinTone: string;
+  avatarBase?: string; // Base64 or URL of the avatar created/selected
 }
 
 export interface StoryData {
@@ -24,11 +37,11 @@ export interface DevotionalData {
   date: string;
   verse: string;
   reference: string;
-  devotional: string; // Explanation for the child
+  devotional: string; 
   storyTitle: string;
   storyContent: string;
   prayer: string;
-  imagePrompt?: string; // Prompt for the image generation
+  imagePrompt?: string;
 }
 
 export interface MathBlock {
