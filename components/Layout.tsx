@@ -125,7 +125,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     }
   };
 
-  // --- DELETE ACCOUNT FUNCTIONALITY ---
+  // --- DELETE ACCOUNT FUNCTIONALITY (V2) ---
   const handleDeleteAccount = async () => {
     if (!window.confirm("ATENÇÃO: Isso excluirá sua conta de email e todos os perfis das crianças. Não há como desfazer.")) {
         return;
@@ -134,16 +134,20 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     const confirmText = prompt("Para confirmar, digite: DELETAR");
     if (confirmText !== "DELETAR") return;
 
-    setUploading(true); // Show loading spinner
+    setUploading(true);
 
     try {
-        // Call the robust SQL function we created
-        const { error } = await supabase.rpc('delete_user_account');
+        // Call the V2 robust SQL function
+        // Note: Make sure to run the updated SQL in Supabase SQL Editor!
+        const { error } = await supabase.rpc('delete_account_v2');
         
         if (error) {
             console.error("RPC Error:", error);
-            // If RPC fails, throw to catch block, but verify if user is gone
-            throw new Error("Falha ao excluir no servidor. " + error.message);
+            // Translate common errors or show raw message
+            if (error.message.includes('function not found') || error.message.includes('delete_account_v2')) {
+                 throw new Error("Função de exclusão não encontrada. Por favor, execute o novo código SQL V2 no painel do Supabase.");
+            }
+            throw new Error(error.message);
         }
 
         // Success - Clear everything locally
@@ -155,12 +159,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
     } catch (error: any) {
         console.error("Deletion failed:", error);
-        alert("Erro ao excluir conta: " + error.message);
+        alert("ERRO AO EXCLUIR: " + error.message + "\n\nTente rodar o script SQL V2 no Supabase.");
         
-        // Fallback: Force logout anyway so user doesn't feel stuck
-        localStorage.clear();
-        await supabase.auth.signOut();
-        navigate(AppRoute.WELCOME);
+        // Safety Fallback: Force logout so user isn't stuck in a broken state
+        // localStorage.clear();
+        // await supabase.auth.signOut();
+        // navigate(AppRoute.WELCOME);
     } finally {
         setUploading(false);
     }
