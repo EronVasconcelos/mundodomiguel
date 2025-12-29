@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getInstantStory, generateStoryText, generateStoryImage, generateStoryVideo } from '../services/geminiService';
-import { Sparkles, PlayCircle, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Zap } from 'lucide-react';
+import { getInstantStory, generateStoryText, generateStoryImage } from '../services/geminiService';
+import { Sparkles, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Key, Download, Check } from 'lucide-react';
 import { StoryData } from '../types';
 
 const StoryTime: React.FC = () => {
@@ -8,17 +8,19 @@ const StoryTime: React.FC = () => {
   const [customTopic, setCustomTopic] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
   
-  // New State for Mode Selection
+  // State for Mode Selection
   const [useAI, setUseAI] = useState(false); // Default to Local (False)
 
   const [loading, setLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState("");
   const [story, setStory] = useState<StoryData | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [imageRevealed, setImageRevealed] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [downloaded, setDownloaded] = useState(false);
+  
+  // Check for AI Studio environment
+  const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -33,11 +35,11 @@ const StoryTime: React.FC = () => {
 
   const handleModeSwitch = (mode: boolean) => {
     setUseAI(mode);
-    // Clear current story so the UI is clean for the new mode (especially AI)
+    // Clear current story so the UI is clean for the new mode
     setStory(null);
     setImageUrl(null);
-    setVideoUrl(null);
     setImageRevealed(false);
+    setDownloaded(false);
   };
 
   const predefinedTopics = [
@@ -50,8 +52,8 @@ const StoryTime: React.FC = () => {
     setLoading(true);
     setStory(null);
     setImageUrl(null);
-    setVideoUrl(null);
     setImageRevealed(false);
+    setDownloaded(false);
     
     try {
       if (!useAI) {
@@ -93,23 +95,19 @@ const StoryTime: React.FC = () => {
     }
   };
 
-  const handleCreateVideo = async () => {
-    if (!isOnline) {
-      alert("Precisamos de internet para fazer o vídeo mágico!");
-      return;
-    }
-    if (!imageUrl || !story) return;
-    setIsVideoLoading(true);
-    try {
-      const vid = await generateStoryVideo(imageUrl, story.content.substring(0, 50));
-      setVideoUrl(vid);
-    } catch (e) {
-      console.error(e);
-      alert("Para fazer vídeos mágicos, precisamos da chave especial (API Key)!");
-    } finally {
-      setIsVideoLoading(false);
-    }
-  }
+  const handleDownloadImage = () => {
+    if (!imageUrl) return;
+    
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `Historia-Miguel-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 3000);
+  };
 
   return (
     // Override Layout background specifically for StoryTime to be Night Mode
@@ -121,8 +119,19 @@ const StoryTime: React.FC = () => {
                <BookOpen />
             </button>
             <h1 className="text-xl font-black uppercase tracking-wider text-center flex-1 mx-2 text-yellow-400">Hora de Dormir</h1>
-            <div className="w-10 flex items-center justify-center">
-              {isOnline ? <Moon className="text-yellow-200 fill-yellow-200" /> : <WifiOff className="text-slate-500" size={20} />}
+            <div className="flex items-center gap-2">
+              {hasAIStudio && (
+                  <button 
+                    onClick={() => (window as any).aistudio.openSelectKey()}
+                    className="w-10 h-10 bg-yellow-500/20 border border-yellow-500/50 rounded-full flex items-center justify-center text-yellow-400 active:scale-95 transition-transform"
+                    title="Configurar Chave Mágica (Melhora as histórias)"
+                  >
+                     <Key size={18} />
+                  </button>
+              )}
+              <div className="w-10 flex items-center justify-center">
+                {isOnline ? <Moon className="text-yellow-200 fill-yellow-200" /> : <WifiOff className="text-slate-500" size={20} />}
+              </div>
             </div>
          </header>
        </div>
@@ -241,32 +250,33 @@ const StoryTime: React.FC = () => {
                 </button>
               ) : (
                 <div className="animate-pop space-y-4">
-                   <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-slate-700 relative shadow-2xl">
-                      {videoUrl ? (
-                        <video src={videoUrl} autoPlay loop controls className="w-full h-full object-cover" />
-                      ) : imageUrl ? (
-                        <img src={imageUrl} alt="Story Surprise" className="w-full h-full object-cover" />
+                   <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-slate-700 relative shadow-2xl group">
+                      {imageUrl ? (
+                        <img 
+                            src={imageUrl} 
+                            alt="Story Surprise" 
+                            className="w-full h-full object-cover" 
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <BookOpen className="w-12 h-12 text-slate-700" />
                         </div>
                       )}
 
-                      {/* Only show 'Bring to Life' (Video) if we have image, online, and using AI mode or feeling adventurous */}
-                      {imageUrl && !videoUrl && !isVideoLoading && isOnline && (
+                      {/* Download Button */}
+                      {imageUrl && (
                         <button 
-                          onClick={handleCreateVideo}
-                          className="absolute bottom-4 right-4 bg-black/60 backdrop-blur text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 border border-white/20 active:scale-95 transition-transform"
+                          onClick={handleDownloadImage}
+                          className={`absolute bottom-4 right-4 px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg active:scale-95 transition-all
+                            ${downloaded ? 'bg-green-500 text-white' : 'bg-white/90 text-slate-900 hover:bg-white'}
+                          `}
                         >
-                           <PlayCircle className="w-5 h-5 text-yellow-400" /> Dar Vida
+                           {downloaded ? (
+                              <><Check className="w-5 h-5" /> Salvo!</>
+                           ) : (
+                              <><Download className="w-5 h-5 text-indigo-600" /> Salvar Foto</>
+                           )}
                         </button>
-                      )}
-                      
-                      {isVideoLoading && (
-                         <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm">
-                           <Loader2 className="w-10 h-10 animate-spin mb-2" />
-                           <span className="font-bold text-sm">Fazendo Mágica...</span>
-                         </div>
                       )}
                    </div>
                 </div>
@@ -275,7 +285,7 @@ const StoryTime: React.FC = () => {
 
             <div className="pt-8 pb-4">
               <button 
-                onClick={() => { setStory(null); setImageUrl(null); setVideoUrl(null); setImageRevealed(false); }}
+                onClick={() => { setStory(null); setImageUrl(null); setImageRevealed(false); setDownloaded(false); }}
                 className="w-full bg-slate-800 text-slate-400 font-bold py-4 rounded-2xl border-b-4 border-slate-900 active:border-b-0 active:translate-y-1 transition-all"
               >
                 Ler outra história
@@ -284,6 +294,7 @@ const StoryTime: React.FC = () => {
           </div>
         )}
       </div>
+
     </div>
   );
 };

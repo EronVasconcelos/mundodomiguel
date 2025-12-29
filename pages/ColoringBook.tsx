@@ -76,10 +76,13 @@ const ColoringBook: React.FC = () => {
     if (canvas) {
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
+      // Set actual size in memory (scaled to account for extra pixel density)
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
+      
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        // Scale all drawing operations by the dpr, so you don't have to worry about it in your draw loop
         ctx.scale(dpr, dpr);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -138,6 +141,7 @@ const ColoringBook: React.FC = () => {
     if (!canvas || !ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
+    // For getImageData/putImageData, we MUST work with physical pixels
     const x = Math.round(startX * dpr);
     const y = Math.round(startY * dpr);
     const width = canvas.width;
@@ -230,20 +234,24 @@ const ColoringBook: React.FC = () => {
     }
 
     const rect = canvas.getBoundingClientRect();
+    // Calculate logical coordinates relative to canvas
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
     if (tool === 'bucket') {
+       // Bucket uses floodFill which handles scaling internally via dpr
        floodFill(x, y, color);
     } else {
        const ctx = canvas.getContext('2d');
        if (ctx) {
           ctx.lineWidth = brushSize;
           ctx.strokeStyle = tool === 'eraser' ? '#FFFFFF' : color;
-          ctx.lineTo(x * (window.devicePixelRatio||1), y * (window.devicePixelRatio||1));
+          
+          // FIX: Do NOT multiply by dpr here because ctx.scale(dpr, dpr) was already called in initCanvas
+          ctx.lineTo(x, y);
           ctx.stroke();
           ctx.beginPath();
-          ctx.moveTo(x * (window.devicePixelRatio||1), y * (window.devicePixelRatio||1));
+          ctx.moveTo(x, y);
        }
     }
   };

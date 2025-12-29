@@ -207,12 +207,14 @@ export const generateStoryImage = async (storyPrompt: string): Promise<string> =
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
+    // 3D Realistic / Pixar / Unreal Engine Style Prompting
+    const prompt = `Masterpiece 3D render, cute styling, Pixar style, Disney animation style, 8k resolution, unreal engine 5 render, cinematic lighting, volumetric light, highly detailed 3D textures, vivid colors: ${storyPrompt.substring(0, 300)}`;
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
-          // IMPORTANT: Enforcing 3D Realistic style in the prompt
-          { text: `Imagem 3D ultra-realista estilo Pixar/Disney Animation, renderização Octane, 8k, iluminação cinematográfica, texturas detalhadas, fofo, vibrante, sem texto: ${storyPrompt.substring(0, 300)}` }
+          { text: prompt }
         ]
       },
       config: { imageConfig: { aspectRatio: "1:1" } }
