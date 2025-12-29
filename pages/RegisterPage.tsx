@@ -1,25 +1,41 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
-import { ArrowLeft, Lock, Mail, User, ArrowRight, Loader2 } from 'lucide-react';
+import { supabase } from '../services/supabase';
+import { ArrowLeft, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg('');
     
-    // Simulate API Call
-    setTimeout(() => {
-        setLoading(false);
-        // Save fake auth token
-        localStorage.setItem('auth_token', 'valid_token');
-        // Navigate to Profile Setup
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) throw error;
+
+      if (data.session) {
+        // Auto logged in
         navigate(AppRoute.PROFILE);
-    }, 1500);
+      } else if (data.user) {
+        alert("Verifique seu email para confirmar o cadastro!");
+        navigate(AppRoute.LOGIN);
+      }
+    } catch (error: any) {
+      console.error(error);
+      setErrorMsg(error.message || "Erro ao criar conta.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -33,17 +49,11 @@ const RegisterPage: React.FC = () => {
       </div>
 
       <form onSubmit={handleRegister} className="space-y-6 flex-1">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-3">
-            <User className="text-slate-300" />
-            <input 
-                type="text" 
-                required
-                placeholder="Seu Nome" 
-                className="flex-1 outline-none text-slate-700 font-bold placeholder-slate-300 bg-transparent"
-                value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
-            />
-        </div>
+        {errorMsg && (
+          <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-bold">
+            {errorMsg}
+          </div>
+        )}
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-3">
             <Mail className="text-slate-300" />
@@ -62,7 +72,8 @@ const RegisterPage: React.FC = () => {
             <input 
                 type="password" 
                 required
-                placeholder="Senha" 
+                placeholder="Senha (mín. 6 caracteres)" 
+                minLength={6}
                 className="flex-1 outline-none text-slate-700 font-bold placeholder-slate-300 bg-transparent"
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}

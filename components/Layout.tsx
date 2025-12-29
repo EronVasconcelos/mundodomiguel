@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Settings, Users, Plus, Check } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
+import { supabase } from '../services/supabase';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,31 +26,44 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     loadProfiles();
   }, []);
 
-  const loadProfiles = () => {
-    // 1. Get List
+  const loadProfiles = async () => {
+    // Optimistic Load from LocalStorage first
     const storedList = localStorage.getItem('child_profiles');
     let list: ChildProfile[] = storedList ? JSON.parse(storedList) : [];
     
-    // 2. Fallback to legacy single profile if list is empty
-    if (list.length === 0) {
-        const legacy = localStorage.getItem('child_profile');
-        if (legacy) {
-            const parsed = JSON.parse(legacy);
-            // Ensure ID exists
-            if (!parsed.id) parsed.id = 'legacy_user';
-            list = [parsed];
-            localStorage.setItem('child_profiles', JSON.stringify(list));
+    // Background fetch from Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        const { data } = await supabase.from('child_profiles').select('*');
+        if (data && data.length > 0) {
+            // Map DB snake_case to CamelCase
+            const mappedProfiles: ChildProfile[] = data.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                age: p.age,
+                gender: p.gender,
+                hairColor: p.hair_color,
+                hairStyle: p.hair_style,
+                eyeColor: p.eye_color,
+                skinTone: p.skin_tone,
+                avatarBase: p.avatar_base
+            }));
+            
+            list = mappedProfiles;
+            // Update cache
+            localStorage.setItem('child_profiles', JSON.stringify(mappedProfiles));
         }
     }
+    
     setProfiles(list);
 
-    // 3. Get Active Profile
+    // Get Active Profile
     const activeId = localStorage.getItem('active_profile_id');
     const active = list.find(p => p.id === activeId) || list[0];
     
     if (active) {
         setActiveProfile(active);
-        // Sync legacy key for components that might strictly depend on it (backward compat)
+        // Sync legacy key
         localStorage.setItem('child_profile', JSON.stringify(active));
     }
   };
@@ -64,7 +78,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         window.location.reload(); 
     } else {
         loadProfiles();
-        window.location.reload(); // Reload home to update progress tracking for new user
+        window.location.reload(); 
     }
   };
 

@@ -19,18 +19,20 @@ export enum AppRoute {
 }
 
 export interface ChildProfile {
-  id: string; // Unique ID for multi-profile
+  id: string; // UUID from Supabase
+  user_id?: string; // Parent ID
   name: string;
   age: number;
   gender: 'boy' | 'girl';
-  hairColor: string;
+  hairColor: string; // Mapped to snake_case in DB manually if needed, or keeping camelCase in logic
   hairStyle: string;
   eyeColor: string;
   skinTone: string;
-  avatarBase?: string; // Base64 or URL of the avatar created/selected
+  avatarBase?: string; 
 }
 
 export interface DailyProgress {
+  profileId?: string; // Link to profile
   date: string;
   mathCount: number;      // Target: 30
   wordLevel: number;      // Target: 4

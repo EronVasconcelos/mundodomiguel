@@ -1,30 +1,42 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
+import { supabase } from '../services/supabase';
 import { ArrowLeft, Lock, Mail, LogIn, Loader2 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg('');
     
-    // Simulate API Call
-    setTimeout(() => {
-        setLoading(false);
-        // Save fake auth token
-        localStorage.setItem('auth_token', 'valid_token');
-        
-        // Check if profile exists
-        if (localStorage.getItem('child_profile')) {
-            navigate(AppRoute.HOME);
-        } else {
-            navigate(AppRoute.PROFILE);
-        }
-    }, 1500);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) throw error;
+
+      // Check if user has profiles
+      const { data: profiles } = await supabase.from('child_profiles').select('id');
+      
+      if (profiles && profiles.length > 0) {
+        navigate(AppRoute.HOME);
+      } else {
+        navigate(AppRoute.PROFILE);
+      }
+    } catch (error: any) {
+      console.error(error);
+      setErrorMsg(error.message === "Invalid login credentials" ? "Email ou senha incorretos." : error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,6 +50,12 @@ const LoginPage: React.FC = () => {
       </div>
 
       <form onSubmit={handleLogin} className="space-y-6 flex-1">
+        {errorMsg && (
+          <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-bold">
+            {errorMsg}
+          </div>
+        )}
+
         <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-3">
             <Mail className="text-slate-300" />
             <input 

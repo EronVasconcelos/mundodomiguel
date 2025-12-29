@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppRoute, DailyProgress } from '../types';
 import { Layout } from '../components/Layout';
 import { Gamepad2, Heart, Lock, CheckCircle, Star, Target, X, Trophy } from 'lucide-react';
-import { getDailyProgress, getGoals, checkUnlock } from '../services/progressService';
+import { getDailyProgress, getGoals, checkUnlock, fetchRemoteProgress } from '../services/progressService';
 
 // --- STICKER ILLUSTRATIONS ---
 const MathIllustration = () => (
@@ -69,18 +69,25 @@ const Home: React.FC = () => {
   const GOALS = getGoals();
 
   useEffect(() => {
-    // Refresh progress on mount
-    const p = getDailyProgress();
-    
-    // Check if just unlocked during this session visit
-    const wasLocked = !p.arcadeUnlocked;
-    const isNowUnlocked = checkUnlock(p);
-    
-    setProgress(p);
+    // 1. Load Local Progress (Instant)
+    const localP = getDailyProgress();
+    setProgress(localP);
 
-    if (wasLocked && isNowUnlocked) {
-        setShowUnlockBanner(true);
-    }
+    // 2. Fetch Remote Progress (Async) and update if changed
+    fetchRemoteProgress().then(remoteP => {
+        if (remoteP) {
+            setProgress(remoteP);
+            // Check unlock on remote state
+            const wasLocked = !localP.arcadeUnlocked;
+            const isNowUnlocked = checkUnlock(remoteP);
+            if (wasLocked && isNowUnlocked) setShowUnlockBanner(true);
+        } else {
+            // No remote data, check unlock on local
+            const wasLocked = !localP.arcadeUnlocked;
+            const isNowUnlocked = checkUnlock(localP);
+            if (wasLocked && isNowUnlocked) setShowUnlockBanner(true);
+        }
+    });
   }, []);
 
   const isMathDone = progress.mathCount >= GOALS.MATH;

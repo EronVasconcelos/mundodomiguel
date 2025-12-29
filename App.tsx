@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from './services/supabase';
 import Welcome from './pages/Welcome';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -23,24 +24,46 @@ import { AppRoute } from './types';
 const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    // Check for profiles list OR legacy single profile
-    const profilesStr = localStorage.getItem('child_profiles');
-    const legacyProfile = localStorage.getItem('child_profile');
-    const hasProfiles = (profilesStr && JSON.parse(profilesStr).length > 0) || legacyProfile;
-    
-    const publicRoutes = [AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER];
-    const isPublic = publicRoutes.includes(location.pathname as AppRoute);
+    const checkAuth = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const session = data?.session;
+        
+        const publicRoutes = [AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER];
+        const isPublic = publicRoutes.includes(location.pathname as AppRoute);
 
-    if (!token && !isPublic) {
-      navigate(AppRoute.WELCOME);
-    } else if (token && !hasProfiles && location.pathname !== AppRoute.PROFILE) {
-      // Logged in but no child profiles yet
-      navigate(AppRoute.PROFILE);
-    }
+        if (!session && !isPublic) {
+          navigate(AppRoute.WELCOME);
+        } else if (session) {
+           // Logged in, check if has profiles
+           const storedProfiles = localStorage.getItem('child_profiles');
+           if (!storedProfiles || JSON.parse(storedProfiles).length === 0) {
+              // If no local profiles, double check DB (in case of fresh login on new device)
+              const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true });
+              if ((count || 0) === 0 && location.pathname !== AppRoute.PROFILE) {
+                 navigate(AppRoute.PROFILE);
+              }
+           }
+        }
+      } catch (e) {
+        console.warn("Auth check failed, assuming offline/logged out", e);
+        // Fallback: If auth fails entirely (e.g. invalid URL), go to welcome if not public
+        const publicRoutes = [AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER];
+        if (!publicRoutes.includes(location.pathname as AppRoute)) {
+            navigate(AppRoute.WELCOME);
+        }
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkAuth();
   }, [location, navigate]);
+
+  if (checking) return null; // Or a loading spinner
 
   return <>{children}</>;
 };
