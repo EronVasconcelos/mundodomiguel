@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Layout } from '../components/Layout';
-import { generateStoryText, generateStoryImage, generateStoryVideo } from '../services/geminiService';
-import { Sparkles, PlayCircle, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff } from 'lucide-react';
+import { getInstantStory, generateStoryText, generateStoryImage, generateStoryVideo } from '../services/geminiService';
+import { Sparkles, PlayCircle, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Zap } from 'lucide-react';
 import { StoryData } from '../types';
 
 const StoryTime: React.FC = () => {
@@ -9,6 +8,9 @@ const StoryTime: React.FC = () => {
   const [customTopic, setCustomTopic] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
   
+  // New State for Mode Selection
+  const [useAI, setUseAI] = useState(false); // Default to Local (False)
+
   const [loading, setLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState("");
   const [story, setStory] = useState<StoryData | null>(null);
@@ -43,13 +45,36 @@ const StoryTime: React.FC = () => {
     setImageRevealed(false);
     
     try {
-      setLoadingPhase("Escrevendo a história mágica...");
-      const storyData = await generateStoryText(selectedTopic);
-      setStory(storyData);
+      if (!useAI) {
+        // --- LOCAL MODE (INSTANT) ---
+        // Fake small loading for smooth UI transition
+        setLoadingPhase("Abrindo o livro...");
+        await new Promise(r => setTimeout(r, 800)); 
+        
+        const localStory = getInstantStory(selectedTopic);
+        setStory({
+          title: localStory.title,
+          content: localStory.content,
+          moral: localStory.moral
+        });
+        setImageUrl(localStory.image);
+      } else {
+        // --- AI MODE (GENERATE) ---
+        if (!isOnline) {
+          alert("A mágica precisa de internet! Mudando para modo Livro.");
+          setUseAI(false);
+          setLoading(false);
+          return;
+        }
 
-      setLoadingPhase("Preparando a surpresa...");
-      const img = await generateStoryImage(storyData.content);
-      setImageUrl(img);
+        setLoadingPhase("A Mágica está escrevendo...");
+        const storyData = await generateStoryText(selectedTopic);
+        setStory(storyData);
+
+        setLoadingPhase("Pintando o desenho...");
+        const img = await generateStoryImage(storyData.content);
+        setImageUrl(img);
+      }
 
     } catch (e) {
       alert("Ops! O contador de histórias dormiu. Tente de novo!");
@@ -71,7 +96,7 @@ const StoryTime: React.FC = () => {
       setVideoUrl(vid);
     } catch (e) {
       console.error(e);
-      alert("Para fazer vídeos mágicos, precisamos da chave especial!");
+      alert("Para fazer vídeos mágicos, precisamos da chave especial (API Key)!");
     } finally {
       setIsVideoLoading(false);
     }
@@ -83,7 +108,7 @@ const StoryTime: React.FC = () => {
        {/* Simple Header for Story Mode */}
        <div className="px-4 pt-6 pb-2">
          <header className="bg-slate-800/50 backdrop-blur-md rounded-3xl px-4 py-3 flex items-center justify-between border border-slate-700">
-            <button onClick={() => window.history.back()} className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300">
+            <button onClick={() => window.history.back()} className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300 active:scale-95 transition-transform">
                <BookOpen />
             </button>
             <h1 className="text-xl font-black uppercase tracking-wider text-center flex-1 mx-2 text-yellow-400">Hora de Dormir</h1>
@@ -98,20 +123,33 @@ const StoryTime: React.FC = () => {
         {/* Input Section */}
         {!story && !loading && (
           <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 space-y-6">
-            <h2 className="text-2xl font-black text-white text-center">Sobre o que vamos sonhar?</h2>
             
-            {!isOnline && (
-               <div className="bg-blue-900/50 p-3 rounded-xl border border-blue-800 text-center text-blue-200 text-sm">
-                 Modo Offline: Histórias especiais prontas para ler!
-               </div>
-            )}
+            {/* Mode Toggle */}
+            <div className="flex bg-slate-900 p-1 rounded-2xl border border-slate-700 relative">
+               <button 
+                 onClick={() => setUseAI(false)}
+                 className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all relative z-10 ${!useAI ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+               >
+                  <BookOpen size={18} /> Livro (Rápido)
+               </button>
+               <button 
+                 onClick={() => setUseAI(true)}
+                 className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all relative z-10 ${useAI ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-900/50' : 'text-slate-400 hover:text-slate-200'}`}
+               >
+                  <Sparkles size={18} /> Mágica IA
+               </button>
+            </div>
 
+            <h2 className="text-2xl font-black text-white text-center">
+              {useAI ? "O que vamos criar hoje?" : "Qual história vamos ler?"}
+            </h2>
+            
             <div className="flex flex-wrap gap-3 justify-center">
               {predefinedTopics.map(t => (
                 <button 
                   key={t}
                   onClick={() => handleCreateStory(t)}
-                  className="px-4 py-3 rounded-2xl border-b-4 border-slate-900 active:border-b-0 active:translate-y-1 bg-slate-700 text-slate-200 font-bold text-sm transition-all"
+                  className="px-4 py-3 rounded-2xl border-b-4 border-slate-900 active:border-b-0 active:translate-y-1 bg-slate-700 text-slate-200 font-bold text-sm transition-all hover:bg-slate-600"
                 >
                   {t}
                 </button>
@@ -119,7 +157,7 @@ const StoryTime: React.FC = () => {
               
               <button 
                 onClick={() => setShowCustomInput(!showCustomInput)}
-                className="px-4 py-3 rounded-2xl border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1 bg-indigo-600 text-white font-bold text-sm transition-all flex items-center gap-2"
+                className={`px-4 py-3 rounded-2xl border-b-4 active:border-b-0 active:translate-y-1 font-bold text-sm transition-all flex items-center gap-2 ${useAI ? 'bg-indigo-600 border-indigo-900 text-white' : 'bg-slate-700 border-slate-900 text-slate-200'}`}
               >
                 <Edit3 size={16} /> Outro Assunto...
               </button>
@@ -131,7 +169,7 @@ const StoryTime: React.FC = () => {
                    type="text" 
                    value={customTopic}
                    onChange={(e) => setCustomTopic(e.target.value)}
-                   placeholder="Ex: O cachorro que voava..."
+                   placeholder={useAI ? "Invente uma história nova..." : "Procure uma história..."}
                    className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-yellow-500"
                  />
                  <button 
@@ -148,8 +186,12 @@ const StoryTime: React.FC = () => {
         {/* Loading */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-            <Loader2 className="w-16 h-16 animate-spin mb-4 text-yellow-400" />
-            <p className="text-2xl font-bold animate-pulse text-yellow-200">{loadingPhase}</p>
+            {useAI ? (
+              <Loader2 className="w-16 h-16 animate-spin mb-4 text-indigo-400" />
+            ) : (
+              <BookOpen className="w-16 h-16 animate-bounce mb-4 text-slate-400" />
+            )}
+            <p className="text-2xl font-bold animate-pulse text-yellow-200 text-center px-4">{loadingPhase}</p>
           </div>
         )}
 
@@ -160,10 +202,11 @@ const StoryTime: React.FC = () => {
                <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500 leading-tight">
                  {story.title}
                </h2>
+               {!useAI && <span className="text-xs font-bold text-slate-500 bg-slate-800 px-2 py-1 rounded-full mt-2 inline-block">DO LIVRO MÁGICO</span>}
             </div>
 
-            <div className="bg-slate-800 p-6 md:p-8 rounded-[2rem] border border-slate-700">
-              <div className="prose prose-lg max-w-none text-slate-300 font-medium leading-relaxed space-y-4">
+            <div className="bg-slate-800 p-6 md:p-8 rounded-[2rem] border border-slate-700 shadow-xl">
+              <div className="prose prose-lg max-w-none text-slate-300 font-medium leading-relaxed space-y-4 text-lg">
                  {story.content.split('\n').map((paragraph, idx) => (
                     paragraph.trim() && <p key={idx}>{paragraph}</p>
                  ))}
@@ -182,14 +225,14 @@ const StoryTime: React.FC = () => {
               {!imageRevealed ? (
                 <button 
                    onClick={() => setImageRevealed(true)}
-                   className="w-full py-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2.5rem] text-white flex flex-col items-center justify-center gap-2 animate-bounce-slow active:scale-95 transition-transform border border-white/20"
+                   className="w-full py-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2.5rem] text-white flex flex-col items-center justify-center gap-2 animate-bounce-slow active:scale-95 transition-transform border border-white/20 shadow-lg shadow-indigo-900/50"
                 >
                    <Gift className="w-16 h-16 mb-2" />
                    <span className="text-2xl font-black tracking-wider">ABRIR SURPRESA!</span>
                 </button>
               ) : (
                 <div className="animate-pop space-y-4">
-                   <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-slate-700 relative">
+                   <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-slate-700 relative shadow-2xl">
                       {videoUrl ? (
                         <video src={videoUrl} autoPlay loop controls className="w-full h-full object-cover" />
                       ) : imageUrl ? (
@@ -200,13 +243,13 @@ const StoryTime: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Only show 'Bring to Life' (Video) button if we have an image AND we are online */}
+                      {/* Only show 'Bring to Life' (Video) if we have image, online, and using AI mode or feeling adventurous */}
                       {imageUrl && !videoUrl && !isVideoLoading && isOnline && (
                         <button 
                           onClick={handleCreateVideo}
-                          className="absolute bottom-4 right-4 bg-black/60 backdrop-blur text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 border border-white/20"
+                          className="absolute bottom-4 right-4 bg-black/60 backdrop-blur text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 border border-white/20 active:scale-95 transition-transform"
                         >
-                           <PlayCircle className="w-5 h-5" /> Dar Vida
+                           <PlayCircle className="w-5 h-5 text-yellow-400" /> Dar Vida
                         </button>
                       )}
                       

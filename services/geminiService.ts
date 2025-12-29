@@ -2,8 +2,6 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { StoryData } from '../types';
 
 // --- OFFLINE CONTENT DATABASE ---
-// Pre-generated stories to ensure the app works 100% offline or when API quota is exceeded.
-
 const OFFLINE_IMAGES = {
   SPACE: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="%231e1b4b"/><circle cx="200" cy="200" r="150" fill="%23312e81"/><circle cx="50" cy="50" r="2" fill="white"/><circle cx="350" cy="350" r="2" fill="white"/><circle cx="100" cy="300" r="2" fill="white"/><circle cx="300" cy="100" r="2" fill="white"/><text x="200" y="200" font-size="80" text-anchor="middle" dy=".3em">🚀</text><text x="280" y="80" font-size="40" text-anchor="middle">⭐</text><text x="80" y="320" font-size="40" text-anchor="middle">🪐</text></svg>`,
   DINO: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="%2314532d"/><circle cx="200" cy="200" r="160" fill="%2322c55e" opacity="0.3"/><path d="M0 300 Q200 250 400 300 L400 400 L0 400 Z" fill="%23166534"/><text x="200" y="220" font-size="120" text-anchor="middle" dy=".3em">🦖</text><text x="320" y="100" font-size="60" text-anchor="middle">🌿</text></svg>`,
@@ -42,8 +40,8 @@ const OFFLINE_STORIES: (StoryData & { image: string, tags: string[] })[] = [
   }
 ];
 
-const getRandomOfflineStory = (topic: string): StoryData & { image: string } => {
-  // Try to find a relevant story
+// Helper to get a local story directly
+export const getInstantStory = (topic: string): StoryData & { image: string } => {
   const relevant = OFFLINE_STORIES.filter(s => 
     s.tags.some(tag => topic.toLowerCase().includes(tag)) || 
     s.title.toLowerCase().includes(topic.toLowerCase())
@@ -52,31 +50,18 @@ const getRandomOfflineStory = (topic: string): StoryData & { image: string } => 
   if (relevant.length > 0) {
     return relevant[Math.floor(Math.random() * relevant.length)];
   }
-  // Fallback to random
   return OFFLINE_STORIES[Math.floor(Math.random() * OFFLINE_STORIES.length)];
 };
 
 // --- API SERVICES ---
 
-// NOTE: In a production environment, never expose keys on the client.
-// However, per instructions, we use process.env.API_KEY.
-// For Veo (Video), the user must select their own key via the UI.
-
 export const generateStoryText = async (topic: string): Promise<StoryData> => {
-  // OFFLINE CHECK
-  if (!navigator.onLine) {
-    console.log("Offline mode detected. Serving local story.");
-    const offlineStory = getRandomOfflineStory(topic);
-    // Store image for the next call
-    sessionStorage.setItem('last_offline_image', offlineStory.image);
-    return {
-      title: offlineStory.title,
-      content: offlineStory.content,
-      moral: offlineStory.moral
-    };
+  // If no key, fallback immediately
+  if (!process.env.API_KEY) {
+     const local = getInstantStory(topic);
+     sessionStorage.setItem('last_offline_image', local.image);
+     return { title: local.title, content: local.content, moral: local.moral };
   }
-
-  if (!process.env.API_KEY) throw new Error("API Key missing");
   
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
@@ -86,9 +71,8 @@ export const generateStoryText = async (topic: string): Promise<StoryData> => {
     
     Interesses do Miguel: Numberblocks, LEGO, Super-heróis, Polícia/Bombeiros, Futebol.
     
-    A história deve ser positiva, envolvente e um pouco mais longa (aproximadamente 300 palavras) para preencher a hora de dormir.
-    Use parágrafos curtos.
-    A moral deve ser clara e educativa.
+    A história deve ser positiva, envolvente e um pouco mais longa (aproximadamente 300 palavras).
+    A moral deve ser clara.
     
     Retorne APENAS JSON.
   `;
@@ -108,19 +92,17 @@ export const generateStoryText = async (topic: string): Promise<StoryData> => {
           },
           required: ["title", "content", "moral"],
         },
-        systemInstruction: "Você é um contador de histórias mágico e gentil. Use uma linguagem rica, mas acessível para crianças, com toques de magia e aventura.",
       },
     });
 
     const text = response.text;
     if (!text) throw new Error("Falha ao gerar história");
     
-    // Clear offline image key if we successfully got online content
     sessionStorage.removeItem('last_offline_image');
     return JSON.parse(text) as StoryData;
   } catch (error) {
     console.error("API Error, falling back to offline content", error);
-    const offlineStory = getRandomOfflineStory(topic);
+    const offlineStory = getInstantStory(topic);
     sessionStorage.setItem('last_offline_image', offlineStory.image);
     return {
       title: offlineStory.title,
@@ -131,23 +113,17 @@ export const generateStoryText = async (topic: string): Promise<StoryData> => {
 };
 
 export const generateStoryImage = async (storyPrompt: string): Promise<string> => {
-  // OFFLINE CHECK
-  if (!navigator.onLine) {
-    return sessionStorage.getItem('last_offline_image') || OFFLINE_IMAGES.BEAR;
-  }
-  
-  // Also check if we just served an offline story (stored in session)
+  // Check session first (set by local fallback or previous generation)
   const storedOfflineImage = sessionStorage.getItem('last_offline_image');
   if (storedOfflineImage) {
      return storedOfflineImage;
   }
 
-  if (!process.env.API_KEY) throw new Error("API Key missing");
+  if (!process.env.API_KEY) return OFFLINE_IMAGES.BEAR;
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
-    // Using the efficient flash-image model
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
@@ -155,14 +131,9 @@ export const generateStoryImage = async (storyPrompt: string): Promise<string> =
           { text: `Ilustração infantil de livro de histórias, cores vibrantes, estilo 3d render fofo, alta qualidade: ${storyPrompt.substring(0, 300)}` }
         ]
       },
-      config: {
-        imageConfig: {
-          aspectRatio: "1:1",
-        }
-      }
+      config: { imageConfig: { aspectRatio: "1:1" } }
     });
 
-    // Extract image
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
         return `data:image/png;base64,${part.inlineData.data}`;
@@ -170,55 +141,40 @@ export const generateStoryImage = async (storyPrompt: string): Promise<string> =
     }
     throw new Error("No image data");
   } catch (error) {
-    console.error("Image generation failed, using fallback", error);
-    return OFFLINE_IMAGES.BEAR; // Generic fallback
+    return OFFLINE_IMAGES.BEAR;
   }
 };
 
-// VEO Video Generation
 export const generateStoryVideo = async (imageBase64: string, prompt: string): Promise<string> => {
-  if (!navigator.onLine) throw new Error("Precisa de internet para criar vídeo!");
+  if (!navigator.onLine) throw new Error("Offline");
 
-  // Check for User Selected API Key for Veo (Paid feature)
+  // Check key availability
   if (window.aistudio && await window.aistudio.hasSelectedApiKey()) {
-     // Proceed
+     // OK
   } else if (window.aistudio) {
      await window.aistudio.openSelectKey();
   } else {
-     // Fallback if not running in an environment with aistudio helper
-     if (!process.env.API_KEY) throw new Error("API Key needed");
+     if (!process.env.API_KEY) throw new Error("No API Key");
   }
 
-  // Always re-init AI with potentially new key from selection
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-  // Clean base64 header if present
   const cleanBase64 = imageBase64.split(',')[1];
 
   let operation = await ai.models.generateVideos({
     model: 'veo-3.1-fast-generate-preview',
     prompt: `Cinematic pan, magical movement, kid friendly: ${prompt}`,
-    image: {
-      imageBytes: cleanBase64,
-      mimeType: 'image/png',
-    },
-    config: {
-      numberOfVideos: 1,
-      resolution: '720p',
-      aspectRatio: '1:1' // Matching image
-    }
+    image: { imageBytes: cleanBase64, mimeType: 'image/png' },
+    config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '1:1' }
   });
 
-  // Poll for completion
   while (!operation.done) {
-    await new Promise(resolve => setTimeout(resolve, 5000)); // Check every 5s
+    await new Promise(resolve => setTimeout(resolve, 5000));
     operation = await ai.operations.getVideosOperation({operation: operation});
   }
 
   const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
-  if (!videoUri) throw new Error("Falha ao gerar vídeo");
+  if (!videoUri) throw new Error("Fail");
 
-  // Fetch the actual bytes
   const videoResponse = await fetch(`${videoUri}&key=${process.env.API_KEY}`);
   const blob = await videoResponse.blob();
   return URL.createObjectURL(blob);
