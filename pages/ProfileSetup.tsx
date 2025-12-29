@@ -83,15 +83,19 @@ const ProfileSetup: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getSession();
-      if (!user) throw new Error("No user");
+      // FIX: Use getUser() to ensure we have the correct user object
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("Sessão expirou. Por favor, faça login novamente.");
+      }
 
       // Generate visual avatar
       const generatedAvatar = generateAvatar(profile);
 
       // Insert into Supabase
       const { data, error } = await supabase.from('child_profiles').insert({
-          user_id: user.user?.id || user.session?.user.id, // Handle safely
+          user_id: user.id,
           name: profile.name,
           age: profile.age,
           gender: profile.gender,
