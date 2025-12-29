@@ -210,11 +210,11 @@ const MathBlocks: React.FC = () => {
         {/* Success Popup */}
         {showConfetti && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-             <div className="bg-white w-full max-w-xs rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl">
+             <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl">
                 <div className="flex items-center gap-2 mb-4">
-                  <Star className="w-10 h-10 fill-yellow-400 text-yellow-500 animate-spin-slow" />
-                  <h2 className="text-3xl font-black text-slate-800 tracking-wide">MUITO BEM!</h2>
-                  <Star className="w-10 h-10 fill-yellow-400 text-yellow-500 animate-spin-slow" />
+                  <Star className="w-10 h-10 fill-yellow-400 text-yellow-500 animate-spin-slow flex-shrink-0" />
+                  <h2 className="text-3xl font-black text-slate-800 tracking-wide whitespace-nowrap">MUITO BEM!</h2>
+                  <Star className="w-10 h-10 fill-yellow-400 text-yellow-500 animate-spin-slow flex-shrink-0" />
                 </div>
                 
                 <div className="mb-8 p-6 bg-slate-50 rounded-3xl border border-slate-100 w-full flex justify-center">

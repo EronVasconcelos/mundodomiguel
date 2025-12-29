@@ -31,6 +31,15 @@ const StoryTime: React.FC = () => {
     };
   }, []);
 
+  const handleModeSwitch = (mode: boolean) => {
+    setUseAI(mode);
+    // Clear current story so the UI is clean for the new mode (especially AI)
+    setStory(null);
+    setImageUrl(null);
+    setVideoUrl(null);
+    setImageRevealed(false);
+  };
+
   const predefinedTopics = [
     "Polícia e Ladrão", "Futebol de Robôs", "Bombeiro Herói", 
     "Numberblocks na Praia", "Castelo de LEGO", "Dinossauro Amigo",
@@ -47,9 +56,9 @@ const StoryTime: React.FC = () => {
     try {
       if (!useAI) {
         // --- LOCAL MODE (INSTANT) ---
-        // Fake small loading for smooth UI transition
         setLoadingPhase("Abrindo o livro...");
-        await new Promise(r => setTimeout(r, 800)); 
+        // Small delay for UI feel
+        await new Promise(r => setTimeout(r, 600)); 
         
         const localStory = getInstantStory(selectedTopic);
         setStory({
@@ -127,13 +136,13 @@ const StoryTime: React.FC = () => {
             {/* Mode Toggle */}
             <div className="flex bg-slate-900 p-1 rounded-2xl border border-slate-700 relative">
                <button 
-                 onClick={() => setUseAI(false)}
+                 onClick={() => handleModeSwitch(false)}
                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all relative z-10 ${!useAI ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
                >
                   <BookOpen size={18} /> Livro (Rápido)
                </button>
                <button 
-                 onClick={() => setUseAI(true)}
+                 onClick={() => handleModeSwitch(true)}
                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all relative z-10 ${useAI ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-900/50' : 'text-slate-400 hover:text-slate-200'}`}
                >
                   <Sparkles size={18} /> Mágica IA

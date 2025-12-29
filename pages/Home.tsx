@@ -1,154 +1,182 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Blocks, PenTool, BrainCircuit, BookOpen, Camera, User, Type, Palette } from 'lucide-react';
 import { AppRoute } from '../types';
+import { Layout } from '../components/Layout';
 
-// Generic Boy Avatar (Blue cap, smiling) - Default placeholder
-const DEFAULT_PROFILE_PIC = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjEwMCIgZmlsbD0iI2JhZTZmZCIvPjxwYXRoIGQ9Ik01MCAxNDAgUTEwMCAyMDAgMTUwIDE0MCBWMTAwIEg1MCBaIiBmaWxsPSIjZmZlZGQ1Ii8+PGNpcmNsZSBjeD0iMTAwIiBjeT0iOTAiIHI9IjUwIiBmaWxsPSIjZmZlZGQ1Ii8+PHBhdGggZD0iTTQ1IDgwIFExMDAgMjAgMTU1IDgwIEwxNjAgNzAgUTEwMCAwIDQwIDcwIFoiIGZpbGw9IiMwMzY5YTEiLz48Y2lyY2xlIGN4PSI4NSIgY3k9IjkwIiByPSI2IiBmaWxsPSIjMWUyOTNiIi8+PGNpcmNsZSBjeD0iMTE1IiBjeT0iOTAiIHI9IjYiIGZpbGw9IiMxZTI5M2IiLz48cGF0aCBkPSJNODUgMTEwIFExMDAgMTIwIDExNSAxMTAiIHN0cm9rZT0iIzFlMjkzYiIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=";
+// --- STICKER ILLUSTRATIONS ---
+const MathIllustration = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+    <rect x="20" y="20" width="60" height="60" rx="12" fill="#FDBA74" /> {/* Orange-300 */}
+    <rect x="20" y="25" width="60" height="60" rx="12" fill="#F97316" /> {/* Orange-500 */}
+    <text x="50" y="68" fontSize="40" fontWeight="900" fill="white" textAnchor="middle">1+2</text>
+    <circle cx="85" cy="15" r="10" fill="#FECCA9" opacity="0.8" />
+  </svg>
+);
+
+const ArtIllustration = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+    <path d="M50 15 C30 15 15 30 15 50 C15 70 30 85 50 85 C60 85 65 80 65 75 C65 70 60 70 60 65 C60 55 70 55 75 55 C85 55 85 40 85 35 C85 25 70 15 50 15" fill="#A855F7" />
+    <circle cx="35" cy="35" r="6" fill="#F3E8FF" />
+    <circle cx="65" cy="30" r="6" fill="#F3E8FF" />
+    <circle cx="30" cy="60" r="6" fill="#F3E8FF" />
+    <circle cx="50" cy="70" r="6" fill="#F3E8FF" />
+    <path d="M70 65 L90 85" stroke="#F3E8FF" strokeWidth="8" strokeLinecap="round" />
+  </svg>
+);
+
+const ChallengeIllustration = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+    <circle cx="50" cy="50" r="35" fill="#3B82F6" />
+    <path d="M50 25 L56 40 L72 40 L59 50 L64 65 L50 55 L36 65 L41 50 L28 40 L44 40 Z" fill="#FACC15" />
+    <path d="M15 80 L25 50 M85 80 L75 50" stroke="#93C5FD" strokeWidth="4" strokeLinecap="round" />
+  </svg>
+);
+
+const StoryIllustration = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+    <rect x="15" y="25" width="70" height="50" rx="4" fill="#10B981" />
+    <path d="M15 35 Q50 35 85 35" stroke="#D1FAE5" strokeWidth="2" fill="none" />
+    <path d="M50 25 L50 75" stroke="#047857" strokeWidth="2" />
+    <circle cx="30" cy="50" r="8" fill="#ECFDF5" />
+    <rect x="55" y="45" width="20" height="4" rx="2" fill="#ECFDF5" />
+    <rect x="55" y="55" width="15" height="4" rx="2" fill="#ECFDF5" />
+  </svg>
+);
+
+const WordsIllustration = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+    <rect x="25" y="25" width="50" height="50" rx="10" fill="#EAB308" />
+    <text x="50" y="62" fontSize="36" fontWeight="900" fill="white" textAnchor="middle">Aa</text>
+  </svg>
+);
+
+const ColoringIllustration = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+    <rect x="35" y="20" width="30" height="60" rx="4" fill="#EC4899" transform="rotate(15 50 50)" />
+    <path d="M40 20 L50 5 L60 20" fill="#FBCFE8" transform="rotate(15 50 50)" />
+  </svg>
+);
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Initialize with saved pic or default
-  const [profilePic, setProfilePic] = useState<string>(() => {
-    return localStorage.getItem('miguel_profile_pic') || DEFAULT_PROFILE_PIC;
-  });
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setProfilePic(result);
-        localStorage.setItem('miguel_profile_pic', result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // UI Design: Light Backgrounds + Dark Text of same color family
-  const modules = [
-    {
-      title: "CONTAR",
-      icon: <Blocks className="w-8 h-8" strokeWidth={2.5} />,
-      route: AppRoute.MATH,
-      style: "bg-blue-100 text-blue-900 border-blue-200", // Light Blue bg, Dark Blue text
-      iconColor: "text-blue-600"
-    },
-    {
-      title: "COLORIR",
-      icon: <Palette className="w-8 h-8" strokeWidth={2.5} />,
-      route: AppRoute.COLORING,
-      style: "bg-rose-100 text-rose-900 border-rose-200", // Light Red/Pink bg, Dark Red text
-      iconColor: "text-rose-500"
-    },
-    {
-      title: "LABIRINTO",
-      icon: <BrainCircuit className="w-8 h-8" strokeWidth={2.5} />,
-      route: AppRoute.CHALLENGE,
-      style: "bg-emerald-100 text-emerald-900 border-emerald-200", // Light Green bg, Dark Green text
-      iconColor: "text-emerald-600"
-    },
-    {
-      title: "PALAVRAS",
-      icon: <Type className="w-8 h-8" strokeWidth={2.5} />,
-      route: AppRoute.WORDS,
-      style: "bg-orange-100 text-orange-900 border-orange-200", // Light Orange bg, Dark Orange text
-      iconColor: "text-orange-500"
-    },
-    {
-      title: "LOUSA",
-      icon: <PenTool className="w-8 h-8" strokeWidth={2.5} />,
-      route: AppRoute.ART,
-      style: "bg-amber-100 text-amber-900 border-amber-200", // Light Yellow bg, Dark Yellow text
-      iconColor: "text-amber-600"
-    },
-    {
-      title: "DORMIR",
-      icon: <BookOpen className="w-8 h-8" strokeWidth={2.5} />,
-      route: AppRoute.STORY,
-      style: "bg-indigo-100 text-indigo-900 border-indigo-200", // Light Indigo bg, Dark Indigo text
-      iconColor: "text-indigo-600"
-    }
-  ];
 
   return (
-    <div className="h-full flex flex-col relative overflow-hidden bg-sky-50">
-      
-      <div className="flex-1 flex flex-col p-6 z-10 pt-10 max-w-lg mx-auto w-full">
+    <Layout title="Home">
+      <div className="flex flex-col gap-6 pb-4">
         
-        {/* Header Area */}
-        <div className="w-full flex items-center justify-between mb-10">
-          <div className="flex flex-col">
-             <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-1">Olá, campeão!</span>
-             <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none">
-              Mundo do <br />
-              <span className="text-sky-600">Miguel</span>
-            </h1>
-          </div>
-
-          {/* Profile Picture */}
-          <div className="relative group">
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*"
-              onChange={handleImageUpload}
-            />
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-16 h-16 rounded-full bg-white flex items-center justify-center overflow-hidden relative transition-all shadow-sm border-2 border-white ring-2 ring-sky-100"
-            >
-              <img src={profilePic} alt="Miguel" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                 <Camera size={16} className="text-white" />
-              </div>
-            </button>
-          </div>
+        {/* Title Section */}
+        <div className="text-center mt-2 mb-2">
+           <h1 className="text-3xl font-black text-slate-800 leading-tight">
+             Escolha sua <span className="text-blue-600">missão!</span> 🚀
+           </h1>
+           <p className="text-slate-400 font-bold text-sm mt-1">O que vamos aprender hoje?</p>
         </div>
 
-        {/* UI Grid System */}
-        <div className="grid grid-cols-2 gap-5 flex-1 content-start pb-8">
-          {modules.map((mod, index) => (
-            <button
-              key={mod.title}
-              onClick={() => navigate(mod.route)}
-              className={`
-                relative overflow-hidden group
-                ${mod.style} border
-                rounded-3xl flex flex-col items-start justify-between p-5 h-36
-                transition-transform active:scale-95 duration-200
-                shadow-sm hover:shadow-md
-              `}
-              style={{ animationDelay: `${index * 50}ms` }} // Staggered animation
-            >
-              {/* Icon Container */}
-              <div className={`p-3 bg-white/60 rounded-2xl backdrop-blur-sm ${mod.iconColor} mb-2`}>
-                {mod.icon}
-              </div>
-              
-              {/* Text */}
-              <div className="w-full text-left">
-                <span className="text-lg font-black tracking-wide block">{mod.title}</span>
-              </div>
+        {/* --- ROW 1: LOGIC & CREATIVITY (Split Grid) --- */}
+        <div className="grid grid-cols-2 gap-4">
+          
+          {/* LOGIC CARD (Math) - Orange */}
+          <button 
+            onClick={() => navigate(AppRoute.MATH)}
+            className="bg-orange-400 rounded-[2rem] p-5 text-left text-white shadow-[0_10px_20px_-5px_rgba(251,146,60,0.4)] active:scale-95 transition-transform relative overflow-hidden group h-48 flex flex-col justify-between border-b-8 border-orange-500 active:border-b-0 active:translate-y-2"
+          >
+             <div className="w-20 h-20 -ml-2">
+                <MathIllustration />
+             </div>
+             
+             <div className="relative z-10 mt-auto">
+                <span className="text-xs font-bold text-orange-100 uppercase tracking-wider block mb-1">Lógica</span>
+                <span className="text-xl font-black leading-tight block">Matemática</span>
+             </div>
+          </button>
 
-              {/* Decorative background element */}
-              <div className={`absolute -bottom-4 -right-4 w-20 h-20 rounded-full bg-white/20 pointer-events-none group-hover:scale-110 transition-transform`} />
-            </button>
-          ))}
+          {/* CREATIVITY CARD (Art) - Purple */}
+          <button 
+            onClick={() => navigate(AppRoute.ART)}
+            className="bg-purple-500 rounded-[2rem] p-5 text-left text-white shadow-[0_10px_20px_-5px_rgba(168,85,247,0.4)] active:scale-95 transition-transform relative overflow-hidden group h-48 flex flex-col justify-between border-b-8 border-purple-600 active:border-b-0 active:translate-y-2"
+          >
+             <div className="w-20 h-20 -ml-2">
+                <ArtIllustration />
+             </div>
+             
+             <div className="relative z-10 mt-auto">
+                <span className="text-xs font-bold text-purple-100 uppercase tracking-wider block mb-1">Criatividade</span>
+                <span className="text-xl font-black leading-tight block">Arte</span>
+             </div>
+          </button>
         </div>
+
+        {/* --- ROW 2: WORDS & COLORING (Smaller Buttons) --- */}
+        <div className="grid grid-cols-2 gap-4">
+           <button 
+             onClick={() => navigate(AppRoute.WORDS)}
+             className="bg-white rounded-[2rem] p-4 flex items-center gap-3 border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 active:bg-slate-50 transition-all shadow-sm"
+           >
+              <div className="w-14 h-14 flex-shrink-0">
+                 <WordsIllustration />
+              </div>
+              <div className="text-left">
+                 <span className="block text-xs font-bold text-slate-400 uppercase">Aprender</span>
+                 <span className="block font-black text-slate-700 leading-tight">Palavras</span>
+              </div>
+           </button>
+
+           <button 
+             onClick={() => navigate(AppRoute.COLORING)}
+             className="bg-white rounded-[2rem] p-4 flex items-center gap-3 border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 active:bg-slate-50 transition-all shadow-sm"
+           >
+              <div className="w-14 h-14 flex-shrink-0">
+                 <ColoringIllustration />
+              </div>
+              <div className="text-left">
+                 <span className="block text-xs font-bold text-slate-400 uppercase">Colorir</span>
+                 <span className="block font-black text-slate-700 leading-tight">Desenhos</span>
+              </div>
+           </button>
+        </div>
+
+        {/* --- ROW 3: ACTION (Blue Wide Card) --- */}
+        <button 
+          onClick={() => navigate(AppRoute.CHALLENGE)}
+          className="bg-blue-500 rounded-[2.5rem] p-6 text-left text-white shadow-[0_15px_30px_-10px_rgba(59,130,246,0.5)] active:scale-95 transition-transform relative overflow-hidden group flex items-center justify-between border-b-8 border-blue-600 active:border-b-0 active:translate-y-2 h-36"
+        >
+           <div className="relative z-10 flex flex-col gap-1">
+              <span className="inline-block bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-1 rounded-md self-start uppercase shadow-sm">Novo</span>
+              <span className="text-xs font-bold text-blue-100 uppercase tracking-wider mt-1">Ação</span>
+              <h2 className="text-3xl font-black leading-none">Arena de <br/> Desafios</h2>
+           </div>
+           
+           <div className="relative z-10 w-28 h-28 -mr-4">
+               <ChallengeIllustration />
+           </div>
+
+           {/* Decor Background */}
+           <div className="absolute right-0 top-0 h-full w-2/3 bg-gradient-to-l from-blue-400/30 to-transparent skew-x-12" />
+        </button>
+
+        {/* --- ROW 4: STORY (Green Wide Card) --- */}
+        <button 
+          onClick={() => navigate(AppRoute.STORY)}
+          className="bg-emerald-400 rounded-[2.5rem] p-6 text-left text-white shadow-[0_15px_30px_-10px_rgba(52,211,153,0.5)] active:scale-95 transition-transform relative overflow-hidden group flex items-center gap-6 border-b-8 border-emerald-500 active:border-b-0 active:translate-y-2 h-36"
+        >
+           <div className="w-20 h-20 flex-shrink-0">
+               <StoryIllustration />
+           </div>
+           
+           <div className="relative z-10 flex-1">
+              <span className="text-xs font-bold text-emerald-100 uppercase tracking-wider block">Hora de Dormir</span>
+              <span className="text-2xl font-black leading-tight block">Leitura Mágica</span>
+              <span className="text-emerald-100 text-xs font-bold mt-1 block opacity-90">Com Inteligência Artificial</span>
+           </div>
+        </button>
+
+        {/* FOOTER */}
+        <footer className="text-center text-slate-400 text-xs font-bold mt-4 opacity-60">
+          Desenvolvido por Eron Vasconcelos
+        </footer>
+
       </div>
-
-      {/* Footer Observation */}
-      <footer className="p-4 text-center z-10">
-        <p className="text-xs text-slate-400 font-bold opacity-80">
-          Desenvolvido pelo pai Eron Vasconcelos de coração ❤️
-        </p>
-      </footer>
-    </div>
+    </Layout>
   );
 };
 

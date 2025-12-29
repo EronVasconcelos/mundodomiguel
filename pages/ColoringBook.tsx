@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import { Trash2, Eraser, PenTool, PaintBucket, X, Upload, Circle, ImagePlus } from 'lucide-react';
+import { Trash2, Eraser, PenTool, PaintBucket, X, Upload, Circle, ImagePlus, FolderOpen } from 'lucide-react';
 
 const ColoringBook: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -241,11 +241,11 @@ const ColoringBook: React.FC = () => {
   };
 
   return (
-    <Layout title="Livro de Colorir" color="text-pink-500">
+    <Layout title="Colorir Desenhos" color="text-pink-500">
       <div className="flex flex-col h-full gap-4">
         
         {showGallery ? (
-          <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+          <div className="flex-1 flex flex-col gap-6 overflow-y-auto pb-20">
              
              {/* Hidden Input for Upload */}
              <input 
@@ -257,46 +257,55 @@ const ColoringBook: React.FC = () => {
              />
 
              {/* Upload Big Button */}
-             <div className="px-2">
+             <div className="px-2 pt-2">
                 <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-6 rounded-3xl border-2 border-dashed border-sky-300 bg-sky-50 text-sky-600 flex flex-col items-center justify-center gap-2 active:bg-sky-100 transition-colors"
+                    className="w-full py-6 rounded-3xl border-2 border-dashed border-sky-300 bg-sky-50 text-sky-600 flex flex-col items-center justify-center gap-3 active:bg-sky-100 transition-colors"
                 >
-                  <div className="bg-white p-3 rounded-full shadow-sm">
+                  <div className="bg-white p-3 rounded-full shadow-sm text-sky-500">
                     <Upload size={32} />
                   </div>
-                  <span className="font-black text-lg">ADICIONAR NOVO DESENHO</span>
-                  <span className="text-xs font-medium text-sky-400">Tire uma foto ou escolha da galeria</span>
+                  <div className="text-center">
+                     <span className="font-black text-xl block">ENVIAR FOTO</span>
+                     <span className="text-sm font-bold text-sky-400">Do celular ou tablet</span>
+                  </div>
                 </button>
              </div>
 
-             {/* Empty State */}
-             {savedImages.length === 0 && (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-300 gap-4 opacity-60">
-                   <ImagePlus size={64} />
-                   <p className="font-bold text-center px-8">A galeria está vazia. <br/>Adicione desenhos para pintar!</p>
+             {/* SECTION: SAVED GALLERY */}
+             <div className="px-2">
+                <div className="flex items-center gap-2 mb-3 px-2">
+                   <FolderOpen size={20} className="text-pink-500" />
+                   <h2 className="font-black text-slate-700 text-lg uppercase tracking-wide">Seus Desenhos</h2>
                 </div>
-             )}
-
-             {/* Gallery Grid */}
-             <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-4 pb-20 px-2 content-start">
-                {savedImages.map((src, i) => (
-                   <div key={i} className="relative group">
-                     <button 
-                       onClick={() => loadTemplate(src)}
-                       className="w-full aspect-square bg-white rounded-3xl border-b-8 border-slate-200 active:border-b-0 active:translate-y-2 p-2 flex items-center justify-center transition-all overflow-hidden"
-                     >
-                       <img src={src} className="w-full h-full object-contain" />
-                     </button>
-                     <button 
-                       onClick={(e) => deleteFromGallery(e, i)}
-                       className="absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full shadow-md active:scale-90 transition-transform"
-                     >
-                       <Trash2 size={16} />
-                     </button>
-                   </div>
-                ))}
+                
+                {savedImages.length === 0 ? (
+                    <div className="bg-slate-50 rounded-3xl p-8 flex flex-col items-center justify-center text-slate-300 gap-2 border border-dashed border-slate-200 min-h-[200px]">
+                       <ImagePlus size={48} />
+                       <p className="font-bold text-sm">Nenhum desenho salvo</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-3 content-start">
+                        {savedImages.map((src, i) => (
+                        <div key={i} className="relative group animate-pop">
+                            <button 
+                            onClick={() => loadTemplate(src)}
+                            className="w-full aspect-square bg-white rounded-3xl border border-slate-100 p-2 flex items-center justify-center transition-all overflow-hidden active:scale-95 shadow-sm"
+                            >
+                            <img src={src} className="w-full h-full object-contain" />
+                            </button>
+                            <button 
+                            onClick={(e) => deleteFromGallery(e, i)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full shadow-md active:scale-90 transition-transform"
+                            >
+                            <Trash2 size={16} />
+                            </button>
+                        </div>
+                        ))}
+                    </div>
+                )}
              </div>
+
           </div>
         ) : (
           <>
