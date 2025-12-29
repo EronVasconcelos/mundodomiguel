@@ -1,5 +1,7 @@
 export enum AppRoute {
   WELCOME = '/welcome',
+  LOGIN = '/login',
+  REGISTER = '/register',
   PROFILE = '/profile-setup',
   HOME = '/',
   MATH = '/math',

@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Welcome from './pages/Welcome';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import ProfileSetup from './pages/ProfileSetup';
 import Home from './pages/Home';
 import MathBlocks from './pages/MathBlocks';
@@ -23,11 +25,17 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
+    const token = localStorage.getItem('auth_token');
     const profile = localStorage.getItem('child_profile');
-    const publicRoutes = [AppRoute.WELCOME, AppRoute.PROFILE];
     
-    if (!profile && !publicRoutes.includes(location.pathname as AppRoute)) {
+    const publicRoutes = [AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER];
+    const isPublic = publicRoutes.includes(location.pathname as AppRoute);
+
+    if (!token && !isPublic) {
       navigate(AppRoute.WELCOME);
+    } else if (token && !profile && location.pathname !== AppRoute.PROFILE) {
+      // Logged in but no child profile
+      navigate(AppRoute.PROFILE);
     }
   }, [location, navigate]);
 
@@ -40,6 +48,8 @@ function App() {
       <AuthGuard>
         <Routes>
           <Route path={AppRoute.WELCOME} element={<Welcome />} />
+          <Route path={AppRoute.LOGIN} element={<LoginPage />} />
+          <Route path={AppRoute.REGISTER} element={<RegisterPage />} />
           <Route path={AppRoute.PROFILE} element={<ProfileSetup />} />
           
           <Route path={AppRoute.HOME} element={<Home />} />

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
-import { Cloud, Sun, Volume2, Star, BookOpen, Loader2, Sparkles, Heart, StopCircle } from 'lucide-react';
+import { Cloud, Sun, Volume2, Star, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, ShieldCheck } from 'lucide-react';
 
 const FaithCorner: React.FC = () => {
   const [data, setData] = useState<DevotionalData | null>(null);
@@ -11,6 +11,9 @@ const FaithCorner: React.FC = () => {
   const [imageLoading, setImageLoading] = useState(false);
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   
+  const [showPremiumGate, setShowPremiumGate] = useState(false);
+  const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
+
   // Audio State
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -29,12 +32,38 @@ const FaithCorner: React.FC = () => {
 
   useEffect(() => {
     if (profile) {
-        loadContent(profile);
+        checkAIAndLoad(profile);
     }
     return () => {
         stopAudio();
     }
   }, [profile]);
+
+  const checkAIAndLoad = async (currentProfile: ChildProfile) => {
+      // Check AI Preference
+      const aiDecision = localStorage.getItem('ai_enabled_decision');
+      
+      if (aiDecision === 'true') {
+          // Has agreed to AI, check key if possible
+          if (hasAIStudio) {
+              const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+              if (!hasKey) {
+                  // Key expired or not set, ask again
+                  setShowPremiumGate(true);
+                  setLoading(false);
+                  return;
+              }
+          }
+          loadContent(currentProfile);
+      } else if (aiDecision === 'false') {
+          // Explicitly declined, load offline
+          loadContent(currentProfile);
+      } else {
+          // First time, show gate
+          setShowPremiumGate(true);
+          setLoading(false);
+      }
+  };
 
   const loadContent = async (currentProfile: ChildProfile) => {
     setLoading(true);
@@ -57,22 +86,31 @@ const FaithCorner: React.FC = () => {
     }
   };
 
+  const activateAI = async () => {
+      if (hasAIStudio) {
+          await (window as any).aistudio.openSelectKey();
+          localStorage.setItem('ai_enabled_decision', 'true');
+          setShowPremiumGate(false);
+          if (profile) loadContent(profile);
+      }
+  };
+
+  const declineAI = () => {
+      localStorage.setItem('ai_enabled_decision', 'false');
+      setShowPremiumGate(false);
+      if (profile) loadContent(profile);
+  };
+
   const stopAudio = () => {
-    // 1. Stop Gemini Audio
     if (audioSourceRef.current) {
-        try {
-            audioSourceRef.current.stop();
-        } catch(e) {}
+        try { audioSourceRef.current.stop(); } catch(e) {}
         audioSourceRef.current = null;
     }
     if (audioContextRef.current) {
         audioContextRef.current.close();
         audioContextRef.current = null;
     }
-
-    // 2. Stop Browser Native Audio
     window.speechSynthesis.cancel();
-    
     setIsSpeaking(false);
   };
 
@@ -124,59 +162,46 @@ const FaithCorner: React.FC = () => {
         Vamos orar? ${data.prayer}
     `;
 
-    // Strategy: Try Gemini TTS first (High Quality), fallback to Browser TTS
-    setIsGeneratingAudio(true);
+    // Only try AI Audio if key is present/decision made
+    const aiDecision = localStorage.getItem('ai_enabled_decision');
     
-    try {
-        const base64Audio = await generateDevotionalAudio(textToRead);
-        
-        if (base64Audio) {
-            // --- PLAY GEMINI AUDIO ---
-            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
-            audioContextRef.current = ctx;
-            
-            const rawBytes = decodeBase64(base64Audio);
-            const audioBuffer = await decodeAudioData(rawBytes, ctx, 24000, 1);
-            
-            const source = ctx.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(ctx.destination);
-            
-            source.onended = () => {
-                setIsSpeaking(false);
+    if (aiDecision === 'true') {
+        setIsGeneratingAudio(true);
+        try {
+            const base64Audio = await generateDevotionalAudio(textToRead);
+            if (base64Audio) {
+                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+                audioContextRef.current = ctx;
+                const rawBytes = decodeBase64(base64Audio);
+                const audioBuffer = await decodeAudioData(rawBytes, ctx, 24000, 1);
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(ctx.destination);
+                source.onended = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
+                audioSourceRef.current = source;
+                source.start();
+                setIsSpeaking(true);
                 setIsGeneratingAudio(false);
-            };
-            
-            audioSourceRef.current = source;
-            source.start();
-            setIsSpeaking(true);
-            setIsGeneratingAudio(false);
-            
-        } else {
-            throw new Error("No audio data returned");
+                return;
+            }
+        } catch (e) {
+            console.warn("Gemini TTS failed", e);
         }
-
-    } catch (e) {
-        console.warn("Gemini TTS failed, falling back to browser voice", e);
-        // --- FALLBACK BROWSER AUDIO ---
-        const utterance = new SpeechSynthesisUtterance(textToRead);
-        utterance.lang = 'pt-BR';
-        utterance.rate = 0.9; 
-        utterance.pitch = 1.1; 
-        
-        utterance.onend = () => {
-            setIsSpeaking(false);
-            setIsGeneratingAudio(false);
-        };
-        
-        setIsSpeaking(true);
-        setIsGeneratingAudio(false);
-        window.speechSynthesis.speak(utterance);
     }
+
+    // Fallback
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 0.9; 
+    utterance.pitch = 1.1; 
+    utterance.onend = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
+    setIsSpeaking(true);
+    setIsGeneratingAudio(false);
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
-    <div className="h-full flex flex-col font-sans bg-sky-50 text-slate-800">
+    <div className="h-full flex flex-col font-sans bg-sky-50 text-slate-800 relative">
         <Layout title="Cantinho da Fé" color="text-sky-600">
             {loading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
@@ -282,6 +307,46 @@ const FaithCorner: React.FC = () => {
                 </div>
             )}
         </Layout>
+
+        {/* --- PREMIUM GATE MODAL --- */}
+      {showPremiumGate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+           <div className="bg-white p-6 rounded-[2.5rem] max-w-md w-full relative shadow-2xl text-center">
+              
+              <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <Sparkles size={40} className="text-sky-500 fill-sky-200 animate-spin-slow" />
+              </div>
+
+              <h2 className="text-2xl font-black text-slate-800 mb-2">
+                 Devocionais Personalizados?
+              </h2>
+              
+              <div className="space-y-4 text-slate-500 text-sm leading-relaxed mb-8">
+                 <p className="font-medium text-slate-700 text-base">
+                    Olá! 👋
+                 </p>
+                 <p>
+                    Para criarmos devocionais e histórias bíblicas personalizadas para <strong>{profile?.name}</strong> usando IA, precisamos conectar sua conta Google (Gemini).
+                 </p>
+                 <ul className="text-left bg-sky-50 p-4 rounded-2xl space-y-2 border border-sky-100 text-slate-600">
+                    <li className="flex items-center gap-2"><Check size={16} className="text-sky-500"/> Ensino bíblico adaptado à idade</li>
+                    <li className="flex items-center gap-2"><Check size={16} className="text-sky-500"/> Histórias que usam o nome do seu filho</li>
+                    <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-sky-500"/> Totalmente gratuito (Free Tier)</li>
+                 </ul>
+              </div>
+
+              <div className="space-y-3">
+                  <button onClick={activateAI} className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl transition-all shadow-lg shadow-sky-200 active:scale-95 flex items-center justify-center gap-2">
+                     <Key size={20} /> CONECTAR GOOGLE
+                  </button>
+                  
+                  <button onClick={declineAI} className="w-full py-3 text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors">
+                     Não, usar devocional genérico
+                  </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

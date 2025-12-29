@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getInstantStory, generateStoryText, generateStoryImage } from '../services/geminiService';
-import { Sparkles, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Key, Download, Check, HelpCircle, X, ExternalLink } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Key, Download, Check, X, ShieldCheck } from 'lucide-react';
 import { StoryData, ChildProfile } from '../types';
 
 const StoryTime: React.FC = () => {
@@ -19,13 +19,12 @@ const StoryTime: React.FC = () => {
   const [imageRevealed, setImageRevealed] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [downloaded, setDownloaded] = useState(false);
-  const [showKeyHelp, setShowKeyHelp] = useState(false);
+  const [showPremiumGate, setShowPremiumGate] = useState(false);
   
   // Check for AI Studio environment
   const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
 
   useEffect(() => {
-    // Load Profile
     const stored = localStorage.getItem('child_profile');
     if (stored) {
       setProfile(JSON.parse(stored));
@@ -35,19 +34,58 @@ const StoryTime: React.FC = () => {
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    
+    // Check if user has already made a decision about AI
+    const aiDecision = localStorage.getItem('ai_enabled_decision');
+    if (aiDecision === 'true' && hasAIStudio) {
+         setUseAI(true);
+    } else {
+         // If no decision yet, trigger the prompt on first load
+         if (aiDecision === null) {
+            setShowPremiumGate(true);
+         }
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
-  const handleModeSwitch = (mode: boolean) => {
-    setUseAI(mode);
-    // Clear current story so the UI is clean for the new mode
+  const handleModeSwitch = async (wantAI: boolean) => {
+    if (wantAI) {
+        if (hasAIStudio) {
+            const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+            if (!hasKey) {
+                setShowPremiumGate(true);
+                return;
+            }
+        } else {
+           // Fallback for dev environment without AI Studio
+           // Typically wouldn't happen in the target environment
+        }
+    }
+    setUseAI(wantAI);
     setStory(null);
     setImageUrl(null);
     setImageRevealed(false);
     setDownloaded(false);
+  };
+  
+  const activateAI = async () => {
+      if (hasAIStudio) {
+          await (window as any).aistudio.openSelectKey();
+          // Assume success for UX flow
+          localStorage.setItem('ai_enabled_decision', 'true');
+          setUseAI(true);
+          setShowPremiumGate(false);
+      }
+  };
+
+  const declineAI = () => {
+      localStorage.setItem('ai_enabled_decision', 'false');
+      setUseAI(false);
+      setShowPremiumGate(false);
   };
 
   const predefinedTopics = [
@@ -97,8 +135,9 @@ const StoryTime: React.FC = () => {
       }
 
     } catch (e) {
-      alert("Ops! O contador de histórias dormiu. Tente de novo!");
+      alert("Ops! Tente novamente.");
       console.error(e);
+      setUseAI(false); // Fallback logic
     } finally {
       setLoading(false);
     }
@@ -129,23 +168,6 @@ const StoryTime: React.FC = () => {
             </button>
             <h1 className="text-xl font-black uppercase tracking-wider text-center flex-1 mx-2 text-yellow-400">Hora de Dormir</h1>
             <div className="flex items-center gap-2">
-              {hasAIStudio && (
-                <>
-                  <button 
-                    onClick={() => setShowKeyHelp(true)}
-                    className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300 active:scale-95 transition-transform"
-                  >
-                    <HelpCircle size={18} />
-                  </button>
-                  <button 
-                    onClick={() => (window as any).aistudio.openSelectKey()}
-                    className="w-10 h-10 bg-yellow-500/20 border border-yellow-500/50 rounded-full flex items-center justify-center text-yellow-400 active:scale-95 transition-transform animate-pulse"
-                    title="Configurar Chave Mágica"
-                  >
-                     <Key size={18} />
-                  </button>
-                </>
-              )}
               <div className="w-10 flex items-center justify-center">
                 {isOnline ? <Moon className="text-yellow-200 fill-yellow-200" /> : <WifiOff className="text-slate-500" size={20} />}
               </div>
@@ -165,7 +187,7 @@ const StoryTime: React.FC = () => {
                  onClick={() => handleModeSwitch(false)}
                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all relative z-10 ${!useAI ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
                >
-                  <BookOpen size={18} /> Livro (Rápido)
+                  <BookOpen size={18} /> Livro (Genérico)
                </button>
                <button 
                  onClick={() => handleModeSwitch(true)}
@@ -176,7 +198,7 @@ const StoryTime: React.FC = () => {
             </div>
 
             <h2 className="text-2xl font-black text-white text-center">
-              {useAI ? "O que vamos criar hoje?" : "Qual história vamos ler?"}
+              {useAI ? `O que ${profile?.name} quer imaginar?` : "Qual história vamos ler?"}
             </h2>
             
             <div className="flex flex-wrap gap-3 justify-center">
@@ -312,37 +334,41 @@ const StoryTime: React.FC = () => {
         )}
       </div>
 
-      {/* --- INSTRUCTION MODAL (API KEY HELP) --- */}
-      {showKeyHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-           <div className="bg-slate-900 border-2 border-yellow-500/50 p-6 rounded-3xl max-w-md w-full relative shadow-2xl shadow-yellow-900/20">
-              <button onClick={() => setShowKeyHelp(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full"><X size={20}/></button>
+      {/* --- PREMIUM GATE / CONNECT GOOGLE --- */}
+      {showPremiumGate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fade-in">
+           <div className="bg-gradient-to-br from-indigo-900 to-slate-900 border border-indigo-500/50 p-6 rounded-[2.5rem] max-w-md w-full relative shadow-2xl text-center">
               
-              <div className="flex flex-col gap-4">
-                 <h2 className="text-2xl font-black text-yellow-400 flex items-center gap-3">
-                   <Key className="w-8 h-8 fill-yellow-500/20"/>
-                   Ativar a Mágica
-                 </h2>
-                 
-                 <div className="space-y-4 text-slate-300 text-sm leading-relaxed">
-                    <p className="font-medium text-white text-base">Olá Guardião! 👋</p>
-                    <p>Para criar histórias novas e infinitas, você precisa ativar a chave da inteligência artificial.</p>
-                    
-                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                       <h3 className="text-white font-bold mb-2">Como fazer?</h3>
-                       <ol className="list-decimal pl-5 space-y-2 text-slate-400">
-                          <li>Toque no botão <span className="text-yellow-400 font-bold">Selecionar Chave</span> abaixo.</li>
-                          <li>Isso abrirá uma janela do Google.</li>
-                          <li>Selecione ou crie um projeto (é gratuito para texto e imagens).</li>
-                       </ol>
-                    </div>
+              <div className="w-20 h-20 bg-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-500/40">
+                <Sparkles size={40} className="text-white fill-white animate-spin-slow" />
+              </div>
 
-                    <button onClick={() => { setShowKeyHelp(false); (window as any).aistudio.openSelectKey(); }} className="w-full py-4 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white font-black text-lg rounded-xl transition-all shadow-lg shadow-yellow-900/40 active:scale-95 flex items-center justify-center gap-2">
-                       <Key size={20} /> SELECIONAR CHAVE
-                    </button>
-                    
-                    <p className="text-center text-xs text-slate-500 mt-2">Se não ativar, continuaremos usando as histórias do livro offline.</p>
-                 </div>
+              <h2 className="text-2xl font-black text-white mb-2">
+                 Ativar Inteligência Artificial?
+              </h2>
+              
+              <div className="space-y-4 text-slate-300 text-sm leading-relaxed mb-8">
+                 <p className="font-medium text-white text-base">
+                    Olá Papai/Mamãe! 👋
+                 </p>
+                 <p>
+                    Para criar histórias <strong>únicas</strong> e imagens personalizadas para <strong>{profile?.name}</strong>, precisamos conectar sua conta Google (Gemini).
+                 </p>
+                 <ul className="text-left bg-slate-800/50 p-4 rounded-2xl space-y-2 border border-slate-700">
+                    <li className="flex items-center gap-2"><Check size={16} className="text-green-400"/> Histórias infinitas e criativas</li>
+                    <li className="flex items-center gap-2"><Check size={16} className="text-green-400"/> Imagens personalizadas do {profile?.name}</li>
+                    <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-green-400"/> Sem custos adicionais (Free Tier)</li>
+                 </ul>
+              </div>
+
+              <div className="space-y-3">
+                  <button onClick={activateAI} className="w-full py-4 bg-white text-indigo-900 font-black text-lg rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                     <Key size={20} /> CONECTAR GOOGLE
+                  </button>
+                  
+                  <button onClick={declineAI} className="w-full py-3 text-slate-400 font-bold text-sm hover:text-white transition-colors">
+                     Não, usar histórias genéricas
+                  </button>
               </div>
            </div>
         </div>
