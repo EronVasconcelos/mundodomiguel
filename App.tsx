@@ -26,15 +26,18 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
-    const profile = localStorage.getItem('child_profile');
+    // Check for profiles list OR legacy single profile
+    const profilesStr = localStorage.getItem('child_profiles');
+    const legacyProfile = localStorage.getItem('child_profile');
+    const hasProfiles = (profilesStr && JSON.parse(profilesStr).length > 0) || legacyProfile;
     
     const publicRoutes = [AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER];
     const isPublic = publicRoutes.includes(location.pathname as AppRoute);
 
     if (!token && !isPublic) {
       navigate(AppRoute.WELCOME);
-    } else if (token && !profile && location.pathname !== AppRoute.PROFILE) {
-      // Logged in but no child profile
+    } else if (token && !hasProfiles && location.pathname !== AppRoute.PROFILE) {
+      // Logged in but no child profiles yet
       navigate(AppRoute.PROFILE);
     }
   }, [location, navigate]);

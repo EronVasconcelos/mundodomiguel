@@ -19,6 +19,7 @@ export enum AppRoute {
 }
 
 export interface ChildProfile {
+  id: string; // Unique ID for multi-profile
   name: string;
   age: number;
   gender: 'boy' | 'girl';

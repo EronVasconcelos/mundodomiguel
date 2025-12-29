@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, ChildProfile } from '../types';
-import { ArrowRight, Check, User } from 'lucide-react';
+import { ArrowRight, Check, User, Users } from 'lucide-react';
 
 const ProfileSetup: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [existingCount, setExistingCount] = useState(0);
   
   const [profile, setProfile] = useState<ChildProfile>({
+    id: crypto.randomUUID(),
     name: '',
     age: 5,
     gender: 'boy',
@@ -17,18 +19,44 @@ const ProfileSetup: React.FC = () => {
     skinTone: 'light',
   });
 
+  useEffect(() => {
+    // Check existing profiles
+    const stored = localStorage.getItem('child_profiles');
+    if (stored) {
+        const profiles = JSON.parse(stored);
+        setExistingCount(profiles.length);
+        if (profiles.length >= 5) {
+            alert("Você já atingiu o limite de 5 perfis.");
+            navigate(AppRoute.HOME);
+        }
+    }
+  }, [navigate]);
+
   const handleSave = () => {
+    // Get existing profiles
+    const stored = localStorage.getItem('child_profiles');
+    let profiles: ChildProfile[] = stored ? JSON.parse(stored) : [];
+    
+    // Add new profile
+    profiles.push(profile);
+    
+    // Save updated list
+    localStorage.setItem('child_profiles', JSON.stringify(profiles));
+    
+    // Set as active profile
+    localStorage.setItem('active_profile_id', profile.id);
+    
+    // Legacy support (optional, keeps other components working until fully migrated)
     localStorage.setItem('child_profile', JSON.stringify(profile));
-    // Clear old data to prevent confusion
-    localStorage.removeItem('miguel_daily_devotional'); 
+
     navigate(AppRoute.HOME);
   };
 
   const renderStep1 = () => (
     <div className="space-y-6 animate-slide-up">
        <div className="text-center">
-          <h2 className="text-3xl font-black text-slate-800">Quem vai brincar?</h2>
-          <p className="text-slate-400">Primeiro, diga o seu nome.</p>
+          <h2 className="text-3xl font-black text-slate-800">Novo Aventureiro</h2>
+          <p className="text-slate-400">Perfil {existingCount + 1} de 5</p>
        </div>
 
        <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm">
@@ -142,7 +170,7 @@ const ProfileSetup: React.FC = () => {
          onClick={handleSave}
          className="w-full py-4 bg-green-500 text-white rounded-2xl font-black text-xl shadow-lg shadow-green-200 mt-8 flex items-center justify-center gap-2"
        >
-         <Check /> TERMINAR
+         <Check /> SALVAR PERFIL
        </button>
     </div>
   );

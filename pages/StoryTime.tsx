@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getInstantStory, generateStoryText, generateStoryImage } from '../services/geminiService';
-import { Sparkles, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Key, Download, Check, X, ShieldCheck } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Key, Download, Check, ShieldCheck, Zap } from 'lucide-react';
 import { StoryData, ChildProfile } from '../types';
 
 const StoryTime: React.FC = () => {
@@ -9,8 +9,9 @@ const StoryTime: React.FC = () => {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   
-  // State for Mode Selection
-  const [useAI, setUseAI] = useState(false); // Default to Local (False)
+  // AI Logic
+  const [useAI, setUseAI] = useState(false);
+  const [aiActiveGlobal, setAiActiveGlobal] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState("");
@@ -21,31 +22,37 @@ const StoryTime: React.FC = () => {
   const [downloaded, setDownloaded] = useState(false);
   const [showPremiumGate, setShowPremiumGate] = useState(false);
   
-  // Check for AI Studio environment
   const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
 
   useEffect(() => {
+    // 1. Load Profile
     const stored = localStorage.getItem('child_profile');
-    if (stored) {
-      setProfile(JSON.parse(stored));
+    if (stored) setProfile(JSON.parse(stored));
+
+    // 2. Check Global AI Status (Shared across Story and Faith)
+    const globalStatus = localStorage.getItem('ai_active_global') === 'true';
+    setAiActiveGlobal(globalStatus);
+    
+    // 3. Set Initial Mode
+    if (globalStatus) {
+        setUseAI(true);
+    } else {
+        // If not globally active, check local decision or gate
+        const decision = localStorage.getItem('ai_enabled_decision'); // 'true' | 'false' | null
+        if (decision === 'true' && hasAIStudio) {
+            // User wanted it, but maybe session cleared? Let's check key or assume gate needed
+             setUseAI(true);
+        } else if (decision === null) {
+             setShowPremiumGate(true);
+        }
     }
 
+    // Network listeners
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Check if user has already made a decision about AI
-    const aiDecision = localStorage.getItem('ai_enabled_decision');
-    if (aiDecision === 'true' && hasAIStudio) {
-         setUseAI(true);
-    } else {
-         // If no decision yet, trigger the prompt on first load
-         if (aiDecision === null) {
-            setShowPremiumGate(true);
-         }
-    }
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -54,18 +61,16 @@ const StoryTime: React.FC = () => {
 
   const handleModeSwitch = async (wantAI: boolean) => {
     if (wantAI) {
-        if (hasAIStudio) {
-            const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-            if (!hasKey) {
-                setShowPremiumGate(true);
-                return;
-            }
-        } else {
-           // Fallback for dev environment without AI Studio
-           // Typically wouldn't happen in the target environment
+        if (!aiActiveGlobal) {
+            setShowPremiumGate(true);
+            return;
         }
     }
     setUseAI(wantAI);
+    resetStoryState();
+  };
+
+  const resetStoryState = () => {
     setStory(null);
     setImageUrl(null);
     setImageRevealed(false);
@@ -73,12 +78,19 @@ const StoryTime: React.FC = () => {
   };
   
   const activateAI = async () => {
-      if (hasAIStudio) {
-          await (window as any).aistudio.openSelectKey();
-          // Assume success for UX flow
+      try {
+          if (hasAIStudio) {
+              await (window as any).aistudio.openSelectKey();
+          }
+          // We assume success if the promise resolves (or if we are in a simulated env)
+          localStorage.setItem('ai_active_global', 'true');
           localStorage.setItem('ai_enabled_decision', 'true');
+          setAiActiveGlobal(true);
           setUseAI(true);
           setShowPremiumGate(false);
+      } catch (e) {
+          console.error("Failed to connect Google Account", e);
+          alert("Erro ao conectar. Tente novamente.");
       }
   };
 
@@ -97,47 +109,34 @@ const StoryTime: React.FC = () => {
   const handleCreateStory = async (selectedTopic: string) => {
     if (!profile) return;
     setLoading(true);
-    setStory(null);
-    setImageUrl(null);
-    setImageRevealed(false);
-    setDownloaded(false);
+    resetStoryState();
     
     try {
       if (!useAI) {
-        // --- LOCAL MODE (INSTANT) ---
+        // --- LOCAL MODE ---
         setLoadingPhase("Abrindo o livro...");
-        // Small delay for UI feel
         await new Promise(r => setTimeout(r, 600)); 
-        
         const localStory = getInstantStory(selectedTopic, profile);
-        setStory({
-          title: localStory.title,
-          content: localStory.content,
-          moral: localStory.moral
-        });
+        setStory({ title: localStory.title, content: localStory.content, moral: localStory.moral });
         setImageUrl(localStory.image);
       } else {
-        // --- AI MODE (GENERATE) ---
+        // --- AI MODE ---
         if (!isOnline) {
           alert("A mágica precisa de internet! Mudando para modo Livro.");
           setUseAI(false);
           setLoading(false);
           return;
         }
-
         setLoadingPhase("A Mágica está escrevendo...");
         const storyData = await generateStoryText(selectedTopic, profile);
         setStory(storyData);
-
         setLoadingPhase("Pintando o desenho...");
         const img = await generateStoryImage(storyData.content, profile);
         setImageUrl(img);
       }
-
     } catch (e) {
       alert("Ops! Tente novamente.");
-      console.error(e);
-      setUseAI(false); // Fallback logic
+      setUseAI(false);
     } finally {
       setLoading(false);
     }
@@ -145,22 +144,18 @@ const StoryTime: React.FC = () => {
 
   const handleDownloadImage = () => {
     if (!imageUrl) return;
-    
     const link = document.createElement('a');
     link.href = imageUrl;
     link.download = `Historia-${profile?.name}-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
     setDownloaded(true);
     setTimeout(() => setDownloaded(false), 3000);
   };
 
   return (
-    // Override Layout background specifically for StoryTime to be Night Mode
     <div className="h-full flex flex-col font-sans relative bg-[#0f172a] text-white">
-       {/* Simple Header for Story Mode */}
        <div className="px-4 pt-6 pb-2">
          <header className="bg-slate-800/50 backdrop-blur-md rounded-3xl px-4 py-3 flex items-center justify-between border border-slate-700">
             <button onClick={() => window.history.back()} className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300 active:scale-95 transition-transform">
@@ -176,8 +171,6 @@ const StoryTime: React.FC = () => {
        </div>
 
       <div className="flex-1 overflow-y-auto p-4 pb-20">
-        
-        {/* Input Section */}
         {!story && !loading && (
           <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 space-y-6">
             
@@ -187,13 +180,14 @@ const StoryTime: React.FC = () => {
                  onClick={() => handleModeSwitch(false)}
                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all relative z-10 ${!useAI ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
                >
-                  <BookOpen size={18} /> Livro (Genérico)
+                  <BookOpen size={18} /> Livro
                </button>
                <button 
                  onClick={() => handleModeSwitch(true)}
                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all relative z-10 ${useAI ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-900/50' : 'text-slate-400 hover:text-slate-200'}`}
                >
-                  <Sparkles size={18} /> Mágica IA
+                  <Sparkles size={18} /> IA Mágica
+                  {aiActiveGlobal && <Check size={14} className="text-green-300" />}
                </button>
             </div>
 
@@ -324,7 +318,7 @@ const StoryTime: React.FC = () => {
 
             <div className="pt-8 pb-4">
               <button 
-                onClick={() => { setStory(null); setImageUrl(null); setImageRevealed(false); setDownloaded(false); }}
+                onClick={resetStoryState}
                 className="w-full bg-slate-800 text-slate-400 font-bold py-4 rounded-2xl border-b-4 border-slate-900 active:border-b-0 active:translate-y-1 transition-all"
               >
                 Ler outra história
@@ -352,13 +346,12 @@ const StoryTime: React.FC = () => {
                     Olá Papai/Mamãe! 👋
                  </p>
                  <p>
-                    Para criar histórias <strong>únicas</strong> e imagens personalizadas para <strong>{profile?.name}</strong>, precisamos conectar sua conta Google (Gemini).
+                    Para criar histórias personalizadas para <strong>{profile?.name}</strong>, precisamos conectar sua conta Google (Gemini).
                  </p>
-                 <ul className="text-left bg-slate-800/50 p-4 rounded-2xl space-y-2 border border-slate-700">
-                    <li className="flex items-center gap-2"><Check size={16} className="text-green-400"/> Histórias infinitas e criativas</li>
-                    <li className="flex items-center gap-2"><Check size={16} className="text-green-400"/> Imagens personalizadas do {profile?.name}</li>
-                    <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-green-400"/> Sem custos adicionais (Free Tier)</li>
-                 </ul>
+                 <div className="text-left bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                    <div className="flex items-center gap-2 mb-2"><ShieldCheck size={16} className="text-green-400"/> <span>Grátis e Seguro</span></div>
+                    <div className="flex items-center gap-2 mb-2"><Zap size={16} className="text-yellow-400"/> <span>Login único para todos os perfis</span></div>
+                 </div>
               </div>
 
               <div className="space-y-3">
