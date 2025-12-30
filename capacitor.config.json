@@ -1,0 +1,20 @@
+{
+  "appId": "com.mundomiguel.app",
+  "appName": "O Mundo do Miguel",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": true,
+      "backgroundColor": "#f0f9ff",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": true,
+      "spinnerColor": "#0ea5e9"
+    }
+  }
+}
