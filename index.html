@@ -61,25 +61,23 @@
     </script>
     <style>
       /* RESET MOBILE-NATIVE FEEL */
-      html, body {
+      html {
         height: 100%;
         width: 100%;
-        overflow: hidden; /* Impede rolagem do 'body', apenas divs internas rolam */
-        background-color: #f0f9ff;
+        background-color: #1e293b; /* Fundo escuro para Desktop (fora da área do app) */
       }
 
       body {
-        /* Previne o efeito "elástico" (pull-to-refresh) do navegador */
-        overscroll-behavior-y: none;
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        overflow: hidden; /* O body não rola, quem rola é o #root ou divs internas */
         
-        /* Previne seleção de texto (comum em apps nativos) */
+        /* Comportamento Nativo */
+        overscroll-behavior-y: none;
         user-select: none;
         -webkit-user-select: none;
-        
-        /* Remove highlight azul ao tocar em botões no Android/iOS */
         -webkit-tap-highlight-color: transparent;
-        
-        /* Desabilita menu de contexto (clique longo) para parecer app */
         -webkit-touch-callout: none;
         
         /* Variáveis para Safe Area (Notch do iPhone) */
@@ -87,6 +85,32 @@
         --sab: env(safe-area-inset-bottom);
         --sal: env(safe-area-inset-left);
         --sar: env(safe-area-inset-right);
+
+        /* Centralização no Desktop */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #root {
+        height: 100%;
+        width: 100%;
+        max-width: 480px; /* Largura máxima de um celular grande */
+        background-color: #f0f9ff; /* Cor de fundo do app */
+        position: relative;
+        box-shadow: 0 0 50px rgba(0,0,0,0.5); /* Sombra para destacar no desktop */
+        overflow: hidden;
+      }
+
+      /* Em telas pequenas (celulares reais), removemos a limitação para ocupar tudo */
+      @media (max-width: 480px) {
+        body {
+          background-color: #f0f9ff;
+        }
+        #root {
+          max-width: none;
+          box-shadow: none;
+        }
       }
 
       /* Esconde scrollbar mas permite rolar */
@@ -104,17 +128,15 @@
         -webkit-user-select: text;
       }
       
-      /* Melhora a resposta do toque */
       button {
         cursor: pointer;
         touch-action: manipulation;
       }
       
-      /* Previne arrastar imagens (ghost image) */
       img {
         -webkit-user-drag: none;
         user-drag: none;
-        pointer-events: none; /* Imagens são visuais, botões controlam ações */
+        pointer-events: none;
       }
     </style>
   <script type="importmap">
@@ -132,7 +154,7 @@
 </script>
 </head>
   <body>
-    <div id="root" class="h-full w-full"></div>
+    <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>
