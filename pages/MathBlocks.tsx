@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from '../components/Layout';
-import { Star, RefreshCw, Plus, Minus, X, Divide, Check, Trophy } from 'lucide-react';
+import { RefreshCw, Plus, Minus, X, Divide, Trophy, CheckCircle, XCircle } from 'lucide-react';
 import { incrementMath, getDailyProgress, getGoals } from '../services/progressService';
 
+// --- STYLES FOR BLOCKS ---
 const getCharacterStyle = (numberValue: number, blockIndex: number) => {
   if (numberValue === 7) {
     const rainbowColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-cyan-500', 'bg-blue-500', 'bg-purple-500'];
@@ -12,15 +13,15 @@ const getCharacterStyle = (numberValue: number, blockIndex: number) => {
   if (numberValue >= 10 && numberValue % 10 === 0) return 'bg-white border-2 border-red-500 text-red-500';
   
   switch (numberValue) {
-    case 1: return 'bg-red-500 text-white';
-    case 2: return 'bg-orange-500 text-white';
-    case 3: return 'bg-yellow-400 text-yellow-900';
-    case 4: return 'bg-green-500 text-white';
-    case 5: return 'bg-cyan-500 text-white';
-    case 6: return 'bg-purple-500 text-white';
-    case 8: return 'bg-pink-500 text-white';
-    case 9: return 'bg-slate-500 text-white';
-    default: return 'bg-blue-500 text-white';
+    case 1: return 'bg-red-500 text-white shadow-red-700';
+    case 2: return 'bg-orange-500 text-white shadow-orange-700';
+    case 3: return 'bg-yellow-400 text-yellow-900 shadow-yellow-600';
+    case 4: return 'bg-green-500 text-white shadow-green-700';
+    case 5: return 'bg-cyan-500 text-white shadow-cyan-700';
+    case 6: return 'bg-purple-500 text-white shadow-purple-700';
+    case 8: return 'bg-pink-500 text-white shadow-pink-700';
+    case 9: return 'bg-slate-500 text-white shadow-slate-700';
+    default: return 'bg-blue-500 text-white shadow-blue-700';
   }
 };
 
@@ -30,13 +31,14 @@ interface NumberCharacterLocalProps {
 }
 
 const NumberCharacterLocal: React.FC<NumberCharacterLocalProps> = ({ value, size = "md" }) => {
-  const blockSizeClass = size === "lg" ? "w-14 h-14 text-2xl" : size === "md" ? "w-12 h-12 text-xl" : "w-8 h-8 text-sm";
+  // Ajuste visual para parecer um bloco 3D (border-b-4 ou shadow simulada)
+  const blockSizeClass = size === "lg" ? "w-16 h-16 text-3xl" : size === "md" ? "w-12 h-12 text-xl" : "w-8 h-8 text-sm";
   
   if (value > 10 && value % 10 !== 0) {
      const tens = Math.floor(value / 10);
      const remainder = value % 10;
      return (
-       <div className="flex items-end gap-2">
+       <div className="flex items-end gap-1">
           {Array.from({length: tens}).map((_, i) => <NumberCharacterLocal key={`ten-${i}`} value={10} size={size} />)}
           <NumberCharacterLocal value={remainder} size={size} />
        </div>
@@ -47,12 +49,12 @@ const NumberCharacterLocal: React.FC<NumberCharacterLocalProps> = ({ value, size
   const isTen = value >= 10;
 
   return (
-    <div className="flex flex-col-reverse items-center transition-all duration-500 animate-slide-up">
+    <div className="flex flex-col-reverse items-center transition-all duration-500 animate-slide-up pb-1">
       {Array.from({ length: blocksCount }).map((_, i) => {
         const isFace = i === blocksCount - 1;
         const style = getCharacterStyle(value, i);
         return (
-          <div key={i} className={`${blockSizeClass} ${style} rounded-lg flex items-center justify-center relative mb-1 z-[${i}] shadow-sm`}>
+          <div key={i} className={`${blockSizeClass} ${style} rounded-xl flex items-center justify-center relative -mb-2 z-[${i}] border-b-4 border-black/20`}>
             {isFace && (
               <div className="absolute inset-0 flex flex-col items-center justify-center opacity-90">
                  <div className="flex gap-1 mb-1">
@@ -66,10 +68,19 @@ const NumberCharacterLocal: React.FC<NumberCharacterLocalProps> = ({ value, size
           </div>
         );
       })}
-      <span className={`font-black text-slate-400 mt-2 ${size === "lg" ? "text-3xl" : "text-xl"}`}>{value}</span>
+      <span className={`font-black text-slate-400 mt-2 ${size === "lg" ? "text-2xl" : "text-lg"}`}>{value}</span>
     </div>
   );
 };
+
+// Componente Visual para Operadores e Igualdade (Estilo Bloco)
+const SymbolBlock: React.FC<{ children: React.ReactNode, colorClass?: string }> = ({ children, colorClass = "bg-slate-700 text-white" }) => (
+    <div className="flex flex-col items-center justify-end pb-6 h-full"> 
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-black border-b-4 border-black/20 shadow-sm ${colorClass}`}>
+            {children}
+        </div>
+    </div>
+);
 
 type Operation = 'ADD' | 'SUB' | 'MUL' | 'DIV';
 
@@ -77,20 +88,21 @@ const MathBlocks: React.FC = () => {
   const [num1, setNum1] = useState(2);
   const [num2, setNum2] = useState(3);
   const [operation, setOperation] = useState<Operation>('ADD');
-  const [userAnswer, setUserAnswer] = useState<number | null>(null);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [showMissionComplete, setShowMissionComplete] = useState(false);
   
+  const [userAnswer, setUserAnswer] = useState<number | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  
+  const [showMissionComplete, setShowMissionComplete] = useState(false);
   const [missionStats, setMissionStats] = useState({ current: 0, target: 20 });
-  const historyRef = useRef<string[]>([]); // To prevent duplicates
+  const historyRef = useRef<string[]>([]);
 
   useEffect(() => {
     const p = getDailyProgress();
     const g = getGoals();
     setMissionStats({ current: p.mathCount, target: g.MATH });
+    generateProblem();
   }, []);
 
-  // Calculate correct answer
   let target = 0;
   if (operation === 'ADD') target = num1 + num2;
   if (operation === 'SUB') target = num1 - num2;
@@ -98,20 +110,18 @@ const MathBlocks: React.FC = () => {
   if (operation === 'DIV') target = num1 / num2;
 
   const generateProblem = () => {
-    setShowConfetti(false);
-    setShowMissionComplete(false);
+    setIsCorrect(null);
     setUserAnswer(null);
+    setShowMissionComplete(false);
     
     const ops: Operation[] = ['ADD', 'SUB', 'MUL', 'DIV'];
     
     let isValid = false;
     let attempts = 0;
-    
     let newOp: Operation = 'ADD';
     let n1 = 0;
     let n2 = 0;
 
-    // Loop to find a unique problem not in recent history
     while (!isValid && attempts < 50) {
         attempts++;
         newOp = ops[Math.floor(Math.random() * ops.length)];
@@ -143,12 +153,8 @@ const MathBlocks: React.FC = () => {
         const problemKey = `${n1}${newOp}${n2}`;
         if (!historyRef.current.includes(problemKey)) {
             isValid = true;
-            // Add to history
             historyRef.current.push(problemKey);
-            // Keep history limited to last 40
-            if (historyRef.current.length > 40) {
-                historyRef.current.shift();
-            }
+            if (historyRef.current.length > 40) historyRef.current.shift();
         }
     }
     
@@ -158,34 +164,47 @@ const MathBlocks: React.FC = () => {
   };
 
   const handleAnswer = (val: number) => {
-    if (showConfetti) return;
+    if (isCorrect === true) return; // Prevent double clicking if already correct
+
     setUserAnswer(val);
+    
     if (val === target) {
-      const reached = incrementMath(); // Track progress
-      
+      setIsCorrect(true);
+      const reached = incrementMath(); 
       const p = getDailyProgress();
       setMissionStats({ ...missionStats, current: p.mathCount });
 
-      setShowConfetti(true);
-      if (reached) {
-        setTimeout(() => setShowMissionComplete(true), 800);
-      }
+      // Auto advance after short delay
+      setTimeout(() => {
+          if (reached) {
+              setShowMissionComplete(true);
+          } else {
+              generateProblem();
+          }
+      }, 1500);
+
+    } else {
+      setIsCorrect(false);
+      // Reset error state after visual feedback
+      setTimeout(() => {
+          setUserAnswer(null);
+          setIsCorrect(null);
+      }, 1000);
     }
   };
 
   const renderOperator = () => {
-    // Cleaner Operator Design - Reduced Size
-    const style = "w-12 h-12 flex items-center justify-center bg-slate-800 text-white rounded-2xl shadow-md";
-    if (operation === 'ADD') return <div className={style}><Plus size={28} strokeWidth={4} /></div>;
-    if (operation === 'SUB') return <div className={style}><Minus size={28} strokeWidth={4} /></div>;
-    if (operation === 'MUL') return <div className={style}><X size={28} strokeWidth={4} /></div>;
-    return <div className={style}><Divide size={28} strokeWidth={4} /></div>;
+    if (operation === 'ADD') return <SymbolBlock colorClass="bg-slate-800 text-white"><Plus strokeWidth={4} /></SymbolBlock>;
+    if (operation === 'SUB') return <SymbolBlock colorClass="bg-slate-800 text-white"><Minus strokeWidth={4} /></SymbolBlock>;
+    if (operation === 'MUL') return <SymbolBlock colorClass="bg-slate-800 text-white"><X strokeWidth={4} /></SymbolBlock>;
+    return <SymbolBlock colorClass="bg-slate-800 text-white"><Divide strokeWidth={4} /></SymbolBlock>;
   }
 
+  // Generate exactly 3 options
   const options = React.useMemo(() => {
     const opts = new Set<number>();
     opts.add(target);
-    while (opts.size < 4) {
+    while (opts.size < 3) {
       let offset = Math.floor(Math.random() * 5) + 1;
       if (Math.random() > 0.5) offset *= -1;
       const fake = target + offset;
@@ -196,49 +215,77 @@ const MathBlocks: React.FC = () => {
 
   return (
     <Layout title="Matemática" missionTarget={missionStats}>
-      <div className="flex flex-col h-full gap-4">
+      <div className="flex flex-col h-full gap-6">
         
-        {/* Challenge Area */}
-        <div className="flex-1 bg-white rounded-[2rem] border border-slate-100 shadow-sm m-2 flex flex-col items-center justify-center relative overflow-hidden">
-           <div className="flex items-end justify-center gap-2 md:gap-4 w-full p-4 z-10 scale-90">
-              <div className="flex flex-col items-center">
+        {/* EQUATION AREA */}
+        <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden py-8">
+           
+           {/* The Equation Row */}
+           <div className="flex items-end justify-center gap-2 md:gap-3 w-full px-2">
+              
+              {/* Num 1 */}
+              <div className="flex flex-col items-center justify-end h-32 w-16">
                  <NumberCharacterLocal value={num1} />
               </div>
               
-              <div className="mb-14 mx-2">{renderOperator()}</div>
+              {/* Operator */}
+              <div className="h-20 pb-4">
+                  {renderOperator()}
+              </div>
               
-              <div className="flex flex-col items-center">
+              {/* Num 2 */}
+              <div className="flex flex-col items-center justify-end h-32 w-16">
                 <NumberCharacterLocal value={num2} />
               </div>
               
-              <div className="mb-16 text-5xl font-black text-slate-300">=</div>
+              {/* Equals */}
+              <div className="h-20 pb-4">
+                 <SymbolBlock colorClass="bg-slate-300 text-slate-500">=</SymbolBlock>
+              </div>
               
-              <div className="mb-12">
-                 <div className={`w-24 h-28 border-4 border-dashed rounded-2xl flex items-center justify-center text-5xl font-black transition-all ${userAnswer === target ? 'bg-green-100 border-green-400 text-green-600' : 'border-slate-200 text-slate-300 bg-slate-50'}`}>
-                    {userAnswer ?? "?"}
-                 </div>
+              {/* Result Placeholder / Answer */}
+              <div className="flex flex-col items-center justify-end h-32 w-20">
+                 {userAnswer !== null ? (
+                    <div className={`animate-pop flex flex-col items-center`}>
+                        <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl font-black border-b-4 shadow-sm mb-2
+                            ${isCorrect 
+                                ? 'bg-green-500 border-green-700 text-white' 
+                                : 'bg-red-500 border-red-700 text-white animate-shake'
+                            }`}>
+                            {userAnswer}
+                        </div>
+                         {isCorrect && <CheckCircle className="text-green-500 animate-bounce" size={24} />}
+                         {isCorrect === false && <XCircle className="text-red-500" size={24} />}
+                    </div>
+                 ) : (
+                    <div className="w-16 h-16 bg-slate-100 rounded-xl border-4 border-dashed border-slate-300 flex items-center justify-center text-slate-300 text-3xl font-black mb-2 animate-pulse">
+                        ?
+                    </div>
+                 )}
               </div>
            </div>
            
+           {/* Manual Refresh (if stuck) */}
            <div className="absolute top-4 right-4">
-              <button onClick={generateProblem} className="p-3 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100 transition-colors">
-                <RefreshCw size={24} />
+              <button onClick={generateProblem} className="p-2 bg-slate-50 rounded-full text-slate-300 hover:bg-slate-100 transition-colors">
+                <RefreshCw size={20} />
               </button>
            </div>
         </div>
 
-        {/* Options Pad */}
-        <div className="bg-white rounded-t-[3rem] p-6 pb-12 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-20">
-           <p className="text-center font-bold text-slate-400 uppercase tracking-widest text-xs mb-6">Qual é a resposta?</p>
-           <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+        {/* OPTIONS AREA - 3 Buttons in a Row */}
+        <div className="w-full">
+           <p className="text-center font-bold text-slate-400 uppercase tracking-widest text-xs mb-4">Escolha a resposta:</p>
+           <div className="flex gap-4 justify-center px-4">
              {options.map((opt) => (
                <button
                  key={opt}
                  onClick={() => handleAnswer(opt)}
-                 className={`py-6 rounded-2xl text-4xl font-black active:scale-95 transition-transform 
+                 disabled={userAnswer !== null} 
+                 className={`flex-1 h-20 rounded-2xl text-3xl font-black border-b-8 transition-all active:border-b-0 active:translate-y-2
                    ${userAnswer === opt 
-                      ? (opt === target ? 'bg-green-500 text-white shadow-lg shadow-green-200' : 'bg-red-500 text-white shadow-lg shadow-red-200') 
-                      : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100'
+                      ? (isCorrect ? 'bg-green-500 border-green-700 text-white' : 'bg-red-500 border-red-700 text-white') 
+                      : 'bg-white border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50'
                    }`}
                >
                  {opt}
@@ -247,33 +294,9 @@ const MathBlocks: React.FC = () => {
            </div>
         </div>
 
-        {/* Success Popup */}
-        {showConfetti && !showMissionComplete && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-             <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl">
-                <div className="flex items-center gap-2 mb-4">
-                  <Star className="w-10 h-10 fill-yellow-400 text-yellow-500 animate-spin-slow flex-shrink-0" />
-                  <h2 className="text-3xl font-black text-slate-800 tracking-wide whitespace-nowrap">MUITO BEM!</h2>
-                  <Star className="w-10 h-10 fill-yellow-400 text-yellow-500 animate-spin-slow flex-shrink-0" />
-                </div>
-                
-                <div className="mb-8 p-6 bg-slate-50 rounded-3xl border border-slate-100 w-full flex justify-center">
-                  <NumberCharacterLocal value={target} size="lg" />
-                </div>
-                
-                <button 
-                  onClick={() => generateProblem()}
-                  className="w-full py-4 bg-green-500 text-white rounded-2xl font-black text-xl active:scale-95 flex items-center justify-center gap-3 transition-transform shadow-lg shadow-green-200"
-                >
-                  <Check strokeWidth={4} className="w-6 h-6"/> CONTINUAR
-                </button>
-             </div>
-          </div>
-        )}
-
         {/* Mission Complete Popup */}
         {showMissionComplete && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
                <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
                   <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
                      <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
@@ -282,7 +305,7 @@ const MathBlocks: React.FC = () => {
                   <p className="text-slate-500 font-bold text-center mb-6">Você atingiu a meta de hoje.</p>
                   
                   <button 
-                    onClick={() => generateProblem()}
+                    onClick={generateProblem}
                     className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
                   >
                     CONTINUAR JOGANDO

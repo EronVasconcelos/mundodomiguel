@@ -1,34 +1,53 @@
 
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import { Trophy, RefreshCw, Star, Grid } from 'lucide-react';
+import { Trophy, RefreshCw, Star, Shuffle } from 'lucide-react';
 import { incrementPuzzle, getDailyProgress, getGoals } from '../services/progressService';
 
 const GRID_SIZE = 3; // 3x3 Grid
 const TILE_COUNT = GRID_SIZE * GRID_SIZE;
 
-// Themes with cartoon/illustration style images suitable for children
-const THEMES = [
-  { id: 'farm', name: 'Fazendinha', url: 'https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?q=80&w=800&auto=format&fit=crop' }, // Illustrated Cow
-  { id: 'sea', name: 'Fundo do Mar', url: 'https://images.unsplash.com/photo-1571752726703-4242d4cb6256?q=80&w=800&auto=format&fit=crop' }, // Sea Illustration
-  { id: 'hero', name: 'Super Herói', url: 'https://images.unsplash.com/photo-1635805737707-575885ab0820?q=80&w=800&auto=format&fit=crop' }, // Spiderman Figure (Toy/Cartoon like)
-  { id: 'princess', name: 'Castelo', url: 'https://images.unsplash.com/photo-1629814596167-a3597d667634?q=80&w=800&auto=format&fit=crop' }, // Toy Castle
-  { id: 'space', name: 'Espaço', url: 'https://images.unsplash.com/photo-1614726365723-49cfae9686ae?q=80&w=800&auto=format&fit=crop' }, // Rocket Vector Style
-  { id: 'dino', name: 'Dinossauros', url: 'https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?q=80&w=800&auto=format&fit=crop' }, // Drawn Dino
-  { id: 'forest', name: 'Floresta', url: 'https://images.unsplash.com/photo-1618331835717-801e976710b2?q=80&w=800&auto=format&fit=crop' }, // Abstract/Illustrated Forest
-  { id: 'candy', name: 'Doces', url: 'https://images.unsplash.com/photo-1535086888491-b328109d640b?q=80&w=800&auto=format&fit=crop' }, // Colorful Lollipops
+// Lista Curada: Personagens Famosos & Estilo 3D Realista (Toy Photography)
+const PUZZLE_IMAGES = [
+  // Super Mario
+  'https://images.unsplash.com/photo-1612404730960-5c7157472611?q=80&w=800&auto=format&fit=crop', 
+  // Homem Aranha (Spider-Man)
+  'https://images.unsplash.com/photo-1635805737707-575885ab0820?q=80&w=800&auto=format&fit=crop',
+  // Star Wars (Stormtrooper)
+  'https://images.unsplash.com/photo-1472457897821-70d3819a0e24?q=80&w=800&auto=format&fit=crop',
+  // Batman (Lego)
+  'https://images.unsplash.com/photo-1509347528160-9a9e33742cd4?q=80&w=800&auto=format&fit=crop',
+  // Toy Story Vibe (Woody/Buzz)
+  'https://images.unsplash.com/photo-1596727147705-0608c687e2e9?q=80&w=800&auto=format&fit=crop',
+  // Pokémon (Pikachu)
+  'https://images.unsplash.com/photo-1613776317850-394db30d1de9?q=80&w=800&auto=format&fit=crop',
+  // Dinossauro Rex (3D)
+  'https://images.unsplash.com/photo-1560159752-d6d7c8052739?q=80&w=800&auto=format&fit=crop',
+  // Astronauta (Among Us / Space vibe)
+  'https://images.unsplash.com/photo-1614726365723-49cfae968603?q=80&w=800&auto=format&fit=crop',
+  // Robô Wall-E Style
+  'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=800&auto=format&fit=crop',
+  // Carros (Relâmpago McQueen vibe)
+  'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?q=80&w=800&auto=format&fit=crop',
+  // Minion / Personagem Amarelo
+  'https://images.unsplash.com/photo-1558882224-dda166733046?q=80&w=800&auto=format&fit=crop',
+  // Hello Kitty / Cute Doll
+  'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=800&auto=format&fit=crop',
 ];
 
 const PuzzleGame: React.FC = () => {
   const [tiles, setTiles] = useState<number[]>([]);
   const [emptyIndex, setEmptyIndex] = useState(TILE_COUNT - 1);
   const [won, setWon] = useState(false);
-  const [themeIndex, setThemeIndex] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showMissionComplete, setShowMissionComplete] = useState(false);
   const [missionStats, setMissionStats] = useState({ current: 0, target: 3 });
 
   useEffect(() => {
+    // Pick random image on start
+    setCurrentImageIndex(Math.floor(Math.random() * PUZZLE_IMAGES.length));
     startNewGame();
+    
     const p = getDailyProgress();
     const g = getGoals();
     setMissionStats({ current: p.puzzlesSolved || 0, target: g.PUZZLES });
@@ -37,22 +56,19 @@ const PuzzleGame: React.FC = () => {
   const startNewGame = () => {
     setWon(false);
     setShowMissionComplete(false);
-    // Shuffle logic:
-    // Create solved array [0, 1, 2, ..., 8] where 8 is empty
+    
+    // Create solved state
     let newTiles = Array.from({ length: TILE_COUNT }, (_, i) => i);
     
-    // Random valid moves to shuffle (to ensure solvability)
+    // Shuffle by making random valid moves (ensures solvability)
     let currentEmpty = TILE_COUNT - 1;
-    const moves = 50; // number of random moves to shuffle
+    const moves = 60; 
     
     for (let i = 0; i < moves; i++) {
         const neighbors = getNeighbors(currentEmpty);
         const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
-        // Swap
         newTiles[currentEmpty] = newTiles[randomNeighbor];
-        newTiles[randomNeighbor] = TILE_COUNT - 1; // 8 is placeholder for empty in values? No, values match index.
-        // Actually, let's track VALUES. 
-        // Value 8 represents the empty tile visually.
+        newTiles[randomNeighbor] = TILE_COUNT - 1; 
         currentEmpty = randomNeighbor;
     }
 
@@ -64,25 +80,21 @@ const PuzzleGame: React.FC = () => {
     const row = Math.floor(index / GRID_SIZE);
     const col = index % GRID_SIZE;
     const neighbors = [];
-    
     if (row > 0) neighbors.push(index - GRID_SIZE); // Top
     if (row < GRID_SIZE - 1) neighbors.push(index + GRID_SIZE); // Bottom
     if (col > 0) neighbors.push(index - 1); // Left
     if (col < GRID_SIZE - 1) neighbors.push(index + 1); // Right
-    
     return neighbors;
   };
 
   const handleTileClick = (index: number) => {
     if (won) return;
 
-    // Check if adjacent to empty
     const neighbors = getNeighbors(emptyIndex);
     if (neighbors.includes(index)) {
-        // Swap
         const newTiles = [...tiles];
         newTiles[emptyIndex] = newTiles[index];
-        newTiles[index] = TILE_COUNT - 1; // TILE_COUNT-1 (8) is our "empty" value identifier
+        newTiles[index] = TILE_COUNT - 1; 
         
         setTiles(newTiles);
         setEmptyIndex(index);
@@ -91,7 +103,6 @@ const PuzzleGame: React.FC = () => {
   };
 
   const checkWin = (currentTiles: number[]) => {
-      // Check if tiles are in order: 0, 1, 2, 3...
       const isWin = currentTiles.every((val, index) => val === index);
       if (isWin) {
           setWon(true);
@@ -102,29 +113,33 @@ const PuzzleGame: React.FC = () => {
       }
   };
 
-  const nextTheme = () => {
-      setThemeIndex((prev) => (prev + 1) % THEMES.length);
+  const shuffleImage = () => {
+      let next = Math.floor(Math.random() * PUZZLE_IMAGES.length);
+      while(next === currentImageIndex && PUZZLE_IMAGES.length > 1) {
+          next = Math.floor(Math.random() * PUZZLE_IMAGES.length);
+      }
+      setCurrentImageIndex(next);
       startNewGame();
   };
 
+  const currentImageUrl = PUZZLE_IMAGES[currentImageIndex];
+
   return (
     <Layout title="Quebra-Cabeça" color="text-indigo-600" missionTarget={missionStats}>
-      <div className="flex flex-col h-full gap-6 items-center">
+      <div className="flex flex-col h-full gap-6 items-center pt-4">
         
-        {/* Theme Selector */}
-        <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
-            <button onClick={nextTheme} className="bg-indigo-100 text-indigo-600 p-2 rounded-xl active:scale-95 transition-transform font-bold text-sm flex items-center gap-2">
-                <Grid size={16} /> Mudar Tema: {THEMES[themeIndex].name}
-            </button>
-            <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200">
-                <img src={THEMES[themeIndex].url} className="w-full h-full object-cover" />
-            </div>
-        </div>
+        {/* Shuffle Button */}
+        <button 
+            onClick={shuffleImage} 
+            className="bg-white text-indigo-600 px-6 py-3 rounded-2xl border border-slate-200 shadow-sm active:scale-95 transition-transform font-bold text-sm flex items-center gap-2"
+        >
+            <Shuffle size={20} /> TROCAR IMAGEM
+        </button>
 
         {/* Puzzle Board */}
-        <div className="relative p-2 bg-indigo-500 rounded-3xl shadow-[0_10px_30px_rgba(79,70,229,0.3)]">
+        <div className="relative p-2 bg-indigo-500 rounded-[2.5rem] shadow-[0_15px_40px_rgba(79,70,229,0.3)]">
             <div 
-                className="grid gap-1 bg-indigo-600 p-1 rounded-2xl relative overflow-hidden"
+                className="grid gap-1 bg-indigo-600 p-1 rounded-[2rem] relative overflow-hidden"
                 style={{ 
                     gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
                     width: '320px',
@@ -134,7 +149,6 @@ const PuzzleGame: React.FC = () => {
                 {tiles.map((tileValue, index) => {
                     const isEmpty = tileValue === TILE_COUNT - 1; // 8
                     
-                    // Logic to calculate background position based on the VALUE of the tile (original position)
                     const row = Math.floor(tileValue / GRID_SIZE);
                     const col = tileValue % GRID_SIZE;
                     const xPos = (col * 100) / (GRID_SIZE - 1);
@@ -149,18 +163,18 @@ const PuzzleGame: React.FC = () => {
                                 ${won ? 'scale-100 border-none' : ''}
                             `}
                             style={{
-                                backgroundImage: `url(${THEMES[themeIndex].url})`,
+                                backgroundImage: `url(${currentImageUrl})`,
                                 backgroundSize: `${GRID_SIZE * 100}% ${GRID_SIZE * 100}%`,
                                 backgroundPosition: `${xPos}% ${yPos}%`,
                                 transform: isEmpty && !won ? 'scale(0)' : 'scale(1)'
                             }}
                         >
-                            {/* Number hint for easier solving (optional) */}
-                            {!won && !isEmpty && (
-                                <div className="absolute top-1 left-1 bg-black/40 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold backdrop-blur-sm">
+                           {/* Hint number (optional, minimal visibility) */}
+                           {!won && !isEmpty && (
+                                <div className="absolute top-1 left-1 w-5 h-5 bg-black/30 rounded-full flex items-center justify-center text-[10px] text-white font-bold">
                                     {tileValue + 1}
                                 </div>
-                            )}
+                           )}
                         </div>
                     );
                 })}
@@ -168,7 +182,7 @@ const PuzzleGame: React.FC = () => {
 
             {/* Win Overlay */}
             {won && !showMissionComplete && (
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm rounded-3xl animate-fade-in">
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm rounded-[2.5rem] animate-fade-in">
                     <Star size={64} className="text-yellow-400 animate-spin-slow mb-4 fill-yellow-400" />
                     <h2 className="text-3xl font-black text-white mb-2">LINDO!</h2>
                     <button 
@@ -181,10 +195,13 @@ const PuzzleGame: React.FC = () => {
             )}
         </div>
 
-        {/* Instructions */}
+        {/* Mini Preview & Instruction */}
         {!won && (
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 max-w-xs text-center">
-                <p className="text-slate-400 text-sm font-bold">Toque nas peças ao lado do espaço vazio para montar a foto!</p>
+            <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm max-w-xs">
+                <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 shrink-0">
+                    <img src={currentImageUrl} className="w-full h-full object-cover" />
+                </div>
+                <p className="text-slate-400 text-xs font-bold leading-tight">Monte a imagem movendo as peças para o espaço vazio.</p>
             </div>
         )}
 
@@ -196,7 +213,7 @@ const PuzzleGame: React.FC = () => {
                         <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
                     </div>
                     <h2 className="text-2xl font-black text-slate-800 text-center mb-2">QUEBRA-CABEÇA!</h2>
-                    <p className="text-slate-500 font-bold text-center mb-6">Você montou 3 desenhos hoje.</p>
+                    <p className="text-slate-500 font-bold text-center mb-6">Você completou o desafio de hoje.</p>
                     
                     <button 
                     onClick={() => setShowMissionComplete(false)}
