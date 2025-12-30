@@ -3,9 +3,8 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
 // --- DADOS DE FALLBACK (OFFLINE/MOCK) ---
-// Imagens reais do Unsplash para dar vida ao modo offline
-const FALLBACK_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; // Floresta mágica
-const FALLBACK_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop"; // Ovelhas/Pastor
+const FALLBACK_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
+const FALLBACK_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop"; 
 
 const FALLBACK_STORY: StoryData = {
   title: "O Piquenique da Floresta",
@@ -30,7 +29,6 @@ const getApiKey = () => process.env.API_KEY;
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
   const apiKey = getApiKey();
   
-  // Modo Offline Silencioso
   if (!apiKey) {
     console.log("Modo Offline (Sem Chave): Retornando história padrão.");
     return {
@@ -41,11 +39,15 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
   }
   
   const ai = new GoogleGenAI({ apiKey });
-  const prompt = `Crie uma história infantil curta e mágica para ${profile.name}, ${profile.age} anos. Tema: ${topic}. Retorne JSON estrito com as chaves: title, content, moral.`;
+  // Prompt mais robusto para garantir JSON válido e história envolvente
+  const prompt = `Você é um contador de histórias mágico. Crie uma história infantil muito curta, cativante e educativa para ${profile.name}, uma criança de ${profile.age} anos. 
+  Tema: ${topic}.
+  A história deve ter começo, meio e fim claros.
+  Retorne APENAS um JSON estrito com as chaves: "title", "content", "moral". Sem formatação markdown.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -60,7 +62,11 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
         },
       },
     });
-    return JSON.parse(response.text) as StoryData;
+    
+    if (response.text) {
+        return JSON.parse(response.text) as StoryData;
+    }
+    throw new Error("Resposta vazia da IA");
   } catch (error) {
     console.error("Erro AI Texto:", error);
     return FALLBACK_STORY;
@@ -75,11 +81,12 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const prompt = `Devocional cristão curto para ${profile.name}, ${profile.age} anos. JSON estrito: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (Pixar style).`;
+  const prompt = `Crie um devocional cristão curto e simples para uma criança de ${profile.age} anos chamada ${profile.name}.
+  Retorne JSON estrito: verse (versículo), reference (referência), devotional (explicação simples), storyTitle (titulo historia), storyContent (historia biblica curta), prayer (oração), imagePrompt (descrição visual para gerar imagem estilo Pixar).`;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -131,8 +138,7 @@ export const generateDevotionalAudio = async (text: string): Promise<string | nu
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string> => {
   const apiKey = getApiKey();
   
-  // Lógica de Fallback Inteligente
-  const isDevotional = storyPrompt.toLowerCase().includes('pastor') || storyPrompt.toLowerCase().includes('deus') || storyPrompt.toLowerCase().includes('jesus');
+  const isDevotional = storyPrompt.toLowerCase().includes('pastor') || storyPrompt.toLowerCase().includes('deus') || storyPrompt.toLowerCase().includes('jesus') || storyPrompt.toLowerCase().includes('biblia');
   const fallbackImage = isDevotional ? FALLBACK_DEVOTIONAL_IMAGE : FALLBACK_STORY_IMAGE;
 
   if (!apiKey) {
@@ -141,15 +147,26 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
 
   const ai = new GoogleGenAI({ apiKey });
   try {
-    const char = profile ? `Child is ${profile.age}yo ${profile.gender}.` : "";
-    const prompt = `Pixar style 3D render, cute, bright colors. ${char} Scene: ${storyPrompt.substring(0, 200)}`;
+    const charDesc = profile ? `A cute ${profile.age} year old ${profile.gender}, ${profile.hairColor} hair, ${profile.skinTone} skin` : "A cute child";
+    
+    // Prompt altamente otimizado para qualidade visual
+    const enhancedPrompt = `Disney Pixar movie poster style, 3D render, masterpiece, 8k resolution, soft cinematic lighting, vibrant colors, cute and magical atmosphere.
+    Subject: ${charDesc} in the scene: ${storyPrompt.substring(0, 300)}.
+    High detail, smooth textures, centered composition.`;
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: prompt }] },
-      config: { imageConfig: { aspectRatio: "1:1" } }
+      contents: { parts: [{ text: enhancedPrompt }] },
+      config: { 
+          imageConfig: { aspectRatio: "1:1" } 
+      }
     });
+    
     const imgPart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-    return imgPart ? `data:image/png;base64,${imgPart.inlineData.data}` : fallbackImage;
+    if (imgPart) {
+        return `data:image/png;base64,${imgPart.inlineData.data}`;
+    }
+    return fallbackImage;
   } catch (error) { 
     console.error("Erro AI Imagem:", error);
     return fallbackImage; 

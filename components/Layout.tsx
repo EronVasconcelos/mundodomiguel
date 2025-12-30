@@ -1,7 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, Trash2, UserX, AlertTriangle, Download } from 'lucide-react';
+import { 
+  ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, 
+  Trash2, UserX, Menu, Download, X, RefreshCw, Settings 
+} from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -22,56 +25,43 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
   
   const [activeProfile, setActiveProfile] = useState<ChildProfile | null>(null);
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
-  const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   
-  // PWA Install Prompt State
+  // Drawer & Installation State
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   
   // Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Pull to Refresh State
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const pullStartY = useRef(0);
+  const [pullDist, setPullDist] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const PULL_THRESHOLD = 80;
+
   useEffect(() => {
     loadProfiles();
 
-    // Listen for PWA install event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const handleInstallClick = () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    installPrompt.userChoice.then((choiceResult: any) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('Usuário aceitou instalar');
-        setInstallPrompt(null);
-      }
-      setShowProfileSwitcher(false);
-    });
-  };
-
   const loadProfiles = async () => {
-    // Optimistic Load from LocalStorage first
     const storedList = localStorage.getItem('child_profiles');
     let list: ChildProfile[] = storedList ? JSON.parse(storedList) : [];
     
-    // Background fetch from Supabase
+    // Background fetch sync
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
         const { data } = await supabase.from('child_profiles').select('*');
-        
-        // CRITICAL FIX: Handle empty data correctly to sync with DB reset
         if (data) {
-            // Map DB snake_case to CamelCase
             const mappedProfiles: ChildProfile[] = data.map((p: any) => ({
                 id: p.id,
                 name: p.name,
@@ -84,19 +74,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 avatarBase: p.avatar_base,
                 photoUrl: p.photo_url
             }));
-            
             list = mappedProfiles;
-            
-            // Sync cache with DB truth (even if empty)
             setProfiles(list);
             localStorage.setItem('child_profiles', JSON.stringify(mappedProfiles));
 
-            // If DB was wiped but we are on home/protected route, redirect to setup
             if (list.length === 0 && !location.pathname.includes(AppRoute.PROFILE)) {
                  setActiveProfile(null);
                  localStorage.removeItem('active_profile_id');
                  localStorage.removeItem('child_profile');
-                 // Only redirect if we are inside the app flow
                  if (location.pathname !== AppRoute.WELCOME && location.pathname !== AppRoute.LOGIN) {
                     navigate(AppRoute.PROFILE);
                  }
@@ -106,50 +91,46 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     }
     
     setProfiles(list);
-
-    // Get Active Profile
     const activeId = localStorage.getItem('active_profile_id');
     const active = list.find(p => p.id === activeId) || list[0];
-    
     if (active) {
         setActiveProfile(active);
-        // Sync legacy key
         localStorage.setItem('child_profile', JSON.stringify(active));
     }
+  };
+
+  // --- ACTIONS ---
+
+  const handleInstallClick = () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    installPrompt.userChoice.then((choiceResult: any) => {
+      if (choiceResult.outcome === 'accepted') {
+        setInstallPrompt(null);
+      }
+    });
   };
 
   const handleSwitchProfile = (profile: ChildProfile) => {
     setActiveProfile(profile);
     localStorage.setItem('active_profile_id', profile.id);
     localStorage.setItem('child_profile', JSON.stringify(profile));
-    setShowProfileSwitcher(false);
-    
-    if (!isHome) {
-        window.location.reload(); 
-    } else {
-        loadProfiles();
-        window.location.reload(); 
-    }
+    setIsMenuOpen(false);
+    window.location.reload(); 
   };
 
   const handleDeleteProfile = async (e: React.MouseEvent, idToDelete: string) => {
     e.stopPropagation(); 
-    
-    if (!window.confirm("Tem certeza que deseja apagar este perfil? Todo o progresso será perdido.")) {
-        return;
-    }
+    if (!window.confirm("Apagar este perfil e todo o progresso?")) return;
 
     try {
-        // Simple delete - DB handles cascade now
         const { error } = await supabase.from('child_profiles').delete().eq('id', idToDelete);
         if (error) throw error;
 
-        // Update local state
         const updatedList = profiles.filter(p => p.id !== idToDelete);
         setProfiles(updatedList);
         localStorage.setItem('child_profiles', JSON.stringify(updatedList));
 
-        // Handle active profile deletion
         if (activeProfile?.id === idToDelete) {
             if (updatedList.length > 0) {
                 handleSwitchProfile(updatedList[0]);
@@ -161,75 +142,33 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
             }
         }
     } catch (err) {
-        console.error("Error deleting profile:", err);
-        alert("Erro ao apagar perfil. Verifique sua conexão.");
+        alert("Erro ao apagar. Verifique conexão.");
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (!window.confirm("ATENÇÃO: Isso excluirá sua conta de email e todos os perfis das crianças. Não há como desfazer.")) {
-        return;
-    }
-
-    const confirmText = prompt("Para confirmar, digite: DELETAR");
+    if (!window.confirm("ATENÇÃO: Isso excluirá sua conta e todos os perfis. Não há volta.")) return;
+    const confirmText = prompt("Digite DELETAR para confirmar:");
     if (confirmText !== "DELETAR") return;
 
     setUploading(true);
-
     try {
-        const { error } = await supabase.rpc('delete_user_account');
-        
-        if (error) {
-            console.error("RPC Error:", error);
-            if (error.message.includes('function not found')) {
-                 throw new Error("Erro de configuração: Você rodou o novo SQL de Reset no Supabase?");
-            }
-            throw new Error(error.message);
-        }
-
-        // Success - Clear everything locally
+        await supabase.rpc('delete_user_account');
         localStorage.clear();
-        sessionStorage.clear();
         await supabase.auth.signOut();
         navigate(AppRoute.WELCOME);
-        alert("Conta excluída com sucesso.");
-
     } catch (error: any) {
-        console.error("Deletion failed:", error);
-        alert("ERRO AO EXCLUIR: " + error.message);
+        alert("Erro ao excluir: " + error.message);
     } finally {
         setUploading(false);
     }
   };
 
-  const handleAddProfile = () => {
-    if (profiles.length >= 5) {
-        alert("Máximo de 5 perfis atingido.");
-        return;
-    }
-    navigate(AppRoute.PROFILE);
-  };
-
-  const handleLogout = async () => {
-      if (window.confirm("Tem certeza que deseja sair da conta dos pais?")) {
-          await supabase.auth.signOut();
-          localStorage.clear();
-          navigate(AppRoute.WELCOME);
-      }
-  };
-
-  const handleAvatarClick = () => {
-      if (isHome) {
-          fileInputRef.current?.click();
-      }
-  };
-
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file || !activeProfile) return;
-
       if (file.size > 2 * 1024 * 1024) {
-          alert("A foto é muito grande! Tente uma menor.");
+          alert("Foto muito grande.");
           return;
       }
 
@@ -237,26 +176,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
       const reader = new FileReader();
       reader.onload = async (event) => {
           const base64 = event.target?.result as string;
-          
           try {
-              const { error } = await supabase
-                  .from('child_profiles')
-                  .update({ photo_url: base64 })
-                  .eq('id', activeProfile.id);
-
-              if (error) throw error;
-
+              await supabase.from('child_profiles').update({ photo_url: base64 }).eq('id', activeProfile.id);
               const updatedProfile = { ...activeProfile, photoUrl: base64 };
               const updatedList = profiles.map(p => p.id === activeProfile.id ? updatedProfile : p);
-              
               setActiveProfile(updatedProfile);
               setProfiles(updatedList);
               localStorage.setItem('child_profiles', JSON.stringify(updatedList));
-              localStorage.setItem('child_profile', JSON.stringify(updatedProfile));
-
           } catch (err) {
-              console.error("Failed to update avatar", err);
-              alert("Erro ao atualizar foto. Tente novamente.");
+              alert("Erro ao salvar foto.");
           } finally {
               setUploading(false);
           }
@@ -264,101 +192,105 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
       reader.readAsDataURL(file);
   };
 
-  const getProfileImage = (p: ChildProfile | null) => {
-      if (!p) return DEFAULT_AVATAR;
-      return p.photoUrl || p.avatarBase || DEFAULT_AVATAR;
+  const getProfileImage = (p: ChildProfile | null) => p?.photoUrl || p?.avatarBase || DEFAULT_AVATAR;
+
+  // --- PULL TO REFRESH LOGIC ---
+  const handleTouchStart = (e: React.TouchEvent) => {
+      if (contentRef.current?.scrollTop === 0) {
+          pullStartY.current = e.touches[0].clientY;
+      }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+      if (!pullStartY.current) return;
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - pullStartY.current;
+      
+      if (diff > 0 && contentRef.current?.scrollTop === 0) {
+          // Prevent default only if purely pulling down at top
+          if (diff < 200) e.preventDefault(); 
+          setPullDist(Math.pow(diff, 0.8)); // Resistive scrolling
+      }
+  };
+
+  const handleTouchEnd = () => {
+      if (pullDist > PULL_THRESHOLD) {
+          setIsRefreshing(true);
+          setPullDist(PULL_THRESHOLD); // Snap to threshold
+          setTimeout(() => {
+              window.location.reload();
+          }, 800);
+      } else {
+          setPullDist(0);
+          pullStartY.current = 0;
+      }
   };
 
   return (
     <div 
       className="h-full w-full flex flex-col font-sans relative bg-slate-50 text-slate-800 overflow-hidden"
       style={{
-        // Safe area padding for notches (top) and home bars (bottom/sides)
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
-        paddingLeft: 'env(safe-area-inset-left)',
-        paddingRight: 'env(safe-area-inset-right)',
         backgroundImage: 'radial-gradient(#cbd5e1 1.5px, transparent 1.5px)',
         backgroundSize: '24px 24px'
       }}
     >
-      <input 
-          type="file" 
-          ref={fileInputRef} 
-          accept="image/*" 
-          className="hidden" 
-          onChange={handleAvatarUpload}
-      />
+      <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleAvatarUpload} />
 
       {/* --- HEADER --- */}
       <div className="px-4 pt-4 pb-2 z-20 flex-shrink-0">
-        <header className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border-2 border-slate-100 p-2 flex items-center justify-between relative">
+        <header className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border-2 border-slate-100 p-2 pl-3 flex items-center justify-between relative">
           
           <div className="flex items-center gap-3">
-            {isHome ? (
-              <button 
-                onClick={handleAvatarClick}
-                className="relative group active:scale-95 transition-transform"
-                disabled={uploading}
-              >
-                <div className="w-12 h-12 rounded-full bg-slate-100 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center pointer-events-auto">
-                   {uploading ? (
-                       <Loader2 className="animate-spin text-blue-500" />
-                   ) : (
-                       <img src={getProfileImage(activeProfile)} alt="Profile" className="w-full h-full object-cover" />
-                   )}
-                </div>
-                {!uploading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera size={16} className="text-white"/>
-                    </div>
-                )}
-              </button>
-            ) : (
-              <button 
-                onClick={() => navigate('/')}
-                className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors active:scale-95 pointer-events-auto"
-              >
-                <ArrowLeft size={24} strokeWidth={3} />
-              </button>
-            )}
+             {/* LEFT: Menu Hamburger or Back Button */}
+             {isHome ? (
+                 <button 
+                    onClick={() => setIsMenuOpen(true)}
+                    className="w-10 h-10 flex items-center justify-center text-slate-700 active:bg-slate-100 rounded-full transition-colors"
+                 >
+                    <Menu size={28} strokeWidth={2.5} />
+                 </button>
+             ) : (
+                <button 
+                    onClick={() => navigate('/')}
+                    className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95"
+                >
+                    <ArrowLeft size={24} strokeWidth={3} />
+                </button>
+             )}
 
-            <div className="flex flex-col">
-               {isHome ? (
-                 <>
-                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">Bem-vindo ao</span>
-                   <button onClick={() => setShowProfileSwitcher(true)} className="text-left group pointer-events-auto">
-                       <span className="text-lg font-black text-slate-800 leading-tight group-active:text-blue-500 transition-colors">
-                           Mundo d{activeProfile?.gender === 'girl' ? 'a' : 'o'} {activeProfile?.name || 'Miguel'}
-                       </span>
-                   </button>
-                 </>
-               ) : (
-                 <>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">Voltar para Início</span>
+             {/* CENTER: Title / Name */}
+             <div className="flex flex-col">
+                {isHome ? (
+                    <span className="text-lg font-black text-slate-800 leading-tight">
+                        {activeProfile?.name || 'Mundo Miguel'}
+                    </span>
+                ) : (
                     <span className={`text-lg font-black leading-tight ${color}`}>{title}</span>
-                 </>
-               )}
-            </div>
+                )}
+             </div>
           </div>
 
-          <div className="flex items-center gap-2 pointer-events-auto">
+          {/* RIGHT: Context Buttons */}
+          <div className="flex items-center gap-2">
              {isHome ? (
                 <>
-                    <button 
-                        onClick={handleAddProfile} 
-                        className="w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-blue-500 active:scale-95 transition-transform"
-                        title="Adicionar Criança"
-                    >
-                        <Plus size={20} strokeWidth={3} />
-                    </button>
-                    <button 
-                        onClick={() => setShowProfileSwitcher(true)} 
-                        className="w-10 h-10 rounded-full bg-slate-50 border-2 border-slate-100 flex items-center justify-center text-slate-400 active:scale-95 transition-transform"
-                        title="Configurações"
-                    >
-                        <LogOut size={18} />
-                    </button>
+                   {installPrompt && (
+                       <button 
+                         onClick={handleInstallClick}
+                         className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center animate-pulse"
+                         title="Instalar Aplicativo"
+                       >
+                          <Download size={20} />
+                       </button>
+                   )}
+                   <button 
+                        onClick={() => navigate(AppRoute.PROFILE)} 
+                        className="w-10 h-10 rounded-full bg-blue-500 text-white shadow-md shadow-blue-200 flex items-center justify-center active:scale-95 transition-transform"
+                   >
+                        <Plus size={24} strokeWidth={3} />
+                   </button>
                 </>
              ) : missionTarget && (
                 <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full">
@@ -375,98 +307,108 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         </header>
       </div>
 
-      {/* --- PROFILE SWITCHER / SETTINGS MODAL --- */}
-      {showProfileSwitcher && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowProfileSwitcher(false)}>
-            <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <div className="text-center mb-6">
-                    <h3 className="text-xl font-black text-slate-800">Quem vai brincar?</h3>
-                    <p className="text-sm text-slate-400">Alternar perfil ou sair</p>
+      {/* --- SIDE MENU DRAWER (HAMBURGER) --- */}
+      {isMenuOpen && (
+         <div className="fixed inset-0 z-50 flex">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsMenuOpen(false)} />
+            
+            {/* Drawer */}
+            <div className="relative w-4/5 max-w-xs h-full bg-white shadow-2xl flex flex-col p-6 animate-slide-up" style={{ animationDirection: 'normal', animationName: 'slideRight' }}>
+                <div className="flex justify-between items-center mb-8">
+                   <h2 className="text-2xl font-black text-slate-800">Menu</h2>
+                   <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-slate-100 rounded-full"><X size={20}/></button>
                 </div>
 
-                {/* INSTALL PWA BUTTON - Only shows if supported and event fired */}
-                {installPrompt && (
-                   <button 
-                      onClick={handleInstallClick}
-                      className="w-full mb-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl shadow-lg shadow-blue-200 font-black text-lg flex items-center justify-center gap-3 animate-bounce-slow"
-                   >
-                      <Download size={24} /> INSTALAR O APP
-                   </button>
+                {/* Current Profile Card */}
+                {activeProfile && (
+                   <div className="bg-slate-50 border-2 border-slate-100 rounded-3xl p-4 mb-6 flex flex-col items-center relative overflow-hidden">
+                      <div className="w-20 h-20 rounded-full border-4 border-white shadow-md overflow-hidden mb-3">
+                         <img src={getProfileImage(activeProfile)} className="w-full h-full object-cover" />
+                      </div>
+                      <h3 className="font-black text-xl text-slate-800">{activeProfile.name}</h3>
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-sm text-slate-400"
+                      >
+                         {uploading ? <Loader2 className="animate-spin" size={16} /> : <Camera size={16} />}
+                      </button>
+                   </div>
                 )}
 
-                <div className="space-y-3 mb-6">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Trocar Perfil</h3>
+                <div className="flex-1 overflow-y-auto space-y-2 mb-4 scrollbar-hide">
                     {profiles.map(p => (
-                        <div key={p.id} className="flex gap-2 w-full">
-                            <button 
-                                onClick={() => handleSwitchProfile(p)}
-                                className={`flex-1 flex items-center gap-4 p-3 rounded-2xl border-2 transition-all active:scale-95
-                                    ${activeProfile?.id === p.id 
-                                        ? 'border-blue-500 bg-blue-50 shadow-md' 
-                                        : 'border-slate-100 hover:border-slate-200 bg-white'}
-                                `}
-                            >
-                                <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0">
-                                    <img src={getProfileImage(p)} className="w-full h-full object-cover" alt={p.name} />
-                                </div>
-                                <div className="flex-1 text-left">
-                                    <span className={`block font-bold text-lg ${activeProfile?.id === p.id ? 'text-blue-700' : 'text-slate-700'}`}>
-                                        {p.name}
-                                    </span>
-                                    <span className="text-xs text-slate-400 font-bold">{p.age} anos</span>
-                                </div>
-                                {activeProfile?.id === p.id && <div className="text-blue-500"><Check /></div>}
-                            </button>
-                            
-                            <button 
-                                onClick={(e) => handleDeleteProfile(e, p.id)}
-                                className="w-14 bg-red-50 text-red-500 border-2 border-red-100 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
-                                title="Apagar Perfil"
-                            >
-                                <Trash2 size={20} />
-                            </button>
-                        </div>
+                       <button 
+                         key={p.id}
+                         onClick={() => handleSwitchProfile(p)}
+                         className={`w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${activeProfile?.id === p.id ? 'bg-blue-50 border-blue-200' : 'border-transparent hover:bg-slate-50'}`}
+                       >
+                          <img src={getProfileImage(p)} className="w-10 h-10 rounded-full border border-slate-200 object-cover" />
+                          <span className={`font-bold flex-1 text-left ${activeProfile?.id === p.id ? 'text-blue-600' : 'text-slate-600'}`}>{p.name}</span>
+                          {activeProfile?.id !== p.id && (
+                             <div onClick={(e) => handleDeleteProfile(e, p.id)} className="p-2 text-slate-300 hover:text-red-400"><Trash2 size={16}/></div>
+                          )}
+                       </button>
                     ))}
+                    {profiles.length < 5 && (
+                       <button onClick={() => { setIsMenuOpen(false); navigate(AppRoute.PROFILE); }} className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2">
+                          <Plus size={18} /> Adicionar
+                       </button>
+                    )}
                 </div>
 
-                {profiles.length < 5 && (
-                    <button 
-                        onClick={handleAddProfile}
-                        className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-slate-600 transition-colors mb-4 active:scale-95"
-                    >
-                        <Plus size={20} /> Adicionar Criança
-                    </button>
-                )}
-                
-                <button 
-                     onClick={handleLogout} 
-                     className="w-full py-3 mb-6 rounded-2xl bg-slate-100 border border-slate-200 font-bold text-slate-500 flex items-center justify-center gap-2 active:scale-95 transition-transform"
-                >
-                    <LogOut size={18} /> Sair da Conta
-                </button>
-
-                {/* DELETE ACCOUNT BUTTON */}
-                <div className="border-t border-slate-100 pt-6">
-                    <button 
-                        onClick={handleDeleteAccount}
-                        disabled={uploading}
-                        className="w-full py-3 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-bold text-xs flex items-center justify-center gap-2 hover:bg-red-100 transition-colors active:scale-95"
-                    >
-                        {uploading ? <Loader2 className="animate-spin" /> : <UserX size={16} />}
-                        EXCLUIR MINHA CONTA (Responsável)
-                    </button>
+                {/* Footer Actions */}
+                <div className="space-y-3 pt-4 border-t border-slate-100">
+                   {installPrompt && (
+                      <button onClick={handleInstallClick} className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-bold flex items-center justify-center gap-2">
+                         <Download size={18} /> Instalar App
+                      </button>
+                   )}
+                   <button onClick={async () => { await supabase.auth.signOut(); localStorage.clear(); navigate(AppRoute.WELCOME); }} className="w-full py-3 text-slate-500 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 rounded-xl">
+                      <LogOut size={18} /> Sair
+                   </button>
+                   <button onClick={handleDeleteAccount} className="w-full py-2 text-xs text-red-400 font-bold flex items-center justify-center gap-1 hover:text-red-600">
+                      <UserX size={14} /> Excluir Conta
+                   </button>
                 </div>
-
             </div>
-        </div>
+         </div>
       )}
 
-      {/* Main Content Area - Scrollable */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 relative flex flex-col z-10 scrollbar-hide">
+      {/* --- PULL TO REFRESH SPINNER --- */}
+      <div 
+        className="absolute top-0 left-0 w-full flex justify-center pointer-events-none z-0 transition-transform duration-200"
+        style={{ transform: `translateY(${Math.min(pullDist, 100) - 40}px)` }}
+      >
+         <div className={`w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-blue-500 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullDist * 2}deg)` }}>
+            {isRefreshing ? <Loader2 /> : <RefreshCw />}
+         </div>
+      </div>
+
+      {/* Main Content Area */}
+      <main 
+         ref={contentRef}
+         className="flex-1 overflow-y-auto overflow-x-hidden p-4 relative flex flex-col z-10 scrollbar-hide"
+         onTouchStart={handleTouchStart}
+         onTouchMove={handleTouchMove}
+         onTouchEnd={handleTouchEnd}
+         style={{ 
+             transform: `translateY(${pullDist}px)`, 
+             transition: isRefreshing ? 'transform 0.3s' : 'none' 
+         }}
+      >
         <div className="flex-1 flex flex-col max-w-lg mx-auto w-full">
           {children}
         </div>
       </main>
 
+      <style>{`
+        @keyframes slideRight {
+           from { transform: translateX(-100%); }
+           to { transform: translateX(0); }
+        }
+      `}</style>
     </div>
   );
 };
