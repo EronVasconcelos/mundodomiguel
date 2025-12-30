@@ -162,9 +162,12 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
   }
 };
 
-export const generateDevotionalAudio = async (text: string): Promise<string | null> => {
+export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'girl' = 'boy'): Promise<string | null> => {
   const apiKey = getApiKey();
   if (!apiKey) return null;
+
+  // Seleciona voz masculina (Fenrir) ou feminina (Kore) baseado no gênero
+  const voiceName = gender === 'girl' ? 'Kore' : 'Fenrir';
 
   const ai = new GoogleGenAI({ apiKey });
   try {
@@ -174,7 +177,7 @@ export const generateDevotionalAudio = async (text: string): Promise<string | nu
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: { 
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Fenrir' } } 
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } 
         },
       },
     });

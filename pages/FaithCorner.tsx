@@ -135,7 +135,7 @@ const FaithCorner: React.FC = () => {
     // O service retorna null se não tiver chave
     setIsGeneratingAudio(true);
     try {
-        const base64Audio = await generateDevotionalAudio(textToRead);
+        const base64Audio = await generateDevotionalAudio(textToRead, profile?.gender || 'boy');
         if (base64Audio) {
             const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
             audioContextRef.current = ctx;
@@ -160,30 +160,41 @@ const FaithCorner: React.FC = () => {
         }
     } catch (e) { console.warn(e); }
 
-    // --- FALLBACK WEB SPEECH API (Voz Masculina Forçada) ---
+    // --- FALLBACK WEB SPEECH API (Voz baseada no gênero) ---
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.lang = 'pt-BR';
     
-    // Tenta encontrar vozes masculinas específicas conhecidas ou genéricas
+    // Tenta encontrar vozes específicas
     const voices = window.speechSynthesis.getVoices();
+    const isGirl = profile?.gender === 'girl';
     
-    const maleVoice = voices.find(v => {
-        const name = v.name.toLowerCase();
-        // Nomes comuns de vozes masculinas em PT
-        return (v.lang.includes('pt') || v.lang.includes('PT')) && 
-               (name.includes('daniel') || name.includes('felipe') || name.includes('luciano') || name.includes('male') || name.includes('portuguese (brazil)')); 
-               // Nota: Google Portugues geralmente é feminina, então evitamos selecionar por default se possível
-    });
+    let selectedVoice = null;
     
-    if (maleVoice) {
-        utterance.voice = maleVoice;
-        // Ajuste leve para naturalidade
-        utterance.pitch = 1.0; 
-        utterance.rate = 1.1; 
+    if (isGirl) {
+        // Tenta achar vozes femininas comuns ou padrão
+        selectedVoice = voices.find(v => 
+            (v.lang.includes('pt') || v.lang.includes('PT')) &&
+            (v.name.includes('Luciana') || v.name.includes('Fernanda') || v.name.includes('Female') || v.name.includes('Google português'))
+        );
     } else {
-        // Se só tiver a voz padrão (geralmente feminina do Google), baixamos o pitch para simular masculina
-        utterance.pitch = 0.7; // Voz mais grave
-        utterance.rate = 1.0;
+        // Tenta achar vozes masculinas
+        selectedVoice = voices.find(v => 
+            (v.lang.includes('pt') || v.lang.includes('PT')) &&
+            (v.name.includes('Daniel') || v.name.includes('Felipe') || v.name.includes('Male'))
+        );
+    }
+    
+    if (selectedVoice) {
+        utterance.voice = selectedVoice;
+        utterance.pitch = isGirl ? 1.1 : 0.9; // Ajusta levemente o tom
+    } else {
+        // Fallback genérico se não achar voz específica
+        // Se for menino e a voz padrão for feminina (comum), baixa o pitch
+        if (!isGirl) {
+             utterance.pitch = 0.8;
+        } else {
+             utterance.pitch = 1.1;
+        }
     }
 
     utterance.onend = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
