@@ -2,10 +2,9 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
-// --- CONFIGURAÇÃO DA IA (ZERO CONFIG) ---
-// COLE SUA CHAVE ABAIXO. Isso fará funcionar em qualquer celular imediatamente.
-// Exemplo: const EMBEDDED_API_KEY = "AIzaSyD...";
-const EMBEDDED_API_KEY = "COLE_SUA_CHAVE_AQUI_DENTRO_DAS_ASPAS"; 
+// --- CONFIGURAÇÃO DA IA ---
+// Chave configurada para funcionamento imediato ("Zero Config")
+const EMBEDDED_API_KEY: string = "AIzaSyBLL8NW2VYiDOQ_DHL5yKmCpAlzq4crHQE"; 
 
 // --- DADOS DE FALLBACK (OFFLINE/MOCK) ---
 const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
@@ -80,12 +79,12 @@ const FALLBACK_DEVOTIONAL: DevotionalData = {
 
 // --- ACESSO ROBUSTO À CHAVE ---
 const getApiKey = () => {
-  // 1. Tenta a chave embutida (Zero Config para o usuário)
-  if (EMBEDDED_API_KEY && EMBEDDED_API_KEY.length > 10 && !EMBEDDED_API_KEY.includes("COLE_SUA_CHAVE")) {
+  // 1. Tenta a chave embutida (se tiver sido configurada no código)
+  if (EMBEDDED_API_KEY && EMBEDDED_API_KEY.length > 20) {
     return EMBEDDED_API_KEY;
   }
 
-  // 2. Fallback: Tenta localStorage (caso tenha configurado antes)
+  // 2. Tenta localStorage (Configurado pelo Modo Secreto)
   if (typeof window !== 'undefined') {
     const localKey = localStorage.getItem('gemini_api_key');
     if (localKey && localKey.trim().length > 0) return localKey;
@@ -121,7 +120,7 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -160,7 +159,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
