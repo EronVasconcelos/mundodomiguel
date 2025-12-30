@@ -2,29 +2,10 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
-/**
- * Utilitário para tratar erros e limpar estado de autenticação se necessário.
- */
-const handleAIError = (error: any) => {
-  console.error("Gemini API Error:", error);
-  const errorMessage = error?.message || "";
-  
-  if (errorMessage.includes("Requested entity was not found") || 
-      errorMessage.includes("API key not valid") || 
-      errorMessage.includes("404") ||
-      errorMessage.includes("403")
-     ) {
-    localStorage.removeItem('ai_active_global');
-    localStorage.removeItem('ai_enabled_decision');
-    // Dispara evento para resetar UI, mas não bloqueia o app
-    window.dispatchEvent(new CustomEvent('ai_auth_reset'));
-  }
-};
-
 // --- DADOS DE FALLBACK (OFFLINE/MOCK) ---
 // Imagens reais do Unsplash para dar vida ao modo offline
-const FALLBACK_STORY_IMAGE = "https://images.unsplash.com/photo-1448375240586-dfd8d3f1d8db?q=80&w=1080&auto=format&fit=crop"; // Floresta
-const FALLBACK_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1080&auto=format&fit=crop"; // Ovelhas/Pastor
+const FALLBACK_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; // Floresta mágica
+const FALLBACK_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop"; // Ovelhas/Pastor
 
 const FALLBACK_STORY: StoryData = {
   title: "O Piquenique da Floresta",
@@ -43,11 +24,15 @@ const FALLBACK_DEVOTIONAL: DevotionalData = {
   imagePrompt: "" 
 };
 
+// Acessa a chave diretamente do ambiente
+const getApiKey = () => process.env.API_KEY;
+
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   
+  // Modo Offline Silencioso
   if (!apiKey) {
-    console.log("Modo Offline: Retornando história padrão.");
+    console.log("Modo Offline (Sem Chave): Retornando história padrão.");
     return {
         ...FALLBACK_STORY,
         title: `${FALLBACK_STORY.title} (${topic})`,
@@ -56,7 +41,7 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
   }
   
   const ai = new GoogleGenAI({ apiKey });
-  const prompt = `Crie uma história infantil curta para ${profile.name}, ${profile.age} anos. Tema: ${topic}. Retorne JSON: title, content, moral.`;
+  const prompt = `Crie uma história infantil curta e mágica para ${profile.name}, ${profile.age} anos. Tema: ${topic}. Retorne JSON estrito com as chaves: title, content, moral.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -77,21 +62,20 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     });
     return JSON.parse(response.text) as StoryData;
   } catch (error) {
-    handleAIError(error);
+    console.error("Erro AI Texto:", error);
     return FALLBACK_STORY;
   }
 };
 
 export const generateDevotionalContent = async (profile: ChildProfile): Promise<DevotionalData> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   
   if (!apiKey) {
-      console.log("Modo Offline: Retornando devocional padrão.");
       return FALLBACK_DEVOTIONAL;
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const prompt = `Devocional cristão curto para ${profile.name}, ${profile.age} anos. JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (Pixar style).`;
+  const prompt = `Devocional cristão curto para ${profile.name}, ${profile.age} anos. JSON estrito: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (Pixar style).`;
 
   try {
     const response = await ai.models.generateContent({
@@ -116,14 +100,15 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
     });
     return { ...JSON.parse(response.text), date: new Date().toDateString() };
   } catch (error) {
-    handleAIError(error);
+    console.error("Erro AI Devocional:", error);
     return FALLBACK_DEVOTIONAL;
   }
 };
 
 export const generateDevotionalAudio = async (text: string): Promise<string | null> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) return null;
+
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
@@ -138,21 +123,20 @@ export const generateDevotionalAudio = async (text: string): Promise<string | nu
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
   } catch (error) { 
-    handleAIError(error);
+    console.error("Erro AI Audio:", error);
     return null; 
   }
 };
 
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   
-  // SE ESTIVER OFFLINE, RETORNA IMAGEM PADRÃO EM VEZ DE VAZIO
+  // Lógica de Fallback Inteligente
+  const isDevotional = storyPrompt.toLowerCase().includes('pastor') || storyPrompt.toLowerCase().includes('deus') || storyPrompt.toLowerCase().includes('jesus');
+  const fallbackImage = isDevotional ? FALLBACK_DEVOTIONAL_IMAGE : FALLBACK_STORY_IMAGE;
+
   if (!apiKey) {
-      // Se for devocional (detectado pelo prompt curto ou palavras chave), retorna ovelhas
-      if (storyPrompt.toLowerCase().includes('pastor') || storyPrompt.toLowerCase().includes('deus')) {
-          return FALLBACK_DEVOTIONAL_IMAGE;
-      }
-      return FALLBACK_STORY_IMAGE;
+      return fallbackImage;
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -165,10 +149,9 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
       config: { imageConfig: { aspectRatio: "1:1" } }
     });
     const imgPart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-    return imgPart ? `data:image/png;base64,${imgPart.inlineData.data}` : FALLBACK_STORY_IMAGE;
+    return imgPart ? `data:image/png;base64,${imgPart.inlineData.data}` : fallbackImage;
   } catch (error) { 
-    handleAIError(error);
-    // Em caso de erro, também retorna imagem bonita
-    return FALLBACK_STORY_IMAGE; 
+    console.error("Erro AI Imagem:", error);
+    return fallbackImage; 
   }
 };

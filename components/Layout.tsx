@@ -139,7 +139,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     }
   };
 
-  // --- DELETE ACCOUNT FUNCTIONALITY ---
   const handleDeleteAccount = async () => {
     if (!window.confirm("ATENÇÃO: Isso excluirá sua conta de email e todos os perfis das crianças. Não há como desfazer.")) {
         return;
@@ -151,7 +150,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     setUploading(true);
 
     try {
-        // Use the simple function now
         const { error } = await supabase.rpc('delete_user_account');
         
         if (error) {
@@ -246,8 +244,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
   return (
     <div 
-      className="h-full flex flex-col font-sans relative bg-slate-50 text-slate-800 overflow-hidden"
+      className="h-full w-full flex flex-col font-sans relative bg-slate-50 text-slate-800 overflow-hidden"
       style={{
+        // Safe area padding for notches (top) and home bars (bottom/sides)
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',
@@ -265,7 +264,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
       />
 
       {/* --- HEADER --- */}
-      <div className="px-4 pt-4 pb-2 z-20">
+      <div className="px-4 pt-4 pb-2 z-20 flex-shrink-0">
         <header className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border-2 border-slate-100 p-2 flex items-center justify-between relative">
           
           <div className="flex items-center gap-3">
@@ -275,7 +274,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 className="relative group active:scale-95 transition-transform"
                 disabled={uploading}
               >
-                <div className="w-12 h-12 rounded-full bg-slate-100 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-slate-100 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center pointer-events-auto">
                    {uploading ? (
                        <Loader2 className="animate-spin text-blue-500" />
                    ) : (
@@ -291,7 +290,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
             ) : (
               <button 
                 onClick={() => navigate('/')}
-                className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors active:scale-95"
+                className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors active:scale-95 pointer-events-auto"
               >
                 <ArrowLeft size={24} strokeWidth={3} />
               </button>
@@ -301,7 +300,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                {isHome ? (
                  <>
                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">Bem-vindo ao</span>
-                   <button onClick={() => setShowProfileSwitcher(true)} className="text-left group">
+                   <button onClick={() => setShowProfileSwitcher(true)} className="text-left group pointer-events-auto">
                        <span className="text-lg font-black text-slate-800 leading-tight group-active:text-blue-500 transition-colors">
                            Mundo d{activeProfile?.gender === 'girl' ? 'a' : 'o'} {activeProfile?.name || 'Miguel'}
                        </span>
@@ -316,7 +315,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pointer-events-auto">
              {isHome ? (
                 <>
                     <button 
@@ -352,7 +351,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
       {/* --- PROFILE SWITCHER MODAL --- */}
       {showProfileSwitcher && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowProfileSwitcher(false)}>
-            <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="text-center mb-6">
                     <h3 className="text-xl font-black text-slate-800">Quem vai brincar?</h3>
                     <p className="text-sm text-slate-400">Alternar perfil</p>
@@ -363,7 +362,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                         <div key={p.id} className="flex gap-2 w-full">
                             <button 
                                 onClick={() => handleSwitchProfile(p)}
-                                className={`flex-1 flex items-center gap-4 p-3 rounded-2xl border-2 transition-all
+                                className={`flex-1 flex items-center gap-4 p-3 rounded-2xl border-2 transition-all active:scale-95
                                     ${activeProfile?.id === p.id 
                                         ? 'border-blue-500 bg-blue-50 shadow-md' 
                                         : 'border-slate-100 hover:border-slate-200 bg-white'}
@@ -395,18 +394,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 {profiles.length < 5 && (
                     <button 
                         onClick={handleAddProfile}
-                        className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-slate-600 transition-colors mb-6"
+                        className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-slate-600 transition-colors mb-6 active:scale-95"
                     >
                         <Plus size={20} /> Adicionar Criança
                     </button>
                 )}
 
-                {/* DELETE ACCOUNT BUTTON - Re-added */}
+                {/* DELETE ACCOUNT BUTTON */}
                 <div className="border-t border-slate-100 pt-6 mt-6">
                     <button 
                         onClick={handleDeleteAccount}
                         disabled={uploading}
-                        className="w-full py-3 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+                        className="w-full py-3 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors active:scale-95"
                     >
                         {uploading ? <Loader2 className="animate-spin" /> : <UserX size={18} />}
                         Excluir Minha Conta (Responsável)
@@ -420,6 +419,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         </div>
       )}
 
+      {/* Main Content Area - Scrollable */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 relative flex flex-col z-10 scrollbar-hide">
         <div className="flex-1 flex flex-col max-w-lg mx-auto w-full">
           {children}

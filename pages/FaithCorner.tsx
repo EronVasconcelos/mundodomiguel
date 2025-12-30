@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
-import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, StopCircle, Key, Check, Trophy } from 'lucide-react';
+import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, StopCircle, Trophy } from 'lucide-react';
 import { completeFaith, getDailyProgress } from '../services/progressService';
 
 const FaithCorner: React.FC = () => {
@@ -14,10 +14,7 @@ const FaithCorner: React.FC = () => {
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [showMissionComplete, setShowMissionComplete] = useState(false);
   
-  const [showPremiumGate, setShowPremiumGate] = useState(false);
-  const [aiActiveGlobal, setAiActiveGlobal] = useState(false);
   const [missionStats, setMissionStats] = useState({ current: 0, target: true });
-  const [isConnecting, setIsConnecting] = useState(false);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -32,19 +29,11 @@ const FaithCorner: React.FC = () => {
     const storedProfile = localStorage.getItem('child_profile');
     if (storedProfile) setProfile(JSON.parse(storedProfile));
 
-    const globalStatus = localStorage.getItem('ai_active_global') === 'true';
-    setAiActiveGlobal(globalStatus);
-    
-    // Check mission status (visual only initially)
+    // Check mission status
     const p = getDailyProgress();
     setMissionStats({ current: p.faithDone ? 1 : 0, target: true });
 
-    const handleAuthReset = () => {
-        setAiActiveGlobal(false);
-    };
-    window.addEventListener('ai_auth_reset', handleAuthReset);
     return () => {
-        window.removeEventListener('ai_auth_reset', handleAuthReset);
         if (observerRef.current) observerRef.current.disconnect();
     };
   }, []);
@@ -59,6 +48,7 @@ const FaithCorner: React.FC = () => {
         const [entry] = entries;
         if (entry.isIntersecting) {
             triggerCompletion();
+            // Desconecta após completar para não disparar várias vezes
             observerRef.current?.disconnect();
         }
     }, { threshold: 0.5 });
@@ -92,15 +82,8 @@ const FaithCorner: React.FC = () => {
         setData(content);
         setLoading(false);
 
-        // Se estiver offline, generateStoryImage retorna o fallback automaticamente
-        // Se estiver online mas sem imagem salva, gera uma nova
-        const aiEnabled = localStorage.getItem('ai_active_global') === 'true';
-        
-        if (!aiEnabled) {
-            // Modo Offline: Pega imagem de fallback direto
-            const fallbackImg = await generateStoryImage("pastor", currentProfile);
-            setImageUrl(fallbackImg);
-        } else if (content.imagePrompt) {
+        // Se tiver prompt, tenta gerar/buscar imagem
+        if (content.imagePrompt) {
             const savedImgKey = `faith_img_${content.date}_${currentProfile.name}`;
             const savedImg = localStorage.getItem(savedImgKey);
             
@@ -108,10 +91,11 @@ const FaithCorner: React.FC = () => {
                 setImageUrl(savedImg);
             } else {
                 setImageLoading(true);
+                // O serviço retorna fallback se falhar ou sem chave
                 const img = await generateStoryImage(content.imagePrompt, currentProfile);
                 if (img) {
                     setImageUrl(img);
-                    localStorage.setItem(savedImgKey, img);
+                    try { localStorage.setItem(savedImgKey, img); } catch(e) {}
                 }
                 setImageLoading(false);
             }
@@ -120,23 +104,6 @@ const FaithCorner: React.FC = () => {
         console.error("Erro ao carregar conteúdo", e);
         setLoading(false);
     }
-  };
-
-  const activateAI = () => {
-      setIsConnecting(true);
-      const aiStudio = (window as any).aistudio;
-      if (aiStudio && typeof aiStudio.openSelectKey === 'function') {
-          aiStudio.openSelectKey();
-      }
-      
-      localStorage.setItem('ai_active_global', 'true');
-      setAiActiveGlobal(true);
-      
-      setTimeout(() => {
-         setShowPremiumGate(false); 
-         setIsConnecting(false);
-         if (profile) loadContent(profile); 
-      }, 1000);
   };
 
   const stopAudio = () => {
@@ -164,55 +131,59 @@ const FaithCorner: React.FC = () => {
     }
     const textToRead = `Devocional de hoje. Versículo: ${data.verse}. ${data.devotional}. Agora, uma história: ${data.storyTitle}. ${data.storyContent}. Vamos orar? ${data.prayer}`;
 
-    // 1. Tentar Gemini Audio (Voz Fenrir - Masculina)
-    if (aiActiveGlobal) {
-        setIsGeneratingAudio(true);
-        try {
-            const base64Audio = await generateDevotionalAudio(textToRead);
-            if (base64Audio) {
-                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
-                audioContextRef.current = ctx;
-                const binaryString = atob(base64Audio);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-                
-                const dataInt16 = new Int16Array(bytes.buffer);
-                const buffer = ctx.createBuffer(1, dataInt16.length, 24000);
-                const channelData = buffer.getChannelData(0);
-                for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
+    // Tentar Gemini Audio Primeiro (Se a chave estiver configurada no Service)
+    // O service retorna null se não tiver chave
+    setIsGeneratingAudio(true);
+    try {
+        const base64Audio = await generateDevotionalAudio(textToRead);
+        if (base64Audio) {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+            audioContextRef.current = ctx;
+            const binaryString = atob(base64Audio);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+            
+            const dataInt16 = new Int16Array(bytes.buffer);
+            const buffer = ctx.createBuffer(1, dataInt16.length, 24000);
+            const channelData = buffer.getChannelData(0);
+            for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
 
-                const source = ctx.createBufferSource();
-                source.buffer = buffer;
-                source.connect(ctx.destination);
-                source.onended = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
-                audioSourceRef.current = source;
-                source.start();
-                setIsSpeaking(true);
-                setIsGeneratingAudio(false);
-                return;
-            }
-        } catch (e) { console.warn(e); }
-    }
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(ctx.destination);
+            source.onended = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
+            audioSourceRef.current = source;
+            source.start();
+            setIsSpeaking(true);
+            setIsGeneratingAudio(false);
+            return;
+        }
+    } catch (e) { console.warn(e); }
 
-    // 2. Fallback Web Speech API - Tentar forçar voz masculina
+    // --- FALLBACK WEB SPEECH API (Voz Masculina Forçada) ---
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.lang = 'pt-BR';
     
-    // Buscar voz masculina disponível
+    // Tenta encontrar vozes masculinas específicas conhecidas ou genéricas
     const voices = window.speechSynthesis.getVoices();
-    const maleVoice = voices.find(v => 
-        (v.lang.includes('pt') || v.lang.includes('PT')) && 
-        (v.name.toLowerCase().includes('daniel') || v.name.toLowerCase().includes('male') || v.name.includes('Felipe'))
-    );
+    
+    const maleVoice = voices.find(v => {
+        const name = v.name.toLowerCase();
+        // Nomes comuns de vozes masculinas em PT
+        return (v.lang.includes('pt') || v.lang.includes('PT')) && 
+               (name.includes('daniel') || name.includes('felipe') || name.includes('luciano') || name.includes('male') || name.includes('portuguese (brazil)')); 
+               // Nota: Google Portugues geralmente é feminina, então evitamos selecionar por default se possível
+    });
     
     if (maleVoice) {
         utterance.voice = maleVoice;
-        // Ajustes para soar mais natural
-        utterance.pitch = 0.9; 
+        // Ajuste leve para naturalidade
+        utterance.pitch = 1.0; 
         utterance.rate = 1.1; 
     } else {
-        // Se cair na padrão (Google Português - geralmente feminina), baixa o pitch
-        utterance.pitch = 0.8; 
+        // Se só tiver a voz padrão (geralmente feminina do Google), baixamos o pitch para simular masculina
+        utterance.pitch = 0.7; // Voz mais grave
+        utterance.rate = 1.0;
     }
 
     utterance.onend = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
@@ -225,17 +196,6 @@ const FaithCorner: React.FC = () => {
     <div className="h-full flex flex-col font-sans bg-sky-50 text-slate-800 relative">
         <Layout title="Cantinho da Fé" color="text-sky-600" missionTarget={missionStats}>
             
-            <div className="absolute top-2 right-14 z-20">
-               <button 
-                  onClick={() => setShowPremiumGate(true)}
-                  className={`flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm active:scale-95 transition-all
-                    ${aiActiveGlobal ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white' : 'bg-white text-slate-400 border border-slate-200'}
-                  `}
-               >
-                  <Sparkles size={12} /> {aiActiveGlobal ? 'IA ATIVA' : 'ATIVAR IA'}
-               </button>
-            </div>
-
             {loading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
                     <Loader2 className="animate-spin text-sky-400 w-12 h-12" />
@@ -309,31 +269,6 @@ const FaithCorner: React.FC = () => {
                </div>
             </div>
         )}
-
-      {showPremiumGate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-           <div className="bg-white p-8 rounded-[2.5rem] max-w-sm w-full relative shadow-2xl text-center">
-              <Sparkles size={48} className="text-sky-500 mx-auto mb-6 animate-pulse" />
-              <h2 className="text-2xl font-black text-slate-800 mb-2">Ativar IA Mágica?</h2>
-              
-              <p className="text-slate-500 font-medium mb-8 leading-relaxed">
-                 Conecte sua conta para gerar imagens únicas e ouvir histórias com vozes reais.
-              </p>
-
-              <div className="space-y-3">
-                  <button 
-                    onClick={activateAI} 
-                    disabled={isConnecting} 
-                    className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-100 active:scale-95 disabled:opacity-50"
-                  >
-                     {isConnecting ? <Loader2 className="animate-spin" /> : <Key size={20} />}
-                     CONECTAR
-                  </button>
-                  <button onClick={() => setShowPremiumGate(false)} disabled={isConnecting} className="w-full py-3 text-slate-400 font-bold text-sm">Cancelar</button>
-              </div>
-           </div>
-        </div>
-      )}
     </div>
   );
 };
