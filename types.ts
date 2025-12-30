@@ -8,10 +8,11 @@ export enum AppRoute {
   MATH = '/math',
   ART = '/art', 
   COLORING = '/coloring',
-  CHALLENGE = '/challenge',
+  CHALLENGE_HUB = '/challenge-hub', // Nova Rota
+  CHALLENGE = '/challenge', // Labirinto
   WORD_SEARCH = '/challenge/word-search',
   PUZZLE = '/challenge/puzzle',
-  SHADOW = '/challenge/shadow', // New Route
+  SHADOW = '/challenge/shadow',
   WORDS = '/words',
   STORY = '/story',
   FAITH = '/faith',

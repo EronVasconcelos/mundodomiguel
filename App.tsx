@@ -10,6 +10,7 @@ import Home from './pages/Home';
 import MathBlocks from './pages/MathBlocks';
 import ArtStudio from './pages/ArtStudio';
 import ColoringBook from './pages/ColoringBook';
+import ChallengeHub from './pages/ChallengeHub'; // Novo
 import ChallengeArena from './pages/ChallengeArena';
 import WordSearch from './pages/WordSearch';
 import PuzzleGame from './pages/PuzzleGame';
@@ -86,10 +87,13 @@ function App() {
           <Route path={AppRoute.MATH} element={<MathBlocks />} />
           <Route path={AppRoute.ART} element={<ArtStudio />} />
           <Route path={AppRoute.COLORING} element={<ColoringBook />} />
+          
+          <Route path={AppRoute.CHALLENGE_HUB} element={<ChallengeHub />} />
           <Route path={AppRoute.CHALLENGE} element={<ChallengeArena />} />
           <Route path={AppRoute.WORD_SEARCH} element={<WordSearch />} />
           <Route path={AppRoute.PUZZLE} element={<PuzzleGame />} />
           <Route path={AppRoute.SHADOW} element={<ShadowGame />} />
+          
           <Route path={AppRoute.WORDS} element={<WordLearning />} />
           <Route path={AppRoute.STORY} element={<StoryTime />} />
           <Route path={AppRoute.FAITH} element={<FaithCorner />} />
