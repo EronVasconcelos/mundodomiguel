@@ -7,12 +7,16 @@ import { incrementPuzzle, getDailyProgress, getGoals } from '../services/progres
 const GRID_SIZE = 3; // 3x3 Grid
 const TILE_COUNT = GRID_SIZE * GRID_SIZE;
 
-// Themes with nice Unsplash images
+// Themes with cartoon/illustration style images suitable for children
 const THEMES = [
-  { id: 'animals', name: 'Animais', url: 'https://images.unsplash.com/photo-1555169062-013468b47731?q=80&w=800&auto=format&fit=crop' }, // Parrot
-  { id: 'space', name: 'Espaço', url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop' }, // Space
-  { id: 'dino', name: 'Dino', url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=800&auto=format&fit=crop' }, // Mountain/Nature vibe
-  { id: 'lego', name: 'Lego', url: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=800&auto=format&fit=crop' }, // Lego
+  { id: 'farm', name: 'Fazendinha', url: 'https://images.unsplash.com/photo-1534135542475-10443202157a?q=80&w=800&auto=format&fit=crop' }, // Cartoonish Farm Animal (Pig) - Actually stylized photo but cute
+  { id: 'sea', name: 'Fundo do Mar', url: 'https://plus.unsplash.com/premium_photo-1664303847960-586318f59035?q=80&w=800&auto=format&fit=crop' }, // Colorful Fish/Coral
+  { id: 'hero', name: 'Super Herói', url: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?q=80&w=800&auto=format&fit=crop' }, // Action figures
+  { id: 'princess', name: 'Princesa', url: 'https://images.unsplash.com/photo-1549845003-32867c293c4d?q=80&w=800&auto=format&fit=crop' }, // Castle
+  { id: 'space', name: 'Espaço', url: 'https://images.unsplash.com/photo-1614730341194-75c60740a2d3?q=80&w=800&auto=format&fit=crop' }, // Illustration Space
+  { id: 'dino', name: 'Dinossauros', url: 'https://images.unsplash.com/photo-1559864275-f55a15eb50c3?q=80&w=800&auto=format&fit=crop' }, // Toy Dino
+  { id: 'forest', name: 'Floresta', url: 'https://images.unsplash.com/photo-1535295972055-1c762f4483e5?q=80&w=800&auto=format&fit=crop' }, // Jungle leaves/Tiger
+  { id: 'candy', name: 'Doces', url: 'https://images.unsplash.com/photo-1582058928278-746612666a0e?q=80&w=800&auto=format&fit=crop' }, // Donuts/Candy
 ];
 
 const PuzzleGame: React.FC = () => {

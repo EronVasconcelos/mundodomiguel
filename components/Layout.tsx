@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  ArrowLeft, Plus, Target, LogOut, Camera, Loader2, 
-  Trash2, UserX, Menu, Download, X, RefreshCw
+  ArrowLeft, Plus, Target, LogIn, LogOut, Camera, Loader2, 
+  Trash2, UserX, Menu, Download, X, RefreshCw, Pencil
 } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
@@ -122,6 +122,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     window.location.reload(); 
   };
 
+  const handleEditProfile = (profile: ChildProfile) => {
+      setIsMenuOpen(false);
+      navigate(AppRoute.PROFILE, { state: { profile } });
+  };
+
   const handleDeleteProfile = async (e: React.MouseEvent, idToDelete: string) => {
     e.stopPropagation(); 
     if (!window.confirm("Apagar este perfil e todo o progresso?")) return;
@@ -134,6 +139,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         setProfiles(updatedList);
         localStorage.setItem('child_profiles', JSON.stringify(updatedList));
 
+        // If we deleted the active profile, switch or logout
         if (activeProfile?.id === idToDelete) {
             if (updatedList.length > 0) {
                 handleSwitchProfile(updatedList[0]);
@@ -141,6 +147,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 localStorage.removeItem('active_profile_id');
                 localStorage.removeItem('child_profile');
                 setActiveProfile(null);
+                setIsMenuOpen(false);
                 navigate(AppRoute.PROFILE);
             }
         }
@@ -263,8 +270,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
              <div className="flex flex-col">
                 {isHome ? (
-                    <span className="text-lg font-black text-slate-800 leading-tight">
-                        {activeProfile?.name || 'Mundo Miguel'}
+                    <span className="text-lg font-black text-slate-800 leading-tight flex flex-col sm:flex-row sm:gap-1">
+                        <span>Mundo Mágico</span>
+                        <span className="flex items-center gap-1">
+                            <span className="text-slate-400 text-sm font-bold">
+                                {activeProfile?.gender === 'girl' ? 'da' : 'do'}
+                            </span>
+                            <span className={activeProfile?.gender === 'girl' ? 'text-pink-500' : 'text-blue-500'}>
+                                {activeProfile?.name}
+                            </span>
+                        </span>
                     </span>
                 ) : (
                     <span className={`text-lg font-black leading-tight ${color}`}>{title}</span>
@@ -284,12 +299,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                           <Download size={20} />
                        </button>
                    )}
-                   <button 
-                        onClick={() => navigate(AppRoute.PROFILE)} 
-                        className="w-10 h-10 rounded-full bg-blue-500 text-white shadow-md shadow-blue-200 flex items-center justify-center active:scale-95 transition-transform"
-                   >
-                        <Plus size={24} strokeWidth={3} />
-                   </button>
                 </>
              ) : missionTarget && (
                 <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full">
@@ -322,16 +331,32 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 {/* Current Profile Card */}
                 {activeProfile && (
                    <div className="bg-slate-50 border-2 border-slate-100 rounded-3xl p-4 mb-6 flex flex-col items-center relative overflow-hidden">
-                      <div className="w-20 h-20 rounded-full border-4 border-white shadow-md overflow-hidden mb-3">
+                      <div className="w-20 h-20 rounded-full border-4 border-white shadow-md overflow-hidden mb-3 relative">
                          <img src={getProfileImage(activeProfile)} className="w-full h-full object-cover" />
                       </div>
-                      <h3 className="font-black text-xl text-slate-800">{activeProfile.name}</h3>
-                      <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-sm text-slate-400"
-                      >
-                         {uploading ? <Loader2 className="animate-spin" size={16} /> : <Camera size={16} />}
-                      </button>
+                      <h3 className="font-black text-xl text-slate-800 mb-3">{activeProfile.name}</h3>
+                      
+                      {/* Active Profile Actions */}
+                      <div className="flex gap-2 w-full">
+                         <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex-1 py-2 bg-white border border-slate-200 rounded-xl text-slate-500 font-bold text-xs flex items-center justify-center gap-1 active:scale-95"
+                         >
+                            {uploading ? <Loader2 className="animate-spin" size={14} /> : <Camera size={14} />} Foto
+                         </button>
+                         <button 
+                            onClick={() => handleEditProfile(activeProfile)}
+                            className="flex-1 py-2 bg-blue-100 border border-blue-200 rounded-xl text-blue-600 font-bold text-xs flex items-center justify-center gap-1 active:scale-95"
+                         >
+                            <Pencil size={14} /> Editar
+                         </button>
+                         <button 
+                            onClick={(e) => handleDeleteProfile(e, activeProfile.id)}
+                            className="flex-1 py-2 bg-red-100 border border-red-200 rounded-xl text-red-600 font-bold text-xs flex items-center justify-center gap-1 active:scale-95"
+                         >
+                            <Trash2 size={14} /> Excluir
+                         </button>
+                      </div>
                    </div>
                 )}
 
@@ -345,14 +370,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                        >
                           <img src={getProfileImage(p)} className="w-10 h-10 rounded-full border border-slate-200 object-cover" />
                           <span className={`font-bold flex-1 text-left ${activeProfile?.id === p.id ? 'text-blue-600' : 'text-slate-600'}`}>{p.name}</span>
-                          {activeProfile?.id !== p.id && (
-                             <div onClick={(e) => handleDeleteProfile(e, p.id)} className="p-2 text-slate-300 hover:text-red-400"><Trash2 size={16}/></div>
-                          )}
                        </button>
                     ))}
                     {profiles.length < 5 && (
                        <button onClick={() => { setIsMenuOpen(false); navigate(AppRoute.PROFILE); }} className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2">
-                          <Plus size={18} /> Adicionar
+                          <Plus size={18} /> Adicionar Novo
                        </button>
                     )}
                 </div>
