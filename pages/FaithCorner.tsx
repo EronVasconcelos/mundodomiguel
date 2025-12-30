@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
-import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, Zap, Trophy, ExternalLink } from 'lucide-react';
+import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, Zap, Trophy, ExternalLink, AlertCircle } from 'lucide-react';
 import { completeFaith, getDailyProgress } from '../services/progressService';
 
 const FaithCorner: React.FC = () => {
@@ -48,48 +48,57 @@ const FaithCorner: React.FC = () => {
     if (reached) {
       setTimeout(() => setShowMissionComplete(true), 2000);
     }
+
+    const handleAuthReset = () => {
+        setAiActiveGlobal(false);
+        setShowPremiumGate(true);
+    };
+    window.addEventListener('ai_auth_reset', handleAuthReset);
+    return () => window.removeEventListener('ai_auth_reset', handleAuthReset);
   }, []);
 
   useEffect(() => {
-    if (profile) {
-        if (!showPremiumGate) {
-            loadContent(profile);
-        }
+    if (profile && !showPremiumGate) {
+        loadContent(profile);
     }
     return () => stopAudio();
   }, [profile, showPremiumGate]);
 
   const loadContent = async (currentProfile: ChildProfile) => {
     setLoading(true);
-    const content = await generateDevotionalContent(currentProfile);
-    setData(content);
-    setLoading(false);
+    try {
+        const content = await generateDevotionalContent(currentProfile);
+        setData(content);
+        setLoading(false);
 
-    const savedImgKey = `faith_img_${content.date}_${currentProfile.name}`;
-    const savedImg = localStorage.getItem(savedImgKey);
-    
-    if (savedImg) {
-        setImageUrl(savedImg);
-    } else if (content.imagePrompt) {
-        if (aiActiveGlobal || localStorage.getItem('ai_enabled_decision') === 'true') {
+        const savedImgKey = `faith_img_${content.date}_${currentProfile.name}`;
+        const savedImg = localStorage.getItem(savedImgKey);
+        
+        if (savedImg) {
+            setImageUrl(savedImg);
+        } else if (content.imagePrompt && (aiActiveGlobal || localStorage.getItem('ai_active_global') === 'true')) {
             setImageLoading(true);
             const img = await generateStoryImage(content.imagePrompt, currentProfile);
-            setImageUrl(img);
-            localStorage.setItem(savedImgKey, img);
+            if (img) {
+                setImageUrl(img);
+                localStorage.setItem(savedImgKey, img);
+            }
             setImageLoading(false);
         }
+    } catch (e) {
+        setLoading(false);
     }
   };
 
   const activateAI = async () => {
       setIsConnecting(true);
       try {
-          // MANDATORY: Open Key Selection Dialog
+          // DIRECT ACTION: Trigger selector to ensure browser captures user gesture
           if (hasAIStudio) {
               await (window as any).aistudio.openSelectKey();
           }
           
-          // CRITICAL: Assume success immediately to mitigate race condition
+          // CRITICAL: Assume success immediately as per instructions to handle race conditions
           localStorage.setItem('ai_active_global', 'true');
           localStorage.setItem('ai_enabled_decision', 'true');
           setAiActiveGlobal(true);
@@ -101,13 +110,14 @@ const FaithCorner: React.FC = () => {
           }, 800);
 
       } catch (e) {
-          console.error("Auth failed", e);
+          console.error("Auth process error", e);
           setIsConnecting(false);
       }
   };
 
   const declineAI = () => {
       localStorage.setItem('ai_enabled_decision', 'false');
+      localStorage.setItem('ai_active_global', 'false');
       setShowPremiumGate(false);
       if (profile) loadContent(profile);
   };
@@ -250,24 +260,38 @@ const FaithCorner: React.FC = () => {
            <div className="bg-white p-6 rounded-[2.5rem] max-w-md w-full relative shadow-2xl text-center">
               <Sparkles size={40} className="text-sky-500 mx-auto mb-6 animate-spin-slow" />
               <h2 className="text-2xl font-black text-slate-800 mb-2">Ativar IA Mágica?</h2>
-              <div className="space-y-4 text-slate-500 text-sm leading-relaxed mb-6">
+              
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex gap-2 text-left mb-6">
+                 <AlertCircle className="text-amber-600 flex-shrink-0" size={18} />
+                 <p className="text-xs text-amber-800 font-medium">
+                    A janela de seleção do Google aparecerá em seguida. Se o pop-up não abrir, verifique as configurações do seu navegador.
+                 </p>
+              </div>
+
+              <div className="space-y-4 text-slate-500 text-sm leading-relaxed mb-8">
                  <p>Conecte sua conta Google para gerar conteúdo único para <strong>{profile?.name}</strong>.</p>
-                 <a 
-                    href="https://ai.google.dev/gemini-api/docs/billing" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1 text-blue-500 font-bold hover:underline"
-                 >
-                    Ver documentação de faturamento <ExternalLink size={14} />
-                 </a>
-                 <div className="bg-yellow-50 text-yellow-700 p-3 rounded-lg text-xs border border-yellow-100">
-                    <strong>Nota:</strong> É necessário selecionar um projeto do Google Cloud com faturamento ativado.
+                 
+                 <div className="flex flex-col gap-2">
+                    <a 
+                        href="https://ai.google.dev/gemini-api/docs/billing" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1 text-blue-500 font-bold hover:underline"
+                    >
+                        Ver documentação de faturamento <ExternalLink size={14} />
+                    </a>
+                    <p className="text-[10px] text-slate-400">É necessário selecionar um projeto pago no Google Cloud Console.</p>
                  </div>
               </div>
+
               <div className="space-y-3">
-                  <button onClick={activateAI} disabled={isConnecting} className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl flex items-center justify-center gap-2">
+                  <button 
+                    onClick={activateAI} 
+                    disabled={isConnecting} 
+                    className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-100 active:scale-95 disabled:opacity-50"
+                  >
                      {isConnecting ? <Loader2 className="animate-spin" /> : <Key size={20} />}
-                     CONECTAR GOOGLE
+                     CONECTAR AGORA
                   </button>
                   <button onClick={declineAI} disabled={isConnecting} className="w-full py-3 text-slate-400 font-bold text-sm">Usar modo simples</button>
               </div>
