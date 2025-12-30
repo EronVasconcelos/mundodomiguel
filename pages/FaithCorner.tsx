@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
+import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio, isAIAvailable, getFallbackDevotionalImage } from '../services/geminiService';
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
 import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, StopCircle, Trophy } from 'lucide-react';
@@ -15,42 +15,31 @@ const FaithCorner: React.FC = () => {
   const [showMissionComplete, setShowMissionComplete] = useState(false);
   
   const [missionStats, setMissionStats] = useState({ current: 0, target: true });
+  const [aiEnabled, setAiEnabled] = useState(false);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   
-  // Ref para detectar fim da rolagem
   const endOfContentRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-
-  // Mobile Voice Support
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
     const storedProfile = localStorage.getItem('child_profile');
     if (storedProfile) setProfile(JSON.parse(storedProfile));
 
-    // Check mission status
     const p = getDailyProgress();
     setMissionStats({ current: p.faithDone ? 1 : 0, target: true });
-
-    // Carregar vozes (hack para mobile)
-    const loadVoices = () => {
-        const vs = window.speechSynthesis.getVoices();
-        setVoices(vs);
-    };
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    
+    // Check if AI is available at mount
+    setAiEnabled(isAIAvailable());
 
     return () => {
         if (observerRef.current) observerRef.current.disconnect();
-        window.speechSynthesis.onvoiceschanged = null;
     };
   }, []);
 
-  // Intersection Observer para completar missão ao rolar
   useEffect(() => {
     if (!data || missionStats.current === 1) return;
 
@@ -60,7 +49,6 @@ const FaithCorner: React.FC = () => {
         const [entry] = entries;
         if (entry.isIntersecting) {
             triggerCompletion();
-            // Desconecta após completar para não disparar várias vezes
             observerRef.current?.disconnect();
         }
     }, { threshold: 0.5 });
@@ -94,23 +82,31 @@ const FaithCorner: React.FC = () => {
         setData(content);
         setLoading(false);
 
-        // Se tiver prompt, tenta gerar/buscar imagem
-        if (content.imagePrompt) {
-            const savedImgKey = `faith_img_${content.date}_${currentProfile.name}`;
-            const savedImg = localStorage.getItem(savedImgKey);
-            
-            if (savedImg) {
-                setImageUrl(savedImg);
+        // Imagem Lógica:
+        // Se AI está OFF ou não tem prompt -> Usa Estática Imediatamente
+        if (!isAIAvailable() || !content.imagePrompt) {
+            setImageUrl(getFallbackDevotionalImage());
+            setImageLoading(false);
+            return;
+        }
+
+        // Se AI está ON e tem prompt -> Tenta Cache ou Gera
+        const savedImgKey = `faith_img_${content.date}_${currentProfile.name}`;
+        const savedImg = localStorage.getItem(savedImgKey);
+        
+        if (savedImg) {
+            setImageUrl(savedImg);
+        } else {
+            setImageLoading(true);
+            const img = await generateStoryImage(content.imagePrompt, currentProfile);
+            if (img) {
+                setImageUrl(img);
+                try { localStorage.setItem(savedImgKey, img); } catch(e) {}
             } else {
-                setImageLoading(true);
-                // O serviço retorna fallback se falhar ou sem chave
-                const img = await generateStoryImage(content.imagePrompt, currentProfile);
-                if (img) {
-                    setImageUrl(img);
-                    try { localStorage.setItem(savedImgKey, img); } catch(e) {}
-                }
-                setImageLoading(false);
+                // Se falhar a geração, usa fallback estático
+                setImageUrl(getFallbackDevotionalImage());
             }
+            setImageLoading(false);
         }
     } catch (e) {
         console.error("Erro ao carregar conteúdo", e);
@@ -127,23 +123,21 @@ const FaithCorner: React.FC = () => {
         audioContextRef.current.close();
         audioContextRef.current = null;
     }
-    window.speechSynthesis.cancel();
     setIsSpeaking(false);
   };
 
   const speakDevotional = async () => {
-    if (!data) return;
+    if (!data || !aiEnabled) return; // Segurança extra
     
-    // Completa a missão ao clicar em ouvir
     triggerCompletion();
 
     if (isSpeaking) {
         stopAudio();
         return;
     }
+
     const textToRead = `Devocional de hoje. Versículo: ${data.verse}. ${data.devotional}. Agora, uma história: ${data.storyTitle}. ${data.storyContent}. Vamos orar? ${data.prayer}`;
 
-    // 1. Tentar Gemini Audio Primeiro (API)
     setIsGeneratingAudio(true);
     try {
         const base64Audio = await generateDevotionalAudio(textToRead, profile?.gender || 'boy');
@@ -167,53 +161,14 @@ const FaithCorner: React.FC = () => {
             source.start();
             setIsSpeaking(true);
             setIsGeneratingAudio(false);
-            return; // Sucesso com IA
+        } else {
+            // Se AI retornar null (erro), não fazemos nada (sem voz robótica)
+            setIsGeneratingAudio(false);
+            alert("Áudio indisponível no momento.");
         }
-    } catch (e) { console.warn("Falha no áudio IA, usando fallback", e); }
-
-    // 2. Fallback: Voz do Navegador (Robusta para Mobile)
-    // Recarrega vozes caso não tenham carregado no init
-    let availableVoices = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
-
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    utterance.lang = 'pt-BR';
-    
-    const isGirl = profile?.gender === 'girl';
-    let selectedVoice = null;
-
-    // Busca heurística por vozes PT-BR
-    if (isGirl) {
-        selectedVoice = availableVoices.find(v => 
-            (v.lang === 'pt-BR' || v.lang === 'pt_BR') &&
-            (v.name.includes('Luciana') || v.name.includes('Fernanda') || v.name.includes('Maria') || v.name.toLowerCase().includes('female'))
-        );
-    } else {
-        selectedVoice = availableVoices.find(v => 
-            (v.lang === 'pt-BR' || v.lang === 'pt_BR') &&
-            (v.name.includes('Daniel') || v.name.includes('Felipe') || v.name.toLowerCase().includes('male'))
-        );
+    } catch (e) { 
+        setIsGeneratingAudio(false);
     }
-
-    // Fallback genérico para PT-BR se não achar gênero específico
-    if (!selectedVoice) {
-        selectedVoice = availableVoices.find(v => v.lang === 'pt-BR' || v.lang === 'pt_BR');
-    }
-
-    if (selectedVoice) {
-        utterance.voice = selectedVoice;
-        utterance.pitch = isGirl ? 1.1 : 0.9;
-    }
-
-    utterance.onend = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
-    utterance.onerror = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
-    
-    setIsSpeaking(true);
-    setIsGeneratingAudio(false);
-    
-    // Pequeno delay para garantir que a UI atualizou antes de bloquear a thread de áudio
-    setTimeout(() => {
-        window.speechSynthesis.speak(utterance);
-    }, 100);
   };
 
   return (
@@ -239,14 +194,17 @@ const FaithCorner: React.FC = () => {
                         </div>
                     </div>
 
-                    <button 
-                        onClick={speakDevotional}
-                        disabled={isGeneratingAudio}
-                        className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-md ${isSpeaking ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-white text-slate-600 border-b-4 border-slate-200'}`}
-                    >
-                        {isGeneratingAudio ? <Loader2 className="animate-spin" /> : isSpeaking ? <StopCircle className="animate-pulse" /> : <Volume2 />}
-                        {isGeneratingAudio ? "Criando Áudio..." : isSpeaking ? "Parar Áudio" : "Ouvir Devocional"}
-                    </button>
+                    {/* SÓ MOSTRA O BOTÃO SE A IA ESTIVER HABILITADA */}
+                    {aiEnabled && (
+                        <button 
+                            onClick={speakDevotional}
+                            disabled={isGeneratingAudio}
+                            className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-md ${isSpeaking ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-white text-slate-600 border-b-4 border-slate-200'}`}
+                        >
+                            {isGeneratingAudio ? <Loader2 className="animate-spin" /> : isSpeaking ? <StopCircle className="animate-pulse" /> : <Volume2 />}
+                            {isGeneratingAudio ? "Criando Áudio..." : isSpeaking ? "Parar Áudio" : "Ouvir Devocional"}
+                        </button>
+                    )}
 
                     <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative">
                         <div className="absolute -top-3 left-6 bg-sky-100 text-sky-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">Para {profile?.name}</div>
@@ -278,7 +236,6 @@ const FaithCorner: React.FC = () => {
                         )}
                     </div>
                     
-                    {/* Elemento invisível para detectar fim da rolagem */}
                     <div ref={endOfContentRef} className="h-10 w-full" />
                 </div>
             ) : null}

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, 
-  Trash2, UserX, Menu, Download, X, RefreshCw, Settings 
+  Trash2, UserX, Menu, Download, X, RefreshCw, Settings, Key 
 } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
@@ -162,6 +162,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     } finally {
         setUploading(false);
     }
+  };
+
+  const handleConfigureAPI = () => {
+      const currentKey = localStorage.getItem('gemini_api_key') || '';
+      const newKey = prompt("Insira sua chave de API do Gemini para ativar a IA:", currentKey);
+      if (newKey !== null) {
+          localStorage.setItem('gemini_api_key', newKey.trim());
+          if (newKey.trim()) {
+              alert("Chave salva! O app será recarregado.");
+              window.location.reload();
+          }
+      }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -360,6 +372,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
                 {/* Footer Actions */}
                 <div className="space-y-3 pt-4 border-t border-slate-100">
+                   {/* Configurar API */}
+                   <button onClick={handleConfigureAPI} className="w-full py-3 text-slate-600 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 rounded-xl border border-slate-100">
+                      <Key size={18} /> Configurar IA
+                   </button>
+
                    {installPrompt && (
                       <button onClick={handleInstallClick} className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-bold flex items-center justify-center gap-2">
                          <Download size={18} /> Instalar App

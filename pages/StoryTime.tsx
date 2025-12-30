@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { generateStoryText, generateStoryImage, STATIC_STORIES } from '../services/geminiService';
+import { generateStoryText, generateStoryImage, STATIC_STORIES, isAIAvailable } from '../services/geminiService';
 import { Sparkles, Loader2, BookOpen, Moon, WifiOff, Download, Gift, Pencil, Wand2, Book } from 'lucide-react';
 import { StoryData, ChildProfile } from '../types';
 
@@ -15,7 +15,7 @@ const StoryTime: React.FC = () => {
   
   const [story, setStory] = useState<StoryData | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [aiEnabled, setAiEnabled] = useState(false);
   const [showImageReveal, setShowImageReveal] = useState(false); 
   
   const IMAGINATION_TOPICS = [
@@ -38,16 +38,10 @@ const StoryTime: React.FC = () => {
   useEffect(() => {
     const stored = localStorage.getItem('child_profile');
     if (stored) setProfile(JSON.parse(stored));
-
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
     
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
+    // Verifica se a IA está disponível na inicialização
+    const isAvailable = isAIAvailable();
+    setAiEnabled(isAvailable);
   }, []);
 
   const handleTabSwitch = (tab: 'kids' | 'ai') => {
@@ -66,30 +60,26 @@ const StoryTime: React.FC = () => {
   const handleSelectStaticStory = (selectedStory: StoryData) => {
     resetStoryState();
     setStory(selectedStory);
-    // No image generation for static mode (keeps it clean/offline)
   };
   
   // Handler for AI stories
   const handleCreateAIStory = async (topic: string) => {
-    if (!profile) return;
+    if (!profile || !aiEnabled) return;
     if (!topic.trim()) return;
 
     setLoading(true);
     resetStoryState();
     
     try {
-      // 1. Gera e mostra o TEXTO
       const storyData = await generateStoryText(topic, profile);
       setStory(storyData);
       setLoading(false);
 
-      // 2. Gera a IMAGEM em Background
-      if (isOnline) {
-          setImageLoading(true);
-          const img = await generateStoryImage(storyData.content, profile);
-          setImageUrl(img);
-          setImageLoading(false);
-      }
+      setImageLoading(true);
+      const img = await generateStoryImage(storyData.content, profile);
+      // Se img for null (offline/erro), a UI lidará
+      setImageUrl(img);
+      setImageLoading(false);
     } catch (e) {
       console.error(e);
       alert("Ops! Não consegui criar a história agora.");
@@ -117,7 +107,7 @@ const StoryTime: React.FC = () => {
             </button>
             <h1 className="text-xl font-black uppercase text-yellow-400">Hora da História</h1>
             <div className="w-10 flex items-center justify-center">
-              {isOnline ? <Moon className="text-yellow-200 fill-yellow-200" /> : <WifiOff className="text-slate-500" size={20} />}
+              {aiEnabled ? <Moon className="text-yellow-200 fill-yellow-200" /> : <WifiOff className="text-slate-500" size={20} />}
             </div>
          </header>
        </div>
@@ -125,18 +115,26 @@ const StoryTime: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4 pb-20 scroll-smooth">
         {!story && !loading && (
           <div className="space-y-6">
-            {/* TABS */}
-            <div className="flex bg-slate-800 p-1 rounded-2xl border border-slate-700">
-               <button onClick={() => handleTabSwitch('kids')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'kids' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
-                  <Book size={18} /> Livro Kids
-               </button>
-               <button onClick={() => handleTabSwitch('ai')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'ai' ? 'bg-fuchsia-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
-                  <Wand2 size={18} /> IA Mágica
-               </button>
-            </div>
+            {/* TABS - Só mostra opção de troca se IA estiver disponível */}
+            {aiEnabled ? (
+                <div className="flex bg-slate-800 p-1 rounded-2xl border border-slate-700">
+                <button onClick={() => handleTabSwitch('kids')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'kids' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
+                    <Book size={18} /> Livro Kids
+                </button>
+                <button onClick={() => handleTabSwitch('ai')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'ai' ? 'bg-fuchsia-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
+                    <Wand2 size={18} /> IA Mágica
+                </button>
+                </div>
+            ) : (
+                <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 text-center mb-4">
+                    <p className="text-slate-400 text-sm font-bold flex items-center justify-center gap-2">
+                        <WifiOff size={16}/> Modo Offline: Apenas histórias do Livro
+                    </p>
+                </div>
+            )}
 
             {/* TAB CONTENT: LIVRO KIDS (Lista Estática) */}
-            {activeTab === 'kids' && (
+            {(activeTab === 'kids' || !aiEnabled) && (
                <div className="animate-slide-up space-y-4">
                   <div className="text-center mb-6">
                      <h2 className="text-2xl font-black text-indigo-300">Biblioteca Encantada</h2>
@@ -161,8 +159,8 @@ const StoryTime: React.FC = () => {
                </div>
             )}
 
-            {/* TAB CONTENT: IA MÁGICA (Gerador) */}
-            {activeTab === 'ai' && (
+            {/* TAB CONTENT: IA MÁGICA (Gerador) - Só renderiza se AI enabled */}
+            {activeTab === 'ai' && aiEnabled && (
                <div className="animate-slide-up space-y-6">
                   <div className="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700">
                      <h2 className="text-xl font-black text-center mb-4 text-fuchsia-300">O que vamos imaginar?</h2>
@@ -232,8 +230,8 @@ const StoryTime: React.FC = () => {
                 ✨ Moral: {story.moral}
             </div>
             
-            {/* AREA DA IMAGEM (Apenas se for Modo IA) */}
-            {activeTab === 'ai' && (
+            {/* AREA DA IMAGEM (Apenas se for Modo IA e a imagem foi gerada com sucesso) */}
+            {activeTab === 'ai' && aiEnabled && (
                 <div className="mt-8">
                     {!showImageReveal ? (
                         <button 
@@ -260,8 +258,14 @@ const StoryTime: React.FC = () => {
                                     </>
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 gap-4 text-slate-400">
-                                        <Loader2 className="w-12 h-12 animate-spin text-fuchsia-400" />
-                                        <p className="font-bold text-center px-6">Pintando o desenho...<br/>Quase pronto!</p>
+                                        {imageLoading ? (
+                                            <>
+                                                <Loader2 className="w-12 h-12 animate-spin text-fuchsia-400" />
+                                                <p className="font-bold text-center px-6">Pintando o desenho...<br/>Quase pronto!</p>
+                                            </>
+                                        ) : (
+                                            <p className="font-bold text-center px-6 text-sm">Imagem não disponível offline.</p>
+                                        )}
                                     </div>
                                 )}
                             </div>

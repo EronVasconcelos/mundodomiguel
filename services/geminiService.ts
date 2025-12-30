@@ -3,8 +3,9 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
 // --- DADOS DE FALLBACK (OFFLINE/MOCK) ---
-const FALLBACK_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
-const FALLBACK_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop"; 
+// Imagens estáticas bonitas para quando não houver IA
+const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
+const STATIC_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop"; 
 
 // --- BIBLIOTECA ESTÁTICA (LIVRO KIDS) ---
 export const STATIC_STORIES: StoryData[] = [
@@ -62,6 +63,7 @@ export const STATIC_STORIES: StoryData[] = [
 
 const FALLBACK_STORY: StoryData = STATIC_STORIES[0];
 
+// Devocional estático para modo offline (sem IA)
 const FALLBACK_DEVOTIONAL: DevotionalData = {
   date: new Date().toDateString(),
   verse: "O Senhor é o meu pastor; nada me faltará.",
@@ -73,35 +75,39 @@ const FALLBACK_DEVOTIONAL: DevotionalData = {
   imagePrompt: "" 
 };
 
-// --- ACESSO SEGURO À CHAVE (CRÍTICO PARA MOBILE) ---
+// --- ACESSO SEGURO E ROBUSTO À CHAVE ---
 const getApiKey = () => {
+  // 1. Tenta pegar do armazenamento local (Configurado pelo usuário no mobile)
+  if (typeof window !== 'undefined') {
+    const localKey = localStorage.getItem('gemini_api_key');
+    if (localKey && localKey.trim().length > 0) {
+      return localKey;
+    }
+  }
+
+  // 2. Tenta pegar da variável de ambiente (Funciona no Preview/Desktop)
   try {
-    // Tenta acessar process.env (Node/Webpack)
     if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
       return process.env.API_KEY;
     }
-  } catch (e) {
-    // Ignora erro de referência em ambientes estritos
-  }
+  } catch (e) {}
+
   return '';
+};
+
+// Verifica se a IA está disponível para uso
+export const isAIAvailable = (): boolean => {
+    return !!getApiKey();
 };
 
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
   const apiKey = getApiKey();
   
   if (!apiKey) {
-    console.log("Modo Offline (Sem Chave): Retornando história padrão.");
-    // Simula delay de rede para UX consistente
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return {
-        ...FALLBACK_STORY,
-        title: `${FALLBACK_STORY.title} (Modo Offline)`,
-        content: `(Você está sem conexão com a IA Mágica no momento. Aproveite esta história clássica!)\n\n${FALLBACK_STORY.content}`
-    };
+    throw new Error("IA Indisponível");
   }
   
   const ai = new GoogleGenAI({ apiKey });
-  // Prompt mais robusto para garantir JSON válido e história envolvente
   const prompt = `Você é um contador de histórias mágico. Crie uma história infantil muito curta, cativante e educativa para ${profile.name}, uma criança de ${profile.age} anos. 
   Tema: ${topic}.
   A história deve ter começo, meio e fim claros.
@@ -130,8 +136,8 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     }
     throw new Error("Resposta vazia da IA");
   } catch (error) {
-    console.error("Erro AI Texto (Fallback Ativado):", error);
-    return FALLBACK_STORY;
+    console.error("Erro AI Texto:", error);
+    throw error;
   }
 };
 
@@ -139,7 +145,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
   const apiKey = getApiKey();
   
   if (!apiKey) {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Retorna o devocional estático imediatamente
       return FALLBACK_DEVOTIONAL;
   }
 
@@ -179,7 +185,6 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
   const apiKey = getApiKey();
   if (!apiKey) return null;
 
-  // Seleciona voz masculina (Fenrir) ou feminina (Kore) baseado no gênero
   const voiceName = gender === 'girl' ? 'Kore' : 'Fenrir';
 
   const ai = new GoogleGenAI({ apiKey });
@@ -201,21 +206,17 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
   }
 };
 
-export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string> => {
+export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string | null> => {
   const apiKey = getApiKey();
   
-  const isDevotional = storyPrompt.toLowerCase().includes('pastor') || storyPrompt.toLowerCase().includes('deus') || storyPrompt.toLowerCase().includes('jesus') || storyPrompt.toLowerCase().includes('biblia');
-  const fallbackImage = isDevotional ? FALLBACK_DEVOTIONAL_IMAGE : FALLBACK_STORY_IMAGE;
-
   if (!apiKey) {
-      return fallbackImage;
+      return null;
   }
 
   const ai = new GoogleGenAI({ apiKey });
   try {
     const charDesc = profile ? `A cute ${profile.age} year old ${profile.gender}, ${profile.hairColor} hair, ${profile.skinTone} skin` : "A cute child";
     
-    // Prompt altamente otimizado para qualidade visual
     const enhancedPrompt = `Disney Pixar movie poster style, 3D render, masterpiece, 8k resolution, soft cinematic lighting, vibrant colors, cute and magical atmosphere.
     Subject: ${charDesc} in the scene: ${storyPrompt.substring(0, 300)}.
     High detail, smooth textures, centered composition.`;
@@ -232,9 +233,13 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
     if (imgPart) {
         return `data:image/png;base64,${imgPart.inlineData.data}`;
     }
-    return fallbackImage;
+    return null;
   } catch (error) { 
     console.error("Erro AI Imagem:", error);
-    return fallbackImage; 
+    return null; 
   }
 };
+
+// Exports for UI Fallbacks
+export const getFallbackStoryImage = () => STATIC_STORY_IMAGE;
+export const getFallbackDevotionalImage = () => STATIC_DEVOTIONAL_IMAGE;
