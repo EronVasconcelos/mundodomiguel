@@ -3,8 +3,7 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
 /**
- * Handle API errors, specifically identifying when the selected API key 
- * is invalid or missing billing, allowing the UI to reset and prompt re-selection.
+ * Utilitário para tratar erros e limpar estado de autenticação se necessário.
  */
 const handleAIError = (error: any) => {
   console.error("Gemini API Error:", error);
@@ -17,11 +16,16 @@ const handleAIError = (error: any) => {
      ) {
     localStorage.removeItem('ai_active_global');
     localStorage.removeItem('ai_enabled_decision');
+    // Dispara evento para resetar UI, mas não bloqueia o app
     window.dispatchEvent(new CustomEvent('ai_auth_reset'));
   }
 };
 
-// --- MOCK DATA FOR OFFLINE/FALLBACK MODE ---
+// --- DADOS DE FALLBACK (OFFLINE/MOCK) ---
+// Imagens reais do Unsplash para dar vida ao modo offline
+const FALLBACK_STORY_IMAGE = "https://images.unsplash.com/photo-1448375240586-dfd8d3f1d8db?q=80&w=1080&auto=format&fit=crop"; // Floresta
+const FALLBACK_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1080&auto=format&fit=crop"; // Ovelhas/Pastor
+
 const FALLBACK_STORY: StoryData = {
   title: "O Piquenique da Floresta",
   content: "Era uma vez um coelhinho chamado Pimpão que adorava cenouras. Um dia, ele decidiu fazer um grande piquenique na floresta. Convidou a tartaruga Tita, o esquilo Zeca e a coruja Olivia. Cada um trouxe algo gostoso. Tita trouxe folhas fresquinhas, Zeca trouxe nozes crocantes e Olivia trouxe frutas vermelhas. Eles estenderam uma toalha xadrez na grama verde e compartilharam suas comidas. O sol brilhava e os pássaros cantavam. Pimpão percebeu que a comida ficava muito mais gostosa quando compartilhada com amigos. Eles brincaram de esconde-esconde até o sol se pôr e voltaram para casa felizes.",
@@ -36,23 +40,23 @@ const FALLBACK_DEVOTIONAL: DevotionalData = {
   storyTitle: "O Pastor Amoroso",
   storyContent: "Davi era um menino que cuidava de ovelhas. Ele protegia suas ovelhinhas de leões e ursos. Ele sabia o nome de cada uma! Assim também é Deus conosco. Ele nos protege, nos guia e nos ama muito mais do que qualquer pastor ama suas ovelhas. Você pode confiar nEle sempre.",
   prayer: "Senhor Jesus, obrigado por cuidar de mim como um bom pastor. Ajuda-me a confiar em Ti em todos os momentos. Amém.",
-  imagePrompt: "A cute shepherd boy sitting on grass with white sheep, sunny day, blue sky, 3d pixar style"
+  imagePrompt: "" 
 };
 
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
   const apiKey = process.env.API_KEY;
   
-  // FALLBACK: Se não houver chave (Modo Livro Nativo), retorna história local
   if (!apiKey) {
+    console.log("Modo Offline: Retornando história padrão.");
     return {
         ...FALLBACK_STORY,
-        title: `${FALLBACK_STORY.title} (${topic})`, // Personaliza levemente o título
-        content: `(Modo Offline: ${topic}) ${FALLBACK_STORY.content}`
+        title: `${FALLBACK_STORY.title} (${topic})`,
+        content: `(História do Livro Mágico: ${topic})\n\n${FALLBACK_STORY.content}`
     };
   }
   
   const ai = new GoogleGenAI({ apiKey });
-  const prompt = `Crie uma história para uma criança chamada ${profile.name}. Idade: ${profile.age} anos. Gênero: ${profile.gender === 'boy' ? 'Menino' : 'Menina'}. Tema: ${topic}. Retorne apenas JSON com title, content (aprox 300 palavras), moral.`;
+  const prompt = `Crie uma história infantil curta para ${profile.name}, ${profile.age} anos. Tema: ${topic}. Retorne JSON: title, content, moral.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -74,7 +78,6 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     return JSON.parse(response.text) as StoryData;
   } catch (error) {
     handleAIError(error);
-    // Em caso de erro na API, também retorna fallback para não travar o app
     return FALLBACK_STORY;
   }
 };
@@ -82,13 +85,13 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
 export const generateDevotionalContent = async (profile: ChildProfile): Promise<DevotionalData> => {
   const apiKey = process.env.API_KEY;
   
-  // FALLBACK: Se não houver chave (Modo Simples), retorna devocional local
   if (!apiKey) {
+      console.log("Modo Offline: Retornando devocional padrão.");
       return FALLBACK_DEVOTIONAL;
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const prompt = `Devocional cristão diário para ${profile.name}, ${profile.age} anos. JSON com verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (3D Pixar style).`;
+  const prompt = `Devocional cristão curto para ${profile.name}, ${profile.age} anos. JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (Pixar style).`;
 
   try {
     const response = await ai.models.generateContent({
@@ -142,20 +145,30 @@ export const generateDevotionalAudio = async (text: string): Promise<string | nu
 
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string> => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) return "";
+  
+  // SE ESTIVER OFFLINE, RETORNA IMAGEM PADRÃO EM VEZ DE VAZIO
+  if (!apiKey) {
+      // Se for devocional (detectado pelo prompt curto ou palavras chave), retorna ovelhas
+      if (storyPrompt.toLowerCase().includes('pastor') || storyPrompt.toLowerCase().includes('deus')) {
+          return FALLBACK_DEVOTIONAL_IMAGE;
+      }
+      return FALLBACK_STORY_IMAGE;
+  }
+
   const ai = new GoogleGenAI({ apiKey });
   try {
-    const char = profile ? `Child is ${profile.age}yo ${profile.gender}, ${profile.hairColor} hair.` : "";
-    const prompt = `Pixar style 3D render, highly detailed. ${char} Scene: ${storyPrompt.substring(0, 300)}`;
+    const char = profile ? `Child is ${profile.age}yo ${profile.gender}.` : "";
+    const prompt = `Pixar style 3D render, cute, bright colors. ${char} Scene: ${storyPrompt.substring(0, 200)}`;
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts: [{ text: prompt }] },
       config: { imageConfig: { aspectRatio: "1:1" } }
     });
     const imgPart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-    return imgPart ? `data:image/png;base64,${imgPart.inlineData.data}` : "";
+    return imgPart ? `data:image/png;base64,${imgPart.inlineData.data}` : FALLBACK_STORY_IMAGE;
   } catch (error) { 
     handleAIError(error);
-    return ""; 
+    // Em caso de erro, também retorna imagem bonita
+    return FALLBACK_STORY_IMAGE; 
   }
 };

@@ -1,11 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { generateStoryText, generateStoryImage } from '../services/geminiService';
-import { Sparkles, Loader2, BookOpen, Moon, WifiOff, Key, ExternalLink, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, Moon, WifiOff, Key } from 'lucide-react';
 import { StoryData, ChildProfile } from '../types';
 
 const StoryTime: React.FC = () => {
-  const [topic, setTopic] = useState("Aventura Espacial");
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   
   const [useAI, setUseAI] = useState(false);
@@ -19,7 +18,16 @@ const StoryTime: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showPremiumGate, setShowPremiumGate] = useState(false);
   
-  const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
+  const IMAGINATION_TOPICS = [
+    "Numberblocks na Praia",
+    "Patrulha Canina no Espaço",
+    "Dinossauros na Escola",
+    "Piquenique da Peppa",
+    "Heróis de Pijama Salvam o Dia",
+    "Construindo um Foguete Lego",
+    "O Aniversário do Mickey",
+    "Uma Aventura no Minecraft"
+  ];
 
   useEffect(() => {
     const stored = localStorage.getItem('child_profile');
@@ -31,11 +39,6 @@ const StoryTime: React.FC = () => {
         
         if (globalStatus) {
             setUseAI(true);
-        } else {
-            const decision = localStorage.getItem('ai_enabled_decision');
-            if (decision === null) {
-                setShowPremiumGate(true);
-            }
         }
     };
 
@@ -44,8 +47,6 @@ const StoryTime: React.FC = () => {
     const handleAuthReset = () => {
         setAiActiveGlobal(false);
         setUseAI(false);
-        setShowPremiumGate(true);
-        setIsConnecting(false);
     };
     window.addEventListener('ai_auth_reset', handleAuthReset);
 
@@ -84,21 +85,13 @@ const StoryTime: React.FC = () => {
       }
 
       localStorage.setItem('ai_active_global', 'true');
-      localStorage.setItem('ai_enabled_decision', 'true');
       setAiActiveGlobal(true);
       setUseAI(true);
       
       setTimeout(() => {
          setShowPremiumGate(false);
          setIsConnecting(false);
-      }, 1500);
-  };
-
-  const declineAI = () => {
-      localStorage.setItem('ai_enabled_decision', 'false');
-      localStorage.setItem('ai_active_global', 'false');
-      setUseAI(false);
-      setShowPremiumGate(false);
+      }, 1000);
   };
 
   const handleCreateStory = async (selectedTopic: string) => {
@@ -107,28 +100,25 @@ const StoryTime: React.FC = () => {
     resetStoryState();
     
     try {
-      if (!isOnline && useAI) {
-        alert("A mágica precisa de internet!");
-        setUseAI(false);
-        setLoading(false);
-        return;
-      }
-      
       setLoadingPhase(useAI ? "A IA está escrevendo..." : "Buscando o livro...");
-      // O serviço agora retorna um fallback se não houver chave (Modo Nativo)
+      
       const storyData = await generateStoryText(selectedTopic, profile);
       setStory(storyData);
       
-      // Só gera imagem se a IA estiver ativa e houver chave
       if (useAI && aiActiveGlobal && isOnline) {
           setLoadingPhase("Pintando o desenho...");
+          // Em modo online com IA, gera imagem
           const img = await generateStoryImage(storyData.content, profile);
+          setImageUrl(img);
+      } else {
+          // Em modo Offline ou sem IA, pega a imagem de fallback diretamente
+          // O service retorna URL da imagem de fallback se não tiver chave
+          const img = await generateStoryImage(selectedTopic, profile);
           setImageUrl(img);
       }
     } catch (e) {
       console.error(e);
-      // Fallback de emergência
-      alert("Ops! Algo deu errado ao criar a história.");
+      alert("Ops! Não consegui ler a história agora.");
     } finally {
       setLoading(false);
     }
@@ -153,12 +143,14 @@ const StoryTime: React.FC = () => {
           <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 space-y-6">
             <div className="flex bg-slate-900 p-1 rounded-2xl border border-slate-700">
                <button onClick={() => handleModeSwitch(false)} className={`flex-1 py-3 rounded-xl font-bold text-sm ${!useAI ? 'bg-slate-700' : 'text-slate-400'}`}>Livro Nativo</button>
-               <button onClick={() => handleModeSwitch(true)} className={`flex-1 py-3 rounded-xl font-bold text-sm ${useAI ? 'bg-indigo-600' : 'text-slate-400'}`}>IA Mágica</button>
+               <button onClick={() => handleModeSwitch(true)} className={`flex-1 py-3 rounded-xl font-bold text-sm ${useAI ? 'bg-indigo-600' : 'text-slate-400'}`}>IA Mágica {aiActiveGlobal && '✓'}</button>
             </div>
             <h2 className="text-2xl font-black text-center">O que vamos imaginar?</h2>
-            <div className="flex flex-wrap gap-3 justify-center">
-              {["Espaço", "Dragões", "Dinos", "Robôs", "LEGO", "Castelo"].map(t => (
-                <button key={t} onClick={() => handleCreateStory(t)} className="px-4 py-3 rounded-2xl bg-slate-700 text-slate-200 font-bold text-sm">{t}</button>
+            <div className="grid grid-cols-2 gap-3 justify-center">
+              {IMAGINATION_TOPICS.map(t => (
+                <button key={t} onClick={() => handleCreateStory(t)} className="px-4 py-4 rounded-2xl bg-slate-700 hover:bg-slate-600 active:scale-95 transition-all text-slate-200 font-bold text-sm text-left leading-tight border-b-4 border-slate-800 active:border-b-0 active:translate-y-1">
+                    {t}
+                </button>
               ))}
             </div>
           </div>
@@ -175,7 +167,7 @@ const StoryTime: React.FC = () => {
           <div className="space-y-6 animate-slide-up">
             <h2 className="text-3xl font-black text-yellow-400 text-center">{story.title}</h2>
             
-            <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-slate-700">
+            <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-slate-700 shadow-2xl">
                {imageUrl ? <img src={imageUrl} alt="Story" className="w-full h-full object-cover" /> : (
                   <div className="w-full h-full flex items-center justify-center bg-slate-800">
                       <Sparkles className="text-slate-600" size={48} />
@@ -183,40 +175,30 @@ const StoryTime: React.FC = () => {
                )}
             </div>
 
-            <div className="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 text-slate-300 leading-relaxed">
+            <div className="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 text-slate-300 leading-relaxed text-lg">
               {story.content.split('\n').map((p, i) => <p key={i} className="mb-4">{p}</p>)}
-              <div className="mt-6 p-4 bg-slate-900 rounded-2xl text-yellow-100 font-bold italic">Moral: {story.moral}</div>
+              <div className="mt-6 p-4 bg-slate-900 rounded-2xl text-yellow-100 font-bold italic text-center border border-slate-700">
+                  ✨ Moral: {story.moral}
+              </div>
             </div>
             
-            <button onClick={resetStoryState} className="w-full bg-slate-800 py-4 rounded-2xl font-bold text-slate-400">Outra história</button>
+            <button onClick={resetStoryState} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all">
+                Ler Outra História
+            </button>
           </div>
         )}
       </div>
 
       {showPremiumGate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fade-in">
-           <div className="bg-slate-900 border border-indigo-500/50 p-6 rounded-[2.5rem] max-w-md w-full text-center">
-              <Sparkles size={40} className="text-indigo-400 mx-auto mb-6 animate-spin-slow" />
-              <h2 className="text-2xl font-black text-white mb-2">Modo IA Mágica</h2>
+           <div className="bg-slate-900 border border-indigo-500/50 p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl">
+              <Sparkles size={48} className="text-yellow-400 mx-auto mb-6 animate-pulse" />
+              <h2 className="text-2xl font-black text-white mb-2">Ativar IA Mágica?</h2>
               
-              <div className="bg-indigo-950 border border-indigo-800 p-3 rounded-xl flex gap-2 text-left mb-6">
-                 <AlertCircle className="text-indigo-400 flex-shrink-0" size={18} />
-                 <p className="text-xs text-indigo-200 font-medium">
-                    A janela de seleção do Google aparecerá em seguida. Certifique-se de escolher um projeto com faturamento ativo.
-                 </p>
-              </div>
+              <p className="text-slate-400 font-medium mb-8 leading-relaxed">
+                 Conecte sua conta para criar histórias infinitas e desenhos mágicos para <strong>{profile?.name}</strong>.
+              </p>
 
-              <div className="space-y-4 text-slate-300 text-sm mb-8">
-                 <p>Crie histórias únicas e personalizadas conectando sua conta Google.</p>
-                 <a 
-                    href="https://ai.google.dev/gemini-api/docs/billing" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1 text-indigo-400 font-bold hover:underline"
-                 >
-                    Ver documentação de faturamento <ExternalLink size={14} />
-                 </a>
-              </div>
               <div className="space-y-3">
                   <button 
                     onClick={activateAI} 
@@ -224,9 +206,11 @@ const StoryTime: React.FC = () => {
                     className="w-full py-4 bg-white text-indigo-900 font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-95 disabled:opacity-50"
                   >
                      {isConnecting ? <Loader2 className="animate-spin text-indigo-900" /> : <Key size={20} />}
-                     CONECTAR AGORA
+                     CONECTAR
                   </button>
-                  <button onClick={declineAI} disabled={isConnecting} className="w-full py-3 text-slate-500 font-bold text-sm">Usar modo limitado</button>
+                  <button onClick={() => setShowPremiumGate(false)} disabled={isConnecting} className="w-full py-3 text-slate-500 font-bold text-sm">
+                      Agora não
+                  </button>
               </div>
            </div>
         </div>

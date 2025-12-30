@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
-import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, Trophy, ExternalLink, AlertCircle } from 'lucide-react';
+import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, StopCircle, Key, Check, Trophy } from 'lucide-react';
 import { completeFaith, getDailyProgress } from '../services/progressService';
 
 const FaithCorner: React.FC = () => {
@@ -23,6 +23,10 @@ const FaithCorner: React.FC = () => {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  
+  // Ref para detectar fim da rolagem
+  const endOfContentRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     const storedProfile = localStorage.getItem('child_profile');
@@ -30,38 +34,56 @@ const FaithCorner: React.FC = () => {
 
     const globalStatus = localStorage.getItem('ai_active_global') === 'true';
     setAiActiveGlobal(globalStatus);
-
-    if (!globalStatus) {
-        const decision = localStorage.getItem('ai_enabled_decision');
-        if (decision === null) {
-            setShowPremiumGate(true);
-            setLoading(false);
-        }
-    }
     
-    const reached = completeFaith();
+    // Check mission status (visual only initially)
     const p = getDailyProgress();
     setMissionStats({ current: p.faithDone ? 1 : 0, target: true });
 
-    if (reached) {
-      setTimeout(() => setShowMissionComplete(true), 2000);
-    }
-
     const handleAuthReset = () => {
         setAiActiveGlobal(false);
-        setShowPremiumGate(true);
-        setIsConnecting(false);
     };
     window.addEventListener('ai_auth_reset', handleAuthReset);
-    return () => window.removeEventListener('ai_auth_reset', handleAuthReset);
+    return () => {
+        window.removeEventListener('ai_auth_reset', handleAuthReset);
+        if (observerRef.current) observerRef.current.disconnect();
+    };
   }, []);
 
+  // Intersection Observer para completar missão ao rolar
   useEffect(() => {
-    if (profile && !showPremiumGate) {
+    if (!data || missionStats.current === 1) return;
+
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver((entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+            triggerCompletion();
+            observerRef.current?.disconnect();
+        }
+    }, { threshold: 0.5 });
+
+    if (endOfContentRef.current) {
+        observerRef.current.observe(endOfContentRef.current);
+    }
+  }, [data, missionStats.current]);
+
+  const triggerCompletion = () => {
+      const p = getDailyProgress();
+      if (!p.faithDone) {
+          const reached = completeFaith();
+          setMissionStats({ current: 1, target: true });
+          if (reached) {
+             setShowMissionComplete(true);
+          }
+      }
+  };
+
+  useEffect(() => {
+    if (profile) {
         loadContent(profile);
     }
-    return () => stopAudio();
-  }, [profile, showPremiumGate]);
+  }, [profile]);
 
   const loadContent = async (currentProfile: ChildProfile) => {
     setLoading(true);
@@ -70,19 +92,29 @@ const FaithCorner: React.FC = () => {
         setData(content);
         setLoading(false);
 
-        const savedImgKey = `faith_img_${content.date}_${currentProfile.name}`;
-        const savedImg = localStorage.getItem(savedImgKey);
+        // Se estiver offline, generateStoryImage retorna o fallback automaticamente
+        // Se estiver online mas sem imagem salva, gera uma nova
+        const aiEnabled = localStorage.getItem('ai_active_global') === 'true';
         
-        if (savedImg) {
-            setImageUrl(savedImg);
-        } else if (content.imagePrompt && (aiActiveGlobal || localStorage.getItem('ai_active_global') === 'true')) {
-            setImageLoading(true);
-            const img = await generateStoryImage(content.imagePrompt, currentProfile);
-            if (img) {
-                setImageUrl(img);
-                localStorage.setItem(savedImgKey, img);
+        if (!aiEnabled) {
+            // Modo Offline: Pega imagem de fallback direto
+            const fallbackImg = await generateStoryImage("pastor", currentProfile);
+            setImageUrl(fallbackImg);
+        } else if (content.imagePrompt) {
+            const savedImgKey = `faith_img_${content.date}_${currentProfile.name}`;
+            const savedImg = localStorage.getItem(savedImgKey);
+            
+            if (savedImg) {
+                setImageUrl(savedImg);
+            } else {
+                setImageLoading(true);
+                const img = await generateStoryImage(content.imagePrompt, currentProfile);
+                if (img) {
+                    setImageUrl(img);
+                    localStorage.setItem(savedImgKey, img);
+                }
+                setImageLoading(false);
             }
-            setImageLoading(false);
         }
     } catch (e) {
         console.error("Erro ao carregar conteúdo", e);
@@ -92,34 +124,19 @@ const FaithCorner: React.FC = () => {
 
   const activateAI = () => {
       setIsConnecting(true);
-      
       const aiStudio = (window as any).aistudio;
       if (aiStudio && typeof aiStudio.openSelectKey === 'function') {
-          // Fire and forget - não usar await aqui para garantir que o navegador não bloqueie o popup
           aiStudio.openSelectKey();
-      } else {
-          // Se não estiver no ambiente IDX/AI Studio, apenas simula para não travar
-          console.warn("Ambiente AI Studio não detectado.");
       }
-
-      // Assume sucesso e configura estado
+      
       localStorage.setItem('ai_active_global', 'true');
-      localStorage.setItem('ai_enabled_decision', 'true');
       setAiActiveGlobal(true);
       
-      // Fecha o modal após um tempo para dar chance do popup aparecer
       setTimeout(() => {
          setShowPremiumGate(false); 
          setIsConnecting(false);
          if (profile) loadContent(profile); 
-      }, 1500);
-  };
-
-  const declineAI = () => {
-      localStorage.setItem('ai_enabled_decision', 'false');
-      localStorage.setItem('ai_active_global', 'false');
-      setShowPremiumGate(false);
-      if (profile) loadContent(profile);
+      }, 1000);
   };
 
   const stopAudio = () => {
@@ -137,12 +154,17 @@ const FaithCorner: React.FC = () => {
 
   const speakDevotional = async () => {
     if (!data) return;
+    
+    // Completa a missão ao clicar em ouvir
+    triggerCompletion();
+
     if (isSpeaking) {
         stopAudio();
         return;
     }
     const textToRead = `Devocional de hoje. Versículo: ${data.verse}. ${data.devotional}. Agora, uma história: ${data.storyTitle}. ${data.storyContent}. Vamos orar? ${data.prayer}`;
 
+    // 1. Tentar Gemini Audio (Voz Fenrir - Masculina)
     if (aiActiveGlobal) {
         setIsGeneratingAudio(true);
         try {
@@ -172,8 +194,27 @@ const FaithCorner: React.FC = () => {
         } catch (e) { console.warn(e); }
     }
 
+    // 2. Fallback Web Speech API - Tentar forçar voz masculina
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.lang = 'pt-BR';
+    
+    // Buscar voz masculina disponível
+    const voices = window.speechSynthesis.getVoices();
+    const maleVoice = voices.find(v => 
+        (v.lang.includes('pt') || v.lang.includes('PT')) && 
+        (v.name.toLowerCase().includes('daniel') || v.name.toLowerCase().includes('male') || v.name.includes('Felipe'))
+    );
+    
+    if (maleVoice) {
+        utterance.voice = maleVoice;
+        // Ajustes para soar mais natural
+        utterance.pitch = 0.9; 
+        utterance.rate = 1.1; 
+    } else {
+        // Se cair na padrão (Google Português - geralmente feminina), baixa o pitch
+        utterance.pitch = 0.8; 
+    }
+
     utterance.onend = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
     setIsSpeaking(true);
     setIsGeneratingAudio(false);
@@ -183,6 +224,18 @@ const FaithCorner: React.FC = () => {
   return (
     <div className="h-full flex flex-col font-sans bg-sky-50 text-slate-800 relative">
         <Layout title="Cantinho da Fé" color="text-sky-600" missionTarget={missionStats}>
+            
+            <div className="absolute top-2 right-14 z-20">
+               <button 
+                  onClick={() => setShowPremiumGate(true)}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm active:scale-95 transition-all
+                    ${aiActiveGlobal ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white' : 'bg-white text-slate-400 border border-slate-200'}
+                  `}
+               >
+                  <Sparkles size={12} /> {aiActiveGlobal ? 'IA ATIVA' : 'ATIVAR IA'}
+               </button>
+            </div>
+
             {loading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
                     <Loader2 className="animate-spin text-sky-400 w-12 h-12" />
@@ -196,7 +249,6 @@ const FaithCorner: React.FC = () => {
                         <div className="relative z-10 text-center mt-6">
                             <h2 className="text-sm font-bold opacity-90 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
                                 Palavra do Dia
-                                {aiActiveGlobal && <Check size={14} className="text-green-300 bg-white/20 rounded-full p-0.5"/>}
                             </h2>
                             <p className="text-2xl font-black italic mb-2">"{data.verse}"</p>
                             <p className="font-bold opacity-80">{data.reference}</p>
@@ -209,7 +261,7 @@ const FaithCorner: React.FC = () => {
                         className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-md ${isSpeaking ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-white text-slate-600 border-b-4 border-slate-200'}`}
                     >
                         {isGeneratingAudio ? <Loader2 className="animate-spin" /> : isSpeaking ? <StopCircle className="animate-pulse" /> : <Volume2 />}
-                        {isGeneratingAudio ? "Preparando Voz..." : isSpeaking ? "Parar Áudio" : "Ouvir Devocional"}
+                        {isGeneratingAudio ? "Criando Áudio..." : isSpeaking ? "Parar Áudio" : "Ouvir Devocional"}
                     </button>
 
                     <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative">
@@ -231,7 +283,7 @@ const FaithCorner: React.FC = () => {
                         {imageLoading ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2">
                                 <Sparkles className="animate-spin text-yellow-400 w-8 h-8" />
-                                <span className="text-xs font-bold">Pintando a história...</span>
+                                <span className="text-xs font-bold">Pintando...</span>
                             </div>
                         ) : imageUrl ? (
                             <img src={imageUrl} alt="História" className="w-full h-full object-cover animate-fade-in" />
@@ -241,6 +293,9 @@ const FaithCorner: React.FC = () => {
                             </div>
                         )}
                     </div>
+                    
+                    {/* Elemento invisível para detectar fim da rolagem */}
+                    <div ref={endOfContentRef} className="h-10 w-full" />
                 </div>
             ) : null}
         </Layout>
@@ -257,32 +312,13 @@ const FaithCorner: React.FC = () => {
 
       {showPremiumGate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-           <div className="bg-white p-6 rounded-[2.5rem] max-w-md w-full relative shadow-2xl text-center">
-              <Sparkles size={40} className="text-sky-500 mx-auto mb-6 animate-spin-slow" />
+           <div className="bg-white p-8 rounded-[2.5rem] max-w-sm w-full relative shadow-2xl text-center">
+              <Sparkles size={48} className="text-sky-500 mx-auto mb-6 animate-pulse" />
               <h2 className="text-2xl font-black text-slate-800 mb-2">Ativar IA Mágica?</h2>
               
-              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex gap-2 text-left mb-6">
-                 <AlertCircle className="text-amber-600 flex-shrink-0" size={18} />
-                 <p className="text-xs text-amber-800 font-medium">
-                    Se a janela do Google não abrir automaticamente, verifique se o navegador não está bloqueando pop-ups.
-                 </p>
-              </div>
-
-              <div className="space-y-4 text-slate-500 text-sm leading-relaxed mb-8">
-                 <p>Conecte sua conta Google para gerar conteúdo único para <strong>{profile?.name}</strong>.</p>
-                 
-                 <div className="flex flex-col gap-2">
-                    <a 
-                        href="https://ai.google.dev/gemini-api/docs/billing" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-1 text-blue-500 font-bold hover:underline"
-                    >
-                        Ver documentação de faturamento <ExternalLink size={14} />
-                    </a>
-                    <p className="text-[10px] text-slate-400">É necessário selecionar um projeto pago no Google Cloud Console.</p>
-                 </div>
-              </div>
+              <p className="text-slate-500 font-medium mb-8 leading-relaxed">
+                 Conecte sua conta para gerar imagens únicas e ouvir histórias com vozes reais.
+              </p>
 
               <div className="space-y-3">
                   <button 
@@ -291,9 +327,9 @@ const FaithCorner: React.FC = () => {
                     className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-100 active:scale-95 disabled:opacity-50"
                   >
                      {isConnecting ? <Loader2 className="animate-spin" /> : <Key size={20} />}
-                     CONECTAR AGORA
+                     CONECTAR
                   </button>
-                  <button onClick={declineAI} disabled={isConnecting} className="w-full py-3 text-slate-400 font-bold text-sm">Usar modo simples</button>
+                  <button onClick={() => setShowPremiumGate(false)} disabled={isConnecting} className="w-full py-3 text-slate-400 font-bold text-sm">Cancelar</button>
               </div>
            </div>
         </div>
