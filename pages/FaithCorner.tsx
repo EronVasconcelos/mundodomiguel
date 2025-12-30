@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
 import { DevotionalData, ChildProfile } from '../types';
@@ -16,6 +17,7 @@ const FaithCorner: React.FC = () => {
   const [showPremiumGate, setShowPremiumGate] = useState(false);
   const [aiActiveGlobal, setAiActiveGlobal] = useState(false);
   const [missionStats, setMissionStats] = useState({ current: 0, target: true });
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
 
@@ -81,16 +83,26 @@ const FaithCorner: React.FC = () => {
   };
 
   const activateAI = async () => {
+      setIsConnecting(true);
       try {
           if (hasAIStudio) {
               await (window as any).aistudio.openSelectKey();
+          } else {
+              // UX Simulation for better feel if not in IDX environment
+              await new Promise(resolve => setTimeout(resolve, 1500));
           }
+
           localStorage.setItem('ai_active_global', 'true');
           localStorage.setItem('ai_enabled_decision', 'true');
           setAiActiveGlobal(true);
-          setShowPremiumGate(false); // Force close
           
-          if (profile) loadContent(profile); // Reload content immediately
+          // Small delay to show "Connected" state before closing
+          setTimeout(() => {
+             setShowPremiumGate(false); 
+             setIsConnecting(false);
+             if (profile) loadContent(profile); 
+          }, 500);
+
       } catch (e) {
           console.error("Auth failed", e);
           // Fallback just in case
@@ -98,6 +110,7 @@ const FaithCorner: React.FC = () => {
           localStorage.setItem('ai_enabled_decision', 'true');
           setAiActiveGlobal(true);
           setShowPremiumGate(false);
+          setIsConnecting(false);
           if (profile) loadContent(profile);
       }
   };
@@ -293,10 +306,21 @@ const FaithCorner: React.FC = () => {
                  </div>
               </div>
               <div className="space-y-3">
-                  <button onClick={activateAI} className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl transition-all shadow-lg shadow-sky-200 active:scale-95 flex items-center justify-center gap-2">
-                     <Key size={20} /> CONECTAR GOOGLE
+                  <button 
+                    onClick={activateAI} 
+                    disabled={isConnecting}
+                    className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl transition-all shadow-lg shadow-sky-200 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                     {isConnecting ? <Loader2 className="animate-spin" /> : <Key size={20} />}
+                     {isConnecting ? "CONECTANDO..." : "CONECTAR GOOGLE"}
                   </button>
-                  <button onClick={declineAI} className="w-full py-3 text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors">Não, usar devocional genérico</button>
+                  <button 
+                    onClick={declineAI} 
+                    disabled={isConnecting}
+                    className="w-full py-3 text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors"
+                  >
+                    Não, usar devocional genérico
+                  </button>
               </div>
            </div>
         </div>

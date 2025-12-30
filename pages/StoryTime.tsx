@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getInstantStory, generateStoryText, generateStoryImage } from '../services/geminiService';
 import { Sparkles, Loader2, BookOpen, Gift, Moon, Edit3, Send, WifiOff, Key, Download, Check, ShieldCheck, Zap } from 'lucide-react';
@@ -12,6 +13,7 @@ const StoryTime: React.FC = () => {
   // AI Logic
   const [useAI, setUseAI] = useState(false);
   const [aiActiveGlobal, setAiActiveGlobal] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState("");
@@ -78,16 +80,26 @@ const StoryTime: React.FC = () => {
   };
   
   const activateAI = async () => {
+      setIsConnecting(true);
       try {
           if (hasAIStudio) {
               await (window as any).aistudio.openSelectKey();
+          } else {
+             // UX Simulation for better feel if not in IDX environment
+             await new Promise(resolve => setTimeout(resolve, 1500));
           }
-          // We assume success if the promise resolves (or if we are in a simulated env)
+
           localStorage.setItem('ai_active_global', 'true');
           localStorage.setItem('ai_enabled_decision', 'true');
           setAiActiveGlobal(true);
           setUseAI(true);
-          setShowPremiumGate(false); // Close modal
+          
+          // Small delay before closing
+          setTimeout(() => {
+             setShowPremiumGate(false);
+             setIsConnecting(false);
+          }, 500);
+
       } catch (e) {
           console.error("Failed to connect Google Account", e);
           // Fallback to allow progress
@@ -96,6 +108,7 @@ const StoryTime: React.FC = () => {
           setAiActiveGlobal(true);
           setUseAI(true);
           setShowPremiumGate(false); 
+          setIsConnecting(false);
       }
   };
 
@@ -360,11 +373,20 @@ const StoryTime: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                  <button onClick={activateAI} className="w-full py-4 bg-white text-indigo-900 font-black text-lg rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                     <Key size={20} /> CONECTAR GOOGLE
+                  <button 
+                    onClick={activateAI} 
+                    disabled={isConnecting}
+                    className="w-full py-4 bg-white text-indigo-900 font-black text-lg rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                     {isConnecting ? <Loader2 className="animate-spin text-indigo-900" /> : <Key size={20} />}
+                     {isConnecting ? "CONECTANDO..." : "CONECTAR GOOGLE"}
                   </button>
                   
-                  <button onClick={declineAI} className="w-full py-3 text-slate-400 font-bold text-sm hover:text-white transition-colors">
+                  <button 
+                    onClick={declineAI} 
+                    disabled={isConnecting}
+                    className="w-full py-3 text-slate-400 font-bold text-sm hover:text-white transition-colors"
+                  >
                      Não, usar histórias genéricas
                   </button>
               </div>
