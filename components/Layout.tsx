@@ -97,8 +97,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     }
 
     try {
-        // First try to delete dependent progress manually to avoid FK errors if cascade is missing
-        await supabase.from('daily_progress').delete().eq('profile_id', idToDelete);
+        // No need to manually delete daily_progress anymore due to CASCADE, 
+        // but we keep the profile delete call.
         
         const { error } = await supabase.from('child_profiles').delete().eq('id', idToDelete);
         if (error) throw error;
@@ -125,7 +125,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     }
   };
 
-  // --- DELETE ACCOUNT FUNCTIONALITY (V2) ---
+  // --- DELETE ACCOUNT FUNCTIONALITY ---
   const handleDeleteAccount = async () => {
     if (!window.confirm("ATENÇÃO: Isso excluirá sua conta de email e todos os perfis das crianças. Não há como desfazer.")) {
         return;
@@ -137,15 +137,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     setUploading(true);
 
     try {
-        // Call the V2 robust SQL function
-        // Note: Make sure to run the updated SQL in Supabase SQL Editor!
-        const { error } = await supabase.rpc('delete_account_v2');
+        // Now calling the standard function, because DB handles cascades
+        const { error } = await supabase.rpc('delete_user_account');
         
         if (error) {
             console.error("RPC Error:", error);
-            // Translate common errors or show raw message
-            if (error.message.includes('function not found') || error.message.includes('delete_account_v2')) {
-                 throw new Error("Função de exclusão não encontrada. Por favor, execute o novo código SQL V2 no painel do Supabase.");
+            if (error.message.includes('function not found')) {
+                 throw new Error("Erro de configuração: Você rodou o novo SQL de Reset no Supabase?");
             }
             throw new Error(error.message);
         }
@@ -159,12 +157,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
     } catch (error: any) {
         console.error("Deletion failed:", error);
-        alert("ERRO AO EXCLUIR: " + error.message + "\n\nTente rodar o script SQL V2 no Supabase.");
-        
-        // Safety Fallback: Force logout so user isn't stuck in a broken state
-        // localStorage.clear();
-        // await supabase.auth.signOut();
-        // navigate(AppRoute.WELCOME);
+        alert("ERRO AO EXCLUIR: " + error.message);
     } finally {
         setUploading(false);
     }
