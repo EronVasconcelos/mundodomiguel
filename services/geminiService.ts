@@ -10,24 +10,47 @@ const handleAIError = (error: any) => {
   console.error("Gemini API Error:", error);
   const errorMessage = error?.message || "";
   
-  // Lista de erros que indicam problema com a chave ou projeto
   if (errorMessage.includes("Requested entity was not found") || 
       errorMessage.includes("API key not valid") || 
-      errorMessage.includes("404") || // Entity not found code
-      errorMessage.includes("403")    // Permission denied
+      errorMessage.includes("404") ||
+      errorMessage.includes("403")
      ) {
     localStorage.removeItem('ai_active_global');
     localStorage.removeItem('ai_enabled_decision');
-    // Dispara evento para que a UI (FaithCorner/StoryTime) saiba que deve pedir login novamente
     window.dispatchEvent(new CustomEvent('ai_auth_reset'));
   }
 };
 
+// --- MOCK DATA FOR OFFLINE/FALLBACK MODE ---
+const FALLBACK_STORY: StoryData = {
+  title: "O Piquenique da Floresta",
+  content: "Era uma vez um coelhinho chamado Pimpão que adorava cenouras. Um dia, ele decidiu fazer um grande piquenique na floresta. Convidou a tartaruga Tita, o esquilo Zeca e a coruja Olivia. Cada um trouxe algo gostoso. Tita trouxe folhas fresquinhas, Zeca trouxe nozes crocantes e Olivia trouxe frutas vermelhas. Eles estenderam uma toalha xadrez na grama verde e compartilharam suas comidas. O sol brilhava e os pássaros cantavam. Pimpão percebeu que a comida ficava muito mais gostosa quando compartilhada com amigos. Eles brincaram de esconde-esconde até o sol se pôr e voltaram para casa felizes.",
+  moral: "Compartilhar momentos com amigos traz a verdadeira felicidade."
+};
+
+const FALLBACK_DEVOTIONAL: DevotionalData = {
+  date: new Date().toDateString(),
+  verse: "O Senhor é o meu pastor; nada me faltará.",
+  reference: "Salmos 23:1",
+  devotional: "Assim como um pastor cuida de suas ovelhinhas, Deus cuida de você com muito amor. Ele sabe de tudo o que você precisa.",
+  storyTitle: "O Pastor Amoroso",
+  storyContent: "Davi era um menino que cuidava de ovelhas. Ele protegia suas ovelhinhas de leões e ursos. Ele sabia o nome de cada uma! Assim também é Deus conosco. Ele nos protege, nos guia e nos ama muito mais do que qualquer pastor ama suas ovelhas. Você pode confiar nEle sempre.",
+  prayer: "Senhor Jesus, obrigado por cuidar de mim como um bom pastor. Ajuda-me a confiar em Ti em todos os momentos. Amém.",
+  imagePrompt: "A cute shepherd boy sitting on grass with white sheep, sunny day, blue sky, 3d pixar style"
+};
+
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key missing");
   
-  // Instancia aqui para pegar a chave mais recente do ambiente
+  // FALLBACK: Se não houver chave (Modo Livro Nativo), retorna história local
+  if (!apiKey) {
+    return {
+        ...FALLBACK_STORY,
+        title: `${FALLBACK_STORY.title} (${topic})`, // Personaliza levemente o título
+        content: `(Modo Offline: ${topic}) ${FALLBACK_STORY.content}`
+    };
+  }
+  
   const ai = new GoogleGenAI({ apiKey });
   const prompt = `Crie uma história para uma criança chamada ${profile.name}. Idade: ${profile.age} anos. Gênero: ${profile.gender === 'boy' ? 'Menino' : 'Menina'}. Tema: ${topic}. Retorne apenas JSON com title, content (aprox 300 palavras), moral.`;
 
@@ -51,13 +74,18 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     return JSON.parse(response.text) as StoryData;
   } catch (error) {
     handleAIError(error);
-    throw error;
+    // Em caso de erro na API, também retorna fallback para não travar o app
+    return FALLBACK_STORY;
   }
 };
 
 export const generateDevotionalContent = async (profile: ChildProfile): Promise<DevotionalData> => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key missing");
+  
+  // FALLBACK: Se não houver chave (Modo Simples), retorna devocional local
+  if (!apiKey) {
+      return FALLBACK_DEVOTIONAL;
+  }
 
   const ai = new GoogleGenAI({ apiKey });
   const prompt = `Devocional cristão diário para ${profile.name}, ${profile.age} anos. JSON com verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (3D Pixar style).`;
@@ -86,7 +114,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
     return { ...JSON.parse(response.text), date: new Date().toDateString() };
   } catch (error) {
     handleAIError(error);
-    throw error;
+    return FALLBACK_DEVOTIONAL;
   }
 };
 

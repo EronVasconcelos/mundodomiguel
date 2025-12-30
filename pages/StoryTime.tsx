@@ -114,15 +114,21 @@ const StoryTime: React.FC = () => {
         return;
       }
       
-      setLoadingPhase("A IA está escrevendo...");
+      setLoadingPhase(useAI ? "A IA está escrevendo..." : "Buscando o livro...");
+      // O serviço agora retorna um fallback se não houver chave (Modo Nativo)
       const storyData = await generateStoryText(selectedTopic, profile);
       setStory(storyData);
       
-      setLoadingPhase("Pintando o desenho...");
-      const img = await generateStoryImage(storyData.content, profile);
-      setImageUrl(img);
+      // Só gera imagem se a IA estiver ativa e houver chave
+      if (useAI && aiActiveGlobal && isOnline) {
+          setLoadingPhase("Pintando o desenho...");
+          const img = await generateStoryImage(storyData.content, profile);
+          setImageUrl(img);
+      }
     } catch (e) {
-      alert("Ops! Verifique sua conexão ou conta Google.");
+      console.error(e);
+      // Fallback de emergência
+      alert("Ops! Algo deu errado ao criar a história.");
     } finally {
       setLoading(false);
     }
@@ -146,7 +152,7 @@ const StoryTime: React.FC = () => {
         {!story && !loading && (
           <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 space-y-6">
             <div className="flex bg-slate-900 p-1 rounded-2xl border border-slate-700">
-               <button onClick={() => handleModeSwitch(false)} className={`flex-1 py-3 rounded-xl font-bold text-sm ${!useAI ? 'bg-slate-700' : 'text-slate-400'}`}>Livro</button>
+               <button onClick={() => handleModeSwitch(false)} className={`flex-1 py-3 rounded-xl font-bold text-sm ${!useAI ? 'bg-slate-700' : 'text-slate-400'}`}>Livro Nativo</button>
                <button onClick={() => handleModeSwitch(true)} className={`flex-1 py-3 rounded-xl font-bold text-sm ${useAI ? 'bg-indigo-600' : 'text-slate-400'}`}>IA Mágica</button>
             </div>
             <h2 className="text-2xl font-black text-center">O que vamos imaginar?</h2>
@@ -168,13 +174,20 @@ const StoryTime: React.FC = () => {
         {story && (
           <div className="space-y-6 animate-slide-up">
             <h2 className="text-3xl font-black text-yellow-400 text-center">{story.title}</h2>
+            
+            <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-slate-700">
+               {imageUrl ? <img src={imageUrl} alt="Story" className="w-full h-full object-cover" /> : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                      <Sparkles className="text-slate-600" size={48} />
+                  </div>
+               )}
+            </div>
+
             <div className="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 text-slate-300 leading-relaxed">
               {story.content.split('\n').map((p, i) => <p key={i} className="mb-4">{p}</p>)}
               <div className="mt-6 p-4 bg-slate-900 rounded-2xl text-yellow-100 font-bold italic">Moral: {story.moral}</div>
             </div>
-            <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-slate-700">
-               {imageUrl && <img src={imageUrl} alt="Story" className="w-full h-full object-cover" />}
-            </div>
+            
             <button onClick={resetStoryState} className="w-full bg-slate-800 py-4 rounded-2xl font-bold text-slate-400">Outra história</button>
           </div>
         )}
