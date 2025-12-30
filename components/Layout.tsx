@@ -41,7 +41,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
         const { data } = await supabase.from('child_profiles').select('*');
-        if (data && data.length > 0) {
+        
+        // CRITICAL FIX: Handle empty data correctly to sync with DB reset
+        if (data) {
             // Map DB snake_case to CamelCase
             const mappedProfiles: ChildProfile[] = data.map((p: any) => ({
                 id: p.id,
@@ -53,12 +55,26 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 eyeColor: p.eye_color,
                 skinTone: p.skin_tone,
                 avatarBase: p.avatar_base,
-                photoUrl: p.photo_url // Load photo URL if exists
+                photoUrl: p.photo_url
             }));
             
             list = mappedProfiles;
-            // Update cache
+            
+            // Sync cache with DB truth (even if empty)
+            setProfiles(list);
             localStorage.setItem('child_profiles', JSON.stringify(mappedProfiles));
+
+            // If DB was wiped but we are on home/protected route, redirect to setup
+            if (list.length === 0 && !location.pathname.includes(AppRoute.PROFILE)) {
+                 setActiveProfile(null);
+                 localStorage.removeItem('active_profile_id');
+                 localStorage.removeItem('child_profile');
+                 // Only redirect if we are inside the app flow
+                 if (location.pathname !== AppRoute.WELCOME && location.pathname !== AppRoute.LOGIN) {
+                    navigate(AppRoute.PROFILE);
+                 }
+                 return;
+            }
         }
     }
     
@@ -97,9 +113,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     }
 
     try {
-        // No need to manually delete daily_progress anymore due to CASCADE, 
-        // but we keep the profile delete call.
-        
+        // Simple delete - DB handles cascade now
         const { error } = await supabase.from('child_profiles').delete().eq('id', idToDelete);
         if (error) throw error;
 
@@ -137,7 +151,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     setUploading(true);
 
     try {
-        // Now calling the standard function, because DB handles cascades
+        // Use the simple function now
         const { error } = await supabase.rpc('delete_user_account');
         
         if (error) {
