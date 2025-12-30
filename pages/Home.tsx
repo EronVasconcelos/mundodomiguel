@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, DailyProgress } from '../types';
 import { Layout } from '../components/Layout';
-import { Gamepad2, Heart, Lock, CheckCircle, Target, X, Trophy, Rocket, Palette, Brush, Search } from 'lucide-react';
+import { Gamepad2, Heart, Lock, CheckCircle, Target, X, Trophy, Rocket, Palette, Brush, Search, Puzzle, Ghost } from 'lucide-react';
 import { getDailyProgress, getGoals, checkUnlock, fetchRemoteProgress } from '../services/progressService';
 
 // --- STICKER ILLUSTRATIONS ---
@@ -67,6 +67,8 @@ const Home: React.FC = () => {
   const isFaithDone = progress.faithDone;
   const isMazesDone = progress.mazesSolved >= GOALS.MAZES;
   const isWordSearchDone = (progress.wordSearchSolved || 0) >= GOALS.WORD_SEARCH;
+  const isPuzzleDone = (progress.puzzlesSolved || 0) >= GOALS.PUZZLES;
+  const isShadowDone = (progress.shadowSolved || 0) >= GOALS.SHADOW;
   const isArcadeUnlocked = progress.arcadeUnlocked;
 
   const handleArcadeClick = () => {
@@ -163,7 +165,7 @@ const Home: React.FC = () => {
            </div>
 
            <div className="grid grid-cols-2 gap-3">
-              {/* MAZE - Light Orange bg, Orange Check */}
+              {/* MAZE */}
               <button 
                   onClick={() => navigate(AppRoute.CHALLENGE)}
                   className="bg-orange-100 rounded-2xl p-4 text-left hover:bg-orange-200 transition-colors active:scale-95 border border-white/10 relative"
@@ -178,19 +180,49 @@ const Home: React.FC = () => {
                   <span className="block font-black text-orange-600 leading-tight">Labirinto</span>
               </button>
 
-              {/* WORD SEARCH - Light Orange bg */}
+              {/* PUZZLE (Quebra-Cabeça) */}
+              <button 
+                  onClick={() => navigate(AppRoute.PUZZLE)}
+                  className="bg-orange-100 rounded-2xl p-4 text-left hover:bg-orange-200 transition-colors active:scale-95 border border-white/10 relative"
+              >
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold bg-orange-200 px-2 py-0.5 rounded-full text-orange-700">
+                     {(progress.puzzlesSolved || 0)}/{GOALS.PUZZLES}
+                  </div>
+                  <div className="flex justify-between items-start mb-2">
+                     <div className="text-3xl">🖼️</div>
+                     {isPuzzleDone && <CheckCircle size={16} className="text-orange-500"/>}
+                  </div>
+                  <span className="block font-black text-orange-600 leading-tight">Quebra Cabeça</span>
+              </button>
+              
+              {/* WORD SEARCH */}
               <button 
                   onClick={() => navigate(AppRoute.WORD_SEARCH)}
                   className="bg-orange-100 rounded-2xl p-4 text-left hover:bg-orange-200 transition-colors active:scale-95 border border-white/10 relative"
               >
                   <div className="absolute bottom-2 right-2 text-[10px] font-bold bg-orange-200 px-2 py-0.5 rounded-full text-orange-700">
-                     {(progress.wordSearchSolved || 0)}/{GOALS.WORD_SEARCH}
+                        {(progress.wordSearchSolved || 0)}/{GOALS.WORD_SEARCH}
                   </div>
                   <div className="flex justify-between items-start mb-2">
                      <div className="text-3xl">🔎</div>
                      {isWordSearchDone && <CheckCircle size={16} className="text-orange-500"/>}
                   </div>
                   <span className="block font-black text-orange-600 leading-tight">Caça Palavras</span>
+              </button>
+
+              {/* SHADOW MATCH (New) */}
+              <button 
+                  onClick={() => navigate(AppRoute.SHADOW)}
+                  className="bg-orange-100 rounded-2xl p-4 text-left hover:bg-orange-200 transition-colors active:scale-95 border border-white/10 relative"
+              >
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold bg-orange-200 px-2 py-0.5 rounded-full text-orange-700">
+                        {(progress.shadowSolved || 0)}/{GOALS.SHADOW}
+                  </div>
+                  <div className="flex justify-between items-start mb-2">
+                     <div className="text-3xl">👻</div>
+                     {isShadowDone && <CheckCircle size={16} className="text-orange-500"/>}
+                  </div>
+                  <span className="block font-black text-orange-600 leading-tight">Sombra</span>
               </button>
            </div>
         </div>
@@ -300,7 +332,7 @@ const Home: React.FC = () => {
                     <p className="text-slate-400 text-sm">Toque para ir direto à tarefa!</p>
                  </div>
 
-                 <div className="space-y-3 mb-6">
+                 <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto scrollbar-hide">
                     <MissionItem 
                        label="Aprender Palavras (Nível 4)" 
                        current={progress.wordLevel} 
@@ -340,6 +372,22 @@ const Home: React.FC = () => {
                        done={isWordSearchDone} 
                        icon={<Search size={16}/>}
                        onClick={() => navigate(AppRoute.WORD_SEARCH)}
+                    />
+                    <MissionItem 
+                       label="Resolver 3 Quebra-Cabeças" 
+                       current={progress.puzzlesSolved || 0} 
+                       target={GOALS.PUZZLES} 
+                       done={isPuzzleDone} 
+                       icon={<Puzzle size={16}/>}
+                       onClick={() => navigate(AppRoute.PUZZLE)}
+                    />
+                    <MissionItem 
+                       label="Encontrar 5 Sombras" 
+                       current={progress.shadowSolved || 0} 
+                       target={GOALS.SHADOW} 
+                       done={isShadowDone} 
+                       icon={<Ghost size={16}/>}
+                       onClick={() => navigate(AppRoute.SHADOW)}
                     />
                  </div>
 

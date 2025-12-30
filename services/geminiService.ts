@@ -3,8 +3,8 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
 // --- CONFIGURAÇÃO DA IA ---
-// Chave configurada para funcionamento imediato ("Zero Config")
-const EMBEDDED_API_KEY: string = "AIzaSyBLL8NW2VYiDOQ_DHL5yKmCpAlzq4crHQE"; 
+// Chave removida por segurança. Configure via .env ou nas configurações do app.
+const EMBEDDED_API_KEY: string = ""; 
 
 // --- DADOS DE FALLBACK (OFFLINE/MOCK) ---
 const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
@@ -212,46 +212,66 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
 
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string | null> => {
   const apiKey = getApiKey();
-  
-  if (!apiKey) {
-      return null;
-  }
+  if (!apiKey) return null;
 
   const ai = new GoogleGenAI({ apiKey });
-  try {
-    const charDesc = profile ? `a cute ${profile.age} year old ${profile.gender} with ${profile.hairColor} hair and ${profile.skinTone} skin` : "a cute child";
-    
-    // Prompt Otimizado para estilo Pixar sem texto
-    const enhancedPrompt = `
-    Generate a 3D rendered image, Disney Pixar animation style.
-    Scene: ${storyPrompt.substring(0, 300)}.
-    Character: ${charDesc}.
-    Details: 8k resolution, cinematic lighting, volumetric light, highly detailed textures, vibrant colors, masterpiece.
-    Negative prompt: text, watermark, signature, letters, typography, distorted, blurry, low quality, ugly.
-    IMPORTANT: The image must NOT contain any text or words.
-    `;
+  
+  const charDesc = profile ? `a cute ${profile.age} year old ${profile.gender} with ${profile.hairColor} hair and ${profile.skinTone} skin` : "a cute child";
+  
+  // Prompt refinado para estilo 3D Pixar
+  const enhancedPrompt = `
+  Disney Pixar animation style, 3D render.
+  Subject: ${charDesc}.
+  Scene: ${storyPrompt.substring(0, 250)}.
+  Style: Cute, magical, vibrant colors, soft cinematic lighting, volumetric light, masterpiece, high detail.
+  Negative prompt: text, watermark, letters, signature, typography, blurry, distorted, low quality, ugly.
+  IMPORTANT: NO TEXT IN IMAGE.
+  `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: enhancedPrompt }] },
-      config: { 
-          imageConfig: { aspectRatio: "1:1" } 
-      }
+  try {
+    // 1. TENTATIVA PRINCIPAL: Imagen 3 (Melhor para geração de imagem pura)
+    // O modelo Imagen é especializado em imagens e geralmente respeita melhor o estilo solicitado.
+    const response = await ai.models.generateImages({
+      model: 'imagen-3.0-generate-001', 
+      prompt: enhancedPrompt,
+      config: {
+        numberOfImages: 1,
+        aspectRatio: '1:1',
+        outputMimeType: 'image/jpeg',
+      },
     });
-    
-    // Varredura robusta para encontrar a parte da imagem na resposta
-    if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData && part.inlineData.data) {
-                return `data:image/png;base64,${part.inlineData.data}`;
+
+    if (response.generatedImages?.[0]?.image?.imageBytes) {
+      return `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
+    }
+  } catch (imagenError) {
+    console.warn("Imagen 3 falhou, tentando fallback Gemini...", imagenError);
+
+    // 2. FALLBACK: Gemini 2.5 Flash Image (Multimodal)
+    // Caso a chave não tenha acesso ao Imagen ou ocorra erro, usamos o Gemini.
+    try {
+        const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: { parts: [{ text: enhancedPrompt }] },
+        config: { 
+            imageConfig: { aspectRatio: "1:1" } 
+        }
+        });
+        
+        // Varredura robusta para encontrar a parte da imagem na resposta
+        if (response.candidates?.[0]?.content?.parts) {
+            for (const part of response.candidates[0].content.parts) {
+                if (part.inlineData && part.inlineData.data) {
+                    return `data:image/png;base64,${part.inlineData.data}`;
+                }
             }
         }
+    } catch (geminiError) {
+        console.error("Erro fatal na geração de imagem (ambos modelos falharam):", geminiError);
     }
-    return null;
-  } catch (error) { 
-    console.error("Erro AI Imagem:", error);
-    return null; 
   }
+  
+  return null;
 };
 
 // Exports for UI Fallbacks

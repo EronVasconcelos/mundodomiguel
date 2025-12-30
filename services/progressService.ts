@@ -5,11 +5,13 @@ import { supabase } from './supabase';
 const STORAGE_KEY_PREFIX = 'miguel_daily_progress_';
 
 const GOALS = {
-  MATH: 20, // Reduced to 20
+  MATH: 20,
   WORDS_LEVEL: 4,
   FAITH: true,
   MAZES: 3,
-  WORD_SEARCH: 3 // Increased to 3
+  WORD_SEARCH: 3,
+  PUZZLES: 3,
+  SHADOW: 5 // New Goal
 };
 
 // Helper to get active profile ID
@@ -33,6 +35,8 @@ const syncToSupabase = async (progress: DailyProgress) => {
         faith_done: progress.faithDone,
         mazes_solved: progress.mazesSolved,
         word_search_solved: progress.wordSearchSolved,
+        puzzles_solved: progress.puzzlesSolved,
+        shadow_solved: progress.shadowSolved, // Sync new field
         arcade_unlocked: progress.arcadeUnlocked
       }, { onConflict: 'profile_id, date' });
 
@@ -54,6 +58,8 @@ export const getDailyProgress = (): DailyProgress => {
     if (parsed.date === today && parsed.profileId === profileId) {
       // Robust initialization for new fields
       if (typeof parsed.wordSearchSolved === 'undefined') parsed.wordSearchSolved = 0;
+      if (typeof parsed.puzzlesSolved === 'undefined') parsed.puzzlesSolved = 0;
+      if (typeof parsed.shadowSolved === 'undefined') parsed.shadowSolved = 0;
       return parsed;
     }
   }
@@ -66,6 +72,8 @@ export const getDailyProgress = (): DailyProgress => {
     faithDone: false,
     mazesSolved: 0,
     wordSearchSolved: 0,
+    puzzlesSolved: 0,
+    shadowSolved: 0,
     arcadeUnlocked: false
   };
   
@@ -96,7 +104,9 @@ export const fetchRemoteProgress = async (): Promise<DailyProgress | null> => {
             wordLevel: data.word_level,
             faithDone: data.faith_done,
             mazesSolved: data.mazes_solved,
-            wordSearchSolved: data.word_search_solved || 0, // Ensure default
+            wordSearchSolved: data.word_search_solved || 0,
+            puzzlesSolved: data.puzzles_solved || 0,
+            shadowSolved: data.shadow_solved || 0,
             arcadeUnlocked: data.arcade_unlocked,
             profileId: data.profile_id
         };
@@ -126,7 +136,9 @@ export const checkUnlock = (progress: DailyProgress): boolean => {
     progress.wordLevel >= GOALS.WORDS_LEVEL &&
     progress.faithDone === true &&
     progress.mazesSolved >= GOALS.MAZES &&
-    (progress.wordSearchSolved || 0) >= GOALS.WORD_SEARCH;
+    (progress.wordSearchSolved || 0) >= GOALS.WORD_SEARCH &&
+    (progress.puzzlesSolved || 0) >= GOALS.PUZZLES &&
+    (progress.shadowSolved || 0) >= GOALS.SHADOW;
 
   if (isUnlocked) {
     progress.arcadeUnlocked = true;
@@ -136,7 +148,6 @@ export const checkUnlock = (progress: DailyProgress): boolean => {
   return isUnlocked;
 };
 
-// Returns TRUE if goal was just reached
 export const incrementMath = (): boolean => {
   const p = getDailyProgress();
   if (p.mathCount < GOALS.MATH) {
@@ -150,7 +161,6 @@ export const incrementMath = (): boolean => {
 
 export const incrementWordSearch = (): boolean => {
   const p = getDailyProgress();
-  // Ensure number
   const current = p.wordSearchSolved || 0;
   
   if (current < GOALS.WORD_SEARCH) {
@@ -158,6 +168,32 @@ export const incrementWordSearch = (): boolean => {
     checkUnlock(p);
     saveProgress(p);
     if (p.wordSearchSolved === GOALS.WORD_SEARCH) return true;
+  }
+  return false;
+};
+
+export const incrementPuzzle = (): boolean => {
+  const p = getDailyProgress();
+  const current = p.puzzlesSolved || 0;
+  
+  if (current < GOALS.PUZZLES) {
+    p.puzzlesSolved = current + 1;
+    checkUnlock(p);
+    saveProgress(p);
+    if (p.puzzlesSolved === GOALS.PUZZLES) return true;
+  }
+  return false;
+};
+
+export const incrementShadow = (): boolean => {
+  const p = getDailyProgress();
+  const current = p.shadowSolved || 0;
+  
+  if (current < GOALS.SHADOW) {
+    p.shadowSolved = current + 1;
+    checkUnlock(p);
+    saveProgress(p);
+    if (p.shadowSolved === GOALS.SHADOW) return true;
   }
   return false;
 };
