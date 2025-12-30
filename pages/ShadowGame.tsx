@@ -1,30 +1,68 @@
 
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import { Trophy, RefreshCw, Star, Check, X } from 'lucide-react';
+import { Trophy, Check } from 'lucide-react';
 import { incrementShadow, getDailyProgress, getGoals } from '../services/progressService';
 import { 
   Cat, Dog, Fish, Bird, Bug, Zap, Heart, Cloud, Sun, Moon, 
-  Umbrella, Car, Plane, Anchor, Key, Bell, Gift, Music, Camera, Ghost 
+  Car, Plane, Anchor, Key, Gift, Music, Ghost,
+  Rabbit, Snail, Turtle, Trees, Flower, Leaf, Snowflake, Flame, Droplets,
+  Bus, Truck, Bike, Ship, Rocket,
+  Apple, Banana, Cherry, Pizza, IceCream, Cookie,
+  Crown, Star, Watch, Umbrella, Glasses, Bell
 } from 'lucide-react';
 
+// --- CATEGORIZED ICONS DB ---
+// 40 Icons Total
 const ICONS = [
-  { id: 'cat', icon: Cat, color: '#f97316' }, // Orange
-  { id: 'dog', icon: Dog, color: '#8b5cf6' }, // Violet
-  { id: 'fish', icon: Fish, color: '#06b6d4' }, // Cyan
-  { id: 'bird', icon: Bird, color: '#ef4444' }, // Red
-  { id: 'bug', icon: Bug, color: '#84cc16' }, // Lime
-  { id: 'zap', icon: Zap, color: '#eab308' }, // Yellow
-  { id: 'heart', icon: Heart, color: '#ec4899' }, // Pink
-  { id: 'cloud', icon: Cloud, color: '#3b82f6' }, // Blue
-  { id: 'sun', icon: Sun, color: '#f59e0b' }, // Amber
-  { id: 'moon', icon: Moon, color: '#6366f1' }, // Indigo
-  { id: 'car', icon: Car, color: '#10b981' }, // Emerald
-  { id: 'plane', icon: Plane, color: '#3b82f6' }, // Blue
-  { id: 'key', icon: Key, color: '#fbbf24' }, // Amber
-  { id: 'gift', icon: Gift, color: '#f43f5e' }, // Rose
-  { id: 'music', icon: Music, color: '#d946ef' }, // Fuchsia
-  { id: 'ghost', icon: Ghost, color: '#94a3b8' }, // Slate
+  // ANIMALS (10)
+  { id: 'cat', icon: Cat, color: '#f97316', category: 'animal' },
+  { id: 'dog', icon: Dog, color: '#8b5cf6', category: 'animal' },
+  { id: 'fish', icon: Fish, color: '#06b6d4', category: 'animal' },
+  { id: 'bird', icon: Bird, color: '#ef4444', category: 'animal' },
+  { id: 'bug', icon: Bug, color: '#84cc16', category: 'animal' },
+  { id: 'rabbit', icon: Rabbit, color: '#f472b6', category: 'animal' },
+  { id: 'snail', icon: Snail, color: '#a855f7', category: 'animal' },
+  { id: 'turtle', icon: Turtle, color: '#10b981', category: 'animal' },
+  { id: 'ghost', icon: Ghost, color: '#94a3b8', category: 'animal' }, // Bonus
+  
+  // NATURE (9)
+  { id: 'cloud', icon: Cloud, color: '#3b82f6', category: 'nature' },
+  { id: 'sun', icon: Sun, color: '#f59e0b', category: 'nature' },
+  { id: 'moon', icon: Moon, color: '#6366f1', category: 'nature' },
+  { id: 'tree', icon: Trees, color: '#15803d', category: 'nature' },
+  { id: 'flower', icon: Flower, color: '#ec4899', category: 'nature' },
+  { id: 'leaf', icon: Leaf, color: '#22c55e', category: 'nature' },
+  { id: 'snow', icon: Snowflake, color: '#0ea5e9', category: 'nature' },
+  { id: 'flame', icon: Flame, color: '#f97316', category: 'nature' },
+  { id: 'drop', icon: Droplets, color: '#3b82f6', category: 'nature' },
+
+  // VEHICLES (7)
+  { id: 'car', icon: Car, color: '#ef4444', category: 'vehicle' },
+  { id: 'plane', icon: Plane, color: '#3b82f6', category: 'vehicle' },
+  { id: 'bus', icon: Bus, color: '#f59e0b', category: 'vehicle' },
+  { id: 'truck', icon: Truck, color: '#64748b', category: 'vehicle' },
+  { id: 'bike', icon: Bike, color: '#14b8a6', category: 'vehicle' },
+  { id: 'ship', icon: Ship, color: '#3b82f6', category: 'vehicle' },
+  { id: 'rocket', icon: Rocket, color: '#8b5cf6', category: 'vehicle' },
+
+  // FOOD (6)
+  { id: 'apple', icon: Apple, color: '#ef4444', category: 'food' },
+  { id: 'banana', icon: Banana, color: '#facc15', category: 'food' },
+  { id: 'cherry', icon: Cherry, color: '#be123c', category: 'food' },
+  { id: 'pizza', icon: Pizza, color: '#f97316', category: 'food' },
+  { id: 'icecream', icon: IceCream, color: '#f472b6', category: 'food' },
+  { id: 'cookie', icon: Cookie, color: '#d97706', category: 'food' },
+
+  // OBJECTS (8)
+  { id: 'key', icon: Key, color: '#fbbf24', category: 'object' },
+  { id: 'gift', icon: Gift, color: '#f43f5e', category: 'object' },
+  { id: 'music', icon: Music, color: '#d946ef', category: 'object' },
+  { id: 'bell', icon: Bell, color: '#f59e0b', category: 'object' },
+  { id: 'anchor', icon: Anchor, color: '#1e293b', category: 'object' },
+  { id: 'glasses', icon: Glasses, color: '#334155', category: 'object' },
+  { id: 'umbrella', icon: Umbrella, color: '#8b5cf6', category: 'object' },
+  { id: 'crown', icon: Crown, color: '#eab308', category: 'object' },
 ];
 
 const ShadowGame: React.FC = () => {
@@ -47,15 +85,26 @@ const ShadowGame: React.FC = () => {
     setWrongIndex(null);
     setShowMissionComplete(false);
 
-    // Pick random target
+    // 1. Pick random target from ALL icons
     const targetItem = ICONS[Math.floor(Math.random() * ICONS.length)];
     setTarget(targetItem);
 
-    // Pick 3 distractions (unique)
-    let distractions = ICONS.filter(i => i.id !== targetItem.id);
-    distractions = distractions.sort(() => Math.random() - 0.5).slice(0, 3);
+    // 2. Pick 3 distractions
+    // LOGIC: Try to pick from SAME CATEGORY to make shadows similar (harder/better)
+    const categoryMates = ICONS.filter(i => i.category === targetItem.category && i.id !== targetItem.id);
+    const otherMates = ICONS.filter(i => i.category !== targetItem.category);
     
-    // Combine and shuffle
+    let pool = [...categoryMates];
+    
+    // Fill pool with randoms if category is too small (shouldn't happen with updated list, but safe)
+    if (pool.length < 3) {
+        pool = [...pool, ...otherMates];
+    }
+
+    // Shuffle pool and pick 3
+    const distractions = pool.sort(() => Math.random() - 0.5).slice(0, 3);
+    
+    // Combine and shuffle options
     const allOptions = [targetItem, ...distractions].sort(() => Math.random() - 0.5);
     setOptions(allOptions);
   };

@@ -16,8 +16,8 @@ interface LayoutProps {
   missionTarget?: { current: number; target: number | boolean; label?: string };
 }
 
-// Generic Gender-Neutral Avatar
-const DEFAULT_AVATAR = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/><circle cx="100" cy="85" r="45" fill="%2394a3b8"/><path d="M100 145 C60 145 30 180 30 200 L170 200 C170 180 140 145 100 145 Z" fill="%2394a3b8"/><circle cx="85" cy="80" r="5" fill="white"/><circle cx="115" cy="80" r="5" fill="white"/><path d="M90 100 Q100 110 110 100" stroke="white" stroke-width="3" fill="none"/></svg>`;
+// Improved Default Avatar (Cute Robot)
+const DEFAULT_AVATAR = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f1f5f9"/><circle cx="100" cy="100" r="60" fill="%23cbd5e1"/><rect x="70" y="80" width="20" height="20" rx="5" fill="%23334155"/><rect x="110" y="80" width="20" height="20" rx="5" fill="%23334155"/><path d="M70 130 Q100 150 130 130" stroke="%23334155" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="100" cy="100" r="55" stroke="%2394a3b8" stroke-width="4" fill="none"/></svg>`;
 
 export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-slate-700", missionTarget }) => {
   const navigate = useNavigate();
@@ -251,35 +251,35 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
       <div className="px-4 pt-4 pb-2 z-20 flex-shrink-0">
         <header className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border-2 border-slate-100 p-2 pl-3 flex items-center justify-between relative">
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 overflow-hidden">
              {isHome ? (
                  <button 
                     onClick={() => setIsMenuOpen(true)}
-                    className="w-10 h-10 flex items-center justify-center text-slate-700 active:bg-slate-100 rounded-full transition-colors"
+                    className="w-10 h-10 flex-shrink-0 flex items-center justify-center text-slate-700 active:bg-slate-100 rounded-full transition-colors"
                  >
                     <Menu size={28} strokeWidth={2.5} />
                  </button>
              ) : (
                 <button 
                     onClick={() => navigate('/')}
-                    className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95"
+                    className="w-10 h-10 flex-shrink-0 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95"
                 >
                     <ArrowLeft size={24} strokeWidth={3} />
                 </button>
              )}
 
-             <div className="flex flex-col">
+             <div className="flex flex-col overflow-hidden">
                 {isHome ? (
-                    <span className="text-xl font-black text-slate-800 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                    <span className="text-2xl font-black text-slate-800 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1">
                         Mundo {activeProfile?.gender === 'girl' ? 'da' : 'do'} <span className={activeProfile?.gender === 'girl' ? 'text-pink-500' : 'text-blue-500'}>{activeProfile?.name}</span>
                     </span>
                 ) : (
-                    <span className={`text-lg font-black leading-tight ${color}`}>{title}</span>
+                    <span className={`text-xl font-black leading-tight ${color}`}>{title}</span>
                 )}
              </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
              {isHome ? (
                 <>
                    {installPrompt && (

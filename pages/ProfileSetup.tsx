@@ -81,34 +81,79 @@ const ProfileSetup: React.FC = () => {
 
   // Helper function to generate SVG avatar string based on traits
   const generateAvatar = (p: ChildProfile): string => {
-    const skinColors: Record<string, string> = { light: '#fde68a', medium: '#d4a373', dark: '#5c3a21' };
-    const hairColors: Record<string, string> = { blonde: '#fcd34d', brown: '#78350f', black: '#171717', red: '#ef4444' };
+    const skinColors: Record<string, string> = { light: '#fde68a', medium: '#d4a373', dark: '#8d5524' };
+    const hairColors: Record<string, string> = { blonde: '#fcd34d', brown: '#50301e', black: '#171717', red: '#ef4444' };
     
     const skin = skinColors[p.skinTone] || skinColors.light;
     const hair = hairColors[p.hairColor] || hairColors.brown;
     const bg = p.gender === 'girl' ? '#fce7f3' : '#e0f2fe'; 
 
     let hairSvg = '';
+    // Enhanced Hair Styles
     if (p.hairStyle === 'short') {
-        hairSvg = `<path d="M70 60 C70 30 130 30 130 60 L130 90 C130 80 120 70 100 70 C80 70 70 80 70 90 Z" fill="${hair}"/>`; 
+        hairSvg = `
+          <path d="M50 80 C50 40 150 40 150 80 L150 100 C150 90 140 85 130 85 C120 85 110 95 100 95 C90 95 80 85 70 85 C60 85 50 90 50 100 Z" fill="${hair}"/>
+          <path d="M100 45 Q120 35 130 50" stroke="${hair}" stroke-width="4" fill="none" opacity="0.3"/>
+        `;
     } else if (p.hairStyle === 'long') {
-        hairSvg = `<path d="M60 60 C60 20 140 20 140 60 L140 140 C140 150 120 150 120 140 L120 100 L80 100 L80 140 C80 150 60 150 60 140 Z" fill="${hair}"/>`;
+        hairSvg = `
+          <path d="M50 80 C50 30 150 30 150 80 L150 160 C150 170 130 170 130 160 L130 110 L70 110 L70 160 C70 170 50 170 50 160 Z" fill="${hair}"/>
+          <path d="M60 80 C60 100 60 160 60 160" stroke="${hair}" stroke-width="2" opacity="0.2"/>
+          <path d="M140 80 C140 100 140 160 140 160" stroke="${hair}" stroke-width="2" opacity="0.2"/>
+        `;
     } else if (p.hairStyle === 'curly') {
-        hairSvg = `<path d="M65 60 C60 40 80 20 100 25 C120 20 140 40 135 60 C145 70 145 90 135 100 C135 120 115 130 100 125 C85 130 65 120 65 100 C55 90 55 70 65 60 Z" fill="${hair}"/>`;
-    } else {
-        hairSvg = `<path d="M65 60 C65 20 135 20 135 60 L135 120 L65 120 Z" fill="${hair}"/>`;
+        hairSvg = `
+          <circle cx="55" cy="80" r="15" fill="${hair}"/>
+          <circle cx="145" cy="80" r="15" fill="${hair}"/>
+          <circle cx="70" cy="65" r="15" fill="${hair}"/>
+          <circle cx="130" cy="65" r="15" fill="${hair}"/>
+          <circle cx="100" cy="55" r="18" fill="${hair}"/>
+          <circle cx="85" cy="60" r="15" fill="${hair}"/>
+          <circle cx="115" cy="60" r="15" fill="${hair}"/>
+          <path d="M60 80 C60 130 140 130 140 80" fill="none"/>
+        `;
+    } else { // Straight/Generic
+        hairSvg = `
+          <path d="M50 80 C50 30 150 30 150 80 L150 120 L50 120 Z" fill="${hair}"/>
+          <path d="M100 35 L100 55" stroke="rgba(0,0,0,0.1)" stroke-width="2"/>
+        `;
     }
 
     const svgString = `
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
         <rect width="200" height="200" fill="${bg}"/>
-        ${p.hairStyle === 'long' ? `<path d="M70 80 L130 80 L130 150 L70 150 Z" fill="${hair}"/>` : ''}
-        <rect x="85" y="140" width="30" height="40" fill="${skin}"/>
-        <path d="M50 200 Q100 160 150 200" fill="${p.gender === 'girl' ? '#f472b6' : '#60a5fa'}"/>
-        <circle cx="100" cy="100" r="45" fill="${skin}"/>
-        <circle cx="85" cy="95" r="5" fill="#1e293b"/>
-        <circle cx="115" cy="95" r="5" fill="#1e293b"/>
-        <path d="M90 120 Q100 130 110 120" stroke="#78350f" stroke-width="3" fill="none"/>
+        <!-- Back Hair (if long) -->
+        ${p.hairStyle === 'long' ? `<path d="M60 90 L140 90 L145 160 L55 160 Z" fill="${hair}"/>` : ''}
+        
+        <!-- Face Shape -->
+        <rect x="75" y="140" width="50" height="40" fill="${skin}"/> <!-- Neck -->
+        <ellipse cx="100" cy="105" rx="55" ry="60" fill="${skin}"/>
+        
+        <!-- Ears -->
+        <circle cx="45" cy="110" r="12" fill="${skin}"/>
+        <circle cx="155" cy="110" r="12" fill="${skin}"/>
+        
+        <!-- Shirt -->
+        <path d="M50 200 Q100 150 150 200" fill="${p.gender === 'girl' ? '#ec4899' : '#3b82f6'}"/>
+        
+        <!-- Facial Features -->
+        <g fill="#1e293b">
+           <!-- Eyes -->
+           <circle cx="80" cy="105" r="7"/>
+           <circle cx="120" cy="105" r="7"/>
+           <!-- Eye Highlights -->
+           <circle cx="82" cy="103" r="2" fill="white"/>
+           <circle cx="122" cy="103" r="2" fill="white"/>
+        </g>
+        
+        <!-- Blush -->
+        <ellipse cx="70" cy="120" rx="8" ry="5" fill="#ef4444" opacity="0.2"/>
+        <ellipse cx="130" cy="120" rx="8" ry="5" fill="#ef4444" opacity="0.2"/>
+
+        <!-- Smile -->
+        <path d="M85 130 Q100 145 115 130" stroke="#78350f" stroke-width="4" fill="none" stroke-linecap="round"/>
+        
+        <!-- Front Hair -->
         ${hairSvg}
       </svg>
     `;
@@ -303,7 +348,7 @@ const ProfileSetup: React.FC = () => {
                     key={c} 
                     onClick={() => setProfile({...profile, hairColor: c})}
                     className={`w-12 h-12 rounded-full border-4 shadow-sm transition-transform ${profile.hairColor === c ? 'border-blue-500 scale-110' : 'border-white'}`}
-                    style={{ backgroundColor: c === 'blonde' ? '#fcd34d' : c === 'brown' ? '#78350f' : c === 'black' ? '#171717' : '#ef4444' }}
+                    style={{ backgroundColor: c === 'blonde' ? '#fcd34d' : c === 'brown' ? '#50301e' : c === 'black' ? '#171717' : '#ef4444' }}
                   />
                ))}
             </div>
@@ -334,7 +379,7 @@ const ProfileSetup: React.FC = () => {
                     key={s} 
                     onClick={() => setProfile({...profile, skinTone: s})}
                     className={`w-12 h-12 rounded-full border-4 shadow-sm transition-transform ${profile.skinTone === s ? 'border-blue-500 scale-110' : 'border-white'}`}
-                    style={{ backgroundColor: s === 'light' ? '#fde68a' : s === 'medium' ? '#d4a373' : '#5c3a21' }}
+                    style={{ backgroundColor: s === 'light' ? '#fde68a' : s === 'medium' ? '#d4a373' : '#8d5524' }}
                   />
                ))}
             </div>
