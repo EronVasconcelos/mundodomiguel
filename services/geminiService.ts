@@ -155,7 +155,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
 
   const ai = new GoogleGenAI({ apiKey });
   const prompt = `Crie um devocional cristão curto e simples para uma criança de ${profile.age} anos chamada ${profile.name}.
-  Retorne JSON estrito: verse (versículo), reference (referência), devotional (explicação simples), storyTitle (titulo historia), storyContent (historia biblica curta), prayer (oração), imagePrompt (descrição visual para gerar imagem estilo Pixar).`;
+  Retorne JSON estrito: verse (versículo), reference (referência), devotional (explicação simples), storyTitle (titulo historia), storyContent (historia biblica curta), prayer (oração), imagePrompt (descrição VISUAL APENAS da cena, sem textos).`;
 
   try {
     const response = await ai.models.generateContent({
@@ -219,11 +219,17 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
 
   const ai = new GoogleGenAI({ apiKey });
   try {
-    const charDesc = profile ? `A cute ${profile.age} year old ${profile.gender}, ${profile.hairColor} hair, ${profile.skinTone} skin` : "A cute child";
+    const charDesc = profile ? `a cute ${profile.age} year old ${profile.gender} with ${profile.hairColor} hair and ${profile.skinTone} skin` : "a cute child";
     
-    const enhancedPrompt = `Disney Pixar movie poster style, 3D render, masterpiece, 8k resolution, soft cinematic lighting, vibrant colors, cute and magical atmosphere.
-    Subject: ${charDesc} in the scene: ${storyPrompt.substring(0, 300)}.
-    High detail, smooth textures, centered composition.`;
+    // Prompt Otimizado para estilo Pixar sem texto
+    const enhancedPrompt = `
+    Generate a 3D rendered image, Disney Pixar animation style.
+    Scene: ${storyPrompt.substring(0, 300)}.
+    Character: ${charDesc}.
+    Details: 8k resolution, cinematic lighting, volumetric light, highly detailed textures, vibrant colors, masterpiece.
+    Negative prompt: text, watermark, signature, letters, typography, distorted, blurry, low quality, ugly.
+    IMPORTANT: The image must NOT contain any text or words.
+    `;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -233,9 +239,13 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
       }
     });
     
-    const imgPart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-    if (imgPart) {
-        return `data:image/png;base64,${imgPart.inlineData.data}`;
+    // Varredura robusta para encontrar a parte da imagem na resposta
+    if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData && part.inlineData.data) {
+                return `data:image/png;base64,${part.inlineData.data}`;
+            }
+        }
     }
     return null;
   } catch (error) { 
