@@ -249,9 +249,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
       {/* --- HEADER --- */}
       <div className="px-4 pt-4 pb-2 z-20 flex-shrink-0">
-        <header className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border-2 border-slate-100 p-2 pl-3 flex items-center justify-between relative">
+        <header className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border-2 border-slate-100 p-2 pl-3 flex items-center justify-between relative h-16">
           
-          <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex items-center gap-3 overflow-hidden w-full">
              {isHome ? (
                  <button 
                     onClick={() => setIsMenuOpen(true)}
@@ -268,10 +268,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 </button>
              )}
 
-             <div className="flex flex-col overflow-hidden">
+             <div className="flex flex-col overflow-hidden w-full">
                 {isHome ? (
-                    <span className="text-2xl font-black text-slate-800 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1">
-                        Mundo {activeProfile?.gender === 'girl' ? 'da' : 'do'} <span className={activeProfile?.gender === 'girl' ? 'text-pink-500' : 'text-blue-500'}>{activeProfile?.name}</span>
+                    <span className="text-3xl font-black text-slate-800 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1">
+                        Mundo {activeProfile?.gender === 'girl' ? 'da' : 'do'} <span className={activeProfile?.gender === 'girl' ? 'text-pink-500' : 'text-blue-600'}>{activeProfile?.name}</span>
                     </span>
                 ) : (
                     <span className={`text-xl font-black leading-tight ${color}`}>{title}</span>
@@ -279,7 +279,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
              </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
              {isHome ? (
                 <>
                    {installPrompt && (
