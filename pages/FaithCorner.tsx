@@ -19,7 +19,8 @@ const FaithCorner: React.FC = () => {
   const [missionStats, setMissionStats] = useState({ current: 0, target: true });
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Referência ao AudioContext para controle de som
+  const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
+
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -29,7 +30,6 @@ const FaithCorner: React.FC = () => {
     const storedProfile = localStorage.getItem('child_profile');
     if (storedProfile) setProfile(JSON.parse(storedProfile));
 
-    // Verificar se já existe decisão de IA ativa
     const globalStatus = localStorage.getItem('ai_active_global') === 'true';
     setAiActiveGlobal(globalStatus);
 
@@ -41,7 +41,6 @@ const FaithCorner: React.FC = () => {
         }
     }
     
-    // Progresso da Missão
     const reached = completeFaith();
     const p = getDailyProgress();
     setMissionStats({ current: p.faithDone ? 1 : 0, target: true });
@@ -50,11 +49,9 @@ const FaithCorner: React.FC = () => {
       setTimeout(() => setShowMissionComplete(true), 2000);
     }
 
-    // Listener para reset de autenticação (caso a chave falhe depois)
     const handleAuthReset = () => {
         setAiActiveGlobal(false);
         setShowPremiumGate(true);
-        setIsConnecting(false);
     };
     window.addEventListener('ai_auth_reset', handleAuthReset);
     return () => window.removeEventListener('ai_auth_reset', handleAuthReset);
@@ -74,7 +71,6 @@ const FaithCorner: React.FC = () => {
         setData(content);
         setLoading(false);
 
-        // Cache de imagem para o dia
         const savedImgKey = `faith_img_${content.date}_${currentProfile.name}`;
         const savedImg = localStorage.getItem(savedImgKey);
         
@@ -90,38 +86,31 @@ const FaithCorner: React.FC = () => {
             setImageLoading(false);
         }
     } catch (e) {
-        console.error("Load Content Error", e);
         setLoading(false);
     }
   };
 
   const activateAI = async () => {
       setIsConnecting(true);
-      
       try {
-          // INTERAÇÃO COM O AMBIENTE: Chamar o seletor de chave do Google
-          const aiStudio = (window as any).aistudio;
-          if (aiStudio && typeof aiStudio.openSelectKey === 'function') {
-              // Disparamos e não aguardamos (seguindo a regra de assume successful para mitigar race condition)
-              aiStudio.openSelectKey();
-          } else {
-              console.warn("AI Studio API não detectada no objeto window.");
+          // DIRECT ACTION: Trigger selector to ensure browser captures user gesture
+          if (hasAIStudio) {
+              await (window as any).aistudio.openSelectKey();
           }
           
-          // Persistimos o estado imediatamente
+          // CRITICAL: Assume success immediately as per instructions to handle race conditions
           localStorage.setItem('ai_active_global', 'true');
           localStorage.setItem('ai_enabled_decision', 'true');
           setAiActiveGlobal(true);
           
-          // Fechamos o modal após um curto delay para dar tempo do diálogo nativo aparecer
           setTimeout(() => {
              setShowPremiumGate(false); 
              setIsConnecting(false);
              if (profile) loadContent(profile); 
-          }, 500);
+          }, 800);
 
       } catch (e) {
-          console.error("Erro ao conectar IA", e);
+          console.error("Auth process error", e);
           setIsConnecting(false);
       }
   };
@@ -180,9 +169,7 @@ const FaithCorner: React.FC = () => {
                 setIsGeneratingAudio(false);
                 return;
             }
-        } catch (e) { 
-            console.warn("Erro ao gerar áudio Gemini, usando fallback nativo", e); 
-        }
+        } catch (e) { console.warn(e); }
     }
 
     const utterance = new SpeechSynthesisUtterance(textToRead);
@@ -203,7 +190,6 @@ const FaithCorner: React.FC = () => {
                 </div>
             ) : data ? (
                 <div className="space-y-6 pb-12">
-                    {/* Header do Devocional */}
                     <div className="bg-gradient-to-br from-sky-400 to-blue-500 rounded-[2.5rem] p-6 text-white shadow-lg relative overflow-hidden">
                         <Cloud className="absolute -top-4 -right-4 w-32 h-32 text-white/20" />
                         <Sun className="absolute top-4 left-4 w-12 h-12 text-yellow-300 animate-spin-slow" />
@@ -227,7 +213,7 @@ const FaithCorner: React.FC = () => {
                     </button>
 
                     <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative">
-                        <div className="absolute -top-3 left-6 bg-sky-100 text-sky-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">Reflexão para {profile?.name}</div>
+                        <div className="absolute -top-3 left-6 bg-sky-100 text-sky-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">Para {profile?.name}</div>
                         <p className="text-lg leading-relaxed text-slate-600 font-medium">{data.devotional}</p>
                     </div>
 
@@ -248,7 +234,7 @@ const FaithCorner: React.FC = () => {
                                 <span className="text-xs font-bold">Pintando a história...</span>
                             </div>
                         ) : imageUrl ? (
-                            <img src={imageUrl} alt="Ilustração" className="w-full h-full object-cover animate-fade-in" />
+                            <img src={imageUrl} alt="História" className="w-full h-full object-cover animate-fade-in" />
                         ) : (
                             <div className="absolute inset-0 flex items-center justify-center text-slate-300">
                                 <Cloud size={48} />
@@ -259,33 +245,42 @@ const FaithCorner: React.FC = () => {
             ) : null}
         </Layout>
 
-        {/* Modal de Ativação de IA (Premium Gate) */}
-        {showPremiumGate && (
+        {showMissionComplete && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
+               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+                  <Trophy className="w-12 h-12 text-yellow-500 animate-bounce mb-4" />
+                  <h2 className="text-2xl font-black text-slate-800 text-center mb-2">DEVOCIONAL LIDO!</h2>
+                  <button onClick={() => setShowMissionComplete(false)} className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl">AMÉM!</button>
+               </div>
+            </div>
+        )}
+
+      {showPremiumGate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
            <div className="bg-white p-6 rounded-[2.5rem] max-w-md w-full relative shadow-2xl text-center">
               <Sparkles size={40} className="text-sky-500 mx-auto mb-6 animate-spin-slow" />
-              <h2 className="text-2xl font-black text-slate-800 mb-2">Toque para Conectar</h2>
+              <h2 className="text-2xl font-black text-slate-800 mb-2">Ativar IA Mágica?</h2>
               
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex gap-3 text-left mb-6">
-                 <AlertCircle className="text-amber-600 flex-shrink-0" size={20} />
-                 <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                    O diálogo oficial do Google aparecerá em seguida. Se nada acontecer, certifique-se de que o navegador não bloqueou o pop-up.
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex gap-2 text-left mb-6">
+                 <AlertCircle className="text-amber-600 flex-shrink-0" size={18} />
+                 <p className="text-xs text-amber-800 font-medium">
+                    A janela de seleção do Google aparecerá em seguida. Se o pop-up não abrir, verifique as configurações do seu navegador.
                  </p>
               </div>
 
               <div className="space-y-4 text-slate-500 text-sm leading-relaxed mb-8">
-                 <p>Conecte sua conta para gerar imagens, histórias e vozes únicas para <strong>{profile?.name}</strong>.</p>
+                 <p>Conecte sua conta Google para gerar conteúdo único para <strong>{profile?.name}</strong>.</p>
                  
-                 <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-xl">
+                 <div className="flex flex-col gap-2">
                     <a 
                         href="https://ai.google.dev/gemini-api/docs/billing" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-1 text-blue-500 font-bold hover:underline"
                     >
-                        Ver Documentação de Faturamento <ExternalLink size={14} />
+                        Ver documentação de faturamento <ExternalLink size={14} />
                     </a>
-                    <p className="text-[10px] text-slate-400">Requer um projeto com faturamento ativo no Google Cloud.</p>
+                    <p className="text-[10px] text-slate-400">É necessário selecionar um projeto pago no Google Cloud Console.</p>
                  </div>
               </div>
 
@@ -296,9 +291,9 @@ const FaithCorner: React.FC = () => {
                     className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-100 active:scale-95 disabled:opacity-50"
                   >
                      {isConnecting ? <Loader2 className="animate-spin" /> : <Key size={20} />}
-                     CONECTAR GOOGLE
+                     CONECTAR AGORA
                   </button>
-                  <button onClick={declineAI} className="w-full py-3 text-slate-400 font-bold text-sm">Agora não, usar modo simples</button>
+                  <button onClick={declineAI} disabled={isConnecting} className="w-full py-3 text-slate-400 font-bold text-sm">Usar modo simples</button>
               </div>
            </div>
         </div>
