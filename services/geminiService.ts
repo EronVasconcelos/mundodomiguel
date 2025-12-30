@@ -9,9 +9,16 @@ import { StoryData, DevotionalData, ChildProfile } from '../types';
 const handleAIError = (error: any) => {
   console.error("Gemini API Error:", error);
   const errorMessage = error?.message || "";
-  if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("API key not valid")) {
+  
+  // Lista de erros que indicam problema com a chave ou projeto
+  if (errorMessage.includes("Requested entity was not found") || 
+      errorMessage.includes("API key not valid") || 
+      errorMessage.includes("404") || // Entity not found code
+      errorMessage.includes("403")    // Permission denied
+     ) {
     localStorage.removeItem('ai_active_global');
     localStorage.removeItem('ai_enabled_decision');
+    // Dispara evento para que a UI (FaithCorner/StoryTime) saiba que deve pedir login novamente
     window.dispatchEvent(new CustomEvent('ai_auth_reset'));
   }
 };
@@ -20,6 +27,7 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
   const apiKey = process.env.API_KEY;
   if (!apiKey) throw new Error("API Key missing");
   
+  // Instancia aqui para pegar a chave mais recente do ambiente
   const ai = new GoogleGenAI({ apiKey });
   const prompt = `Crie uma história para uma criança chamada ${profile.name}. Idade: ${profile.age} anos. Gênero: ${profile.gender === 'boy' ? 'Menino' : 'Menina'}. Tema: ${topic}. Retorne apenas JSON com title, content (aprox 300 palavras), moral.`;
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
-import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, Zap, Trophy, ExternalLink, AlertCircle } from 'lucide-react';
+import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, Trophy, ExternalLink, AlertCircle } from 'lucide-react';
 import { completeFaith, getDailyProgress } from '../services/progressService';
 
 const FaithCorner: React.FC = () => {
@@ -18,8 +18,6 @@ const FaithCorner: React.FC = () => {
   const [aiActiveGlobal, setAiActiveGlobal] = useState(false);
   const [missionStats, setMissionStats] = useState({ current: 0, target: true });
   const [isConnecting, setIsConnecting] = useState(false);
-
-  const hasAIStudio = typeof window !== 'undefined' && (window as any).aistudio;
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -52,6 +50,7 @@ const FaithCorner: React.FC = () => {
     const handleAuthReset = () => {
         setAiActiveGlobal(false);
         setShowPremiumGate(true);
+        setIsConnecting(false);
     };
     window.addEventListener('ai_auth_reset', handleAuthReset);
     return () => window.removeEventListener('ai_auth_reset', handleAuthReset);
@@ -86,33 +85,34 @@ const FaithCorner: React.FC = () => {
             setImageLoading(false);
         }
     } catch (e) {
+        console.error("Erro ao carregar conteúdo", e);
         setLoading(false);
     }
   };
 
-  const activateAI = async () => {
+  const activateAI = () => {
       setIsConnecting(true);
-      try {
-          // DIRECT ACTION: Trigger selector to ensure browser captures user gesture
-          if (hasAIStudio) {
-              await (window as any).aistudio.openSelectKey();
-          }
-          
-          // CRITICAL: Assume success immediately as per instructions to handle race conditions
-          localStorage.setItem('ai_active_global', 'true');
-          localStorage.setItem('ai_enabled_decision', 'true');
-          setAiActiveGlobal(true);
-          
-          setTimeout(() => {
-             setShowPremiumGate(false); 
-             setIsConnecting(false);
-             if (profile) loadContent(profile); 
-          }, 800);
-
-      } catch (e) {
-          console.error("Auth process error", e);
-          setIsConnecting(false);
+      
+      const aiStudio = (window as any).aistudio;
+      if (aiStudio && typeof aiStudio.openSelectKey === 'function') {
+          // Fire and forget - não usar await aqui para garantir que o navegador não bloqueie o popup
+          aiStudio.openSelectKey();
+      } else {
+          // Se não estiver no ambiente IDX/AI Studio, apenas simula para não travar
+          console.warn("Ambiente AI Studio não detectado.");
       }
+
+      // Assume sucesso e configura estado
+      localStorage.setItem('ai_active_global', 'true');
+      localStorage.setItem('ai_enabled_decision', 'true');
+      setAiActiveGlobal(true);
+      
+      // Fecha o modal após um tempo para dar chance do popup aparecer
+      setTimeout(() => {
+         setShowPremiumGate(false); 
+         setIsConnecting(false);
+         if (profile) loadContent(profile); 
+      }, 1500);
   };
 
   const declineAI = () => {
@@ -264,7 +264,7 @@ const FaithCorner: React.FC = () => {
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex gap-2 text-left mb-6">
                  <AlertCircle className="text-amber-600 flex-shrink-0" size={18} />
                  <p className="text-xs text-amber-800 font-medium">
-                    A janela de seleção do Google aparecerá em seguida. Se o pop-up não abrir, verifique as configurações do seu navegador.
+                    Se a janela do Google não abrir automaticamente, verifique se o navegador não está bloqueando pop-ups.
                  </p>
               </div>
 

@@ -45,6 +45,7 @@ const StoryTime: React.FC = () => {
         setAiActiveGlobal(false);
         setUseAI(false);
         setShowPremiumGate(true);
+        setIsConnecting(false);
     };
     window.addEventListener('ai_auth_reset', handleAuthReset);
 
@@ -74,27 +75,23 @@ const StoryTime: React.FC = () => {
     setImageUrl(null);
   };
   
-  const activateAI = async () => {
+  const activateAI = () => {
       setIsConnecting(true);
-      try {
-          if (hasAIStudio) {
-              await (window as any).aistudio.openSelectKey();
-          }
-          
-          localStorage.setItem('ai_active_global', 'true');
-          localStorage.setItem('ai_enabled_decision', 'true');
-          setAiActiveGlobal(true);
-          setUseAI(true);
-          
-          setTimeout(() => {
-             setShowPremiumGate(false);
-             setIsConnecting(false);
-          }, 800);
-
-      } catch (e) {
-          console.error("Auth process error", e);
-          setIsConnecting(false);
+      
+      const aiStudio = (window as any).aistudio;
+      if (aiStudio && typeof aiStudio.openSelectKey === 'function') {
+          aiStudio.openSelectKey();
       }
+
+      localStorage.setItem('ai_active_global', 'true');
+      localStorage.setItem('ai_enabled_decision', 'true');
+      setAiActiveGlobal(true);
+      setUseAI(true);
+      
+      setTimeout(() => {
+         setShowPremiumGate(false);
+         setIsConnecting(false);
+      }, 1500);
   };
 
   const declineAI = () => {
