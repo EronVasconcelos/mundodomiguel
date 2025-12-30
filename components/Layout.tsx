@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, 
-  Trash2, UserX, Menu, Download, X, RefreshCw, Settings, Key 
+  ArrowLeft, Plus, Target, LogOut, Camera, Loader2, 
+  Trash2, UserX, Menu, Download, X, RefreshCw
 } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
+import { isAIAvailable } from '../services/geminiService';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
   
   const [activeProfile, setActiveProfile] = useState<ChildProfile | null>(null);
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
+  const [aiAvailable, setAiAvailable] = useState(true);
   
   // Drawer & Installation State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -43,6 +45,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
   useEffect(() => {
     loadProfiles();
+    setAiAvailable(isAIAvailable());
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -164,18 +167,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     }
   };
 
-  const handleConfigureAPI = () => {
-      const currentKey = localStorage.getItem('gemini_api_key') || '';
-      const newKey = prompt("Insira sua chave de API do Gemini para ativar a IA:", currentKey);
-      if (newKey !== null) {
-          localStorage.setItem('gemini_api_key', newKey.trim());
-          if (newKey.trim()) {
-              alert("Chave salva! O app será recarregado.");
-              window.location.reload();
-          }
-      }
-  };
-
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file || !activeProfile) return;
@@ -219,16 +210,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
       const diff = currentY - pullStartY.current;
       
       if (diff > 0 && contentRef.current?.scrollTop === 0) {
-          // Prevent default only if purely pulling down at top
           if (diff < 200) e.preventDefault(); 
-          setPullDist(Math.pow(diff, 0.8)); // Resistive scrolling
+          setPullDist(Math.pow(diff, 0.8)); 
       }
   };
 
   const handleTouchEnd = () => {
       if (pullDist > PULL_THRESHOLD) {
           setIsRefreshing(true);
-          setPullDist(PULL_THRESHOLD); // Snap to threshold
+          setPullDist(PULL_THRESHOLD); 
           setTimeout(() => {
               window.location.reload();
           }, 800);
@@ -255,7 +245,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         <header className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border-2 border-slate-100 p-2 pl-3 flex items-center justify-between relative">
           
           <div className="flex items-center gap-3">
-             {/* LEFT: Menu Hamburger or Back Button */}
              {isHome ? (
                  <button 
                     onClick={() => setIsMenuOpen(true)}
@@ -272,7 +261,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 </button>
              )}
 
-             {/* CENTER: Title / Name */}
              <div className="flex flex-col">
                 {isHome ? (
                     <span className="text-lg font-black text-slate-800 leading-tight">
@@ -284,7 +272,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
              </div>
           </div>
 
-          {/* RIGHT: Context Buttons */}
           <div className="flex items-center gap-2">
              {isHome ? (
                 <>
@@ -372,11 +359,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
                 {/* Footer Actions */}
                 <div className="space-y-3 pt-4 border-t border-slate-100">
-                   {/* Configurar API */}
-                   <button onClick={handleConfigureAPI} className="w-full py-3 text-slate-600 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 rounded-xl border border-slate-100">
-                      <Key size={18} /> Configurar IA
-                   </button>
-
                    {installPrompt && (
                       <button onClick={handleInstallClick} className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-bold flex items-center justify-center gap-2">
                          <Download size={18} /> Instalar App

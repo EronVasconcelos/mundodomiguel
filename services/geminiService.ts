@@ -2,8 +2,12 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
+// --- CONFIGURAÇÃO DA IA (ZERO CONFIG) ---
+// COLE SUA CHAVE ABAIXO. Isso fará funcionar em qualquer celular imediatamente.
+// Exemplo: const EMBEDDED_API_KEY = "AIzaSyD...";
+const EMBEDDED_API_KEY = "COLE_SUA_CHAVE_AQUI_DENTRO_DAS_ASPAS"; 
+
 // --- DADOS DE FALLBACK (OFFLINE/MOCK) ---
-// Imagens estáticas bonitas para quando não houver IA
 const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
 const STATIC_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop"; 
 
@@ -63,7 +67,6 @@ export const STATIC_STORIES: StoryData[] = [
 
 const FALLBACK_STORY: StoryData = STATIC_STORIES[0];
 
-// Devocional estático para modo offline (sem IA)
 const FALLBACK_DEVOTIONAL: DevotionalData = {
   date: new Date().toDateString(),
   verse: "O Senhor é o meu pastor; nada me faltará.",
@@ -75,17 +78,20 @@ const FALLBACK_DEVOTIONAL: DevotionalData = {
   imagePrompt: "" 
 };
 
-// --- ACESSO SEGURO E ROBUSTO À CHAVE ---
+// --- ACESSO ROBUSTO À CHAVE ---
 const getApiKey = () => {
-  // 1. Tenta pegar do armazenamento local (Configurado pelo usuário no mobile)
-  if (typeof window !== 'undefined') {
-    const localKey = localStorage.getItem('gemini_api_key');
-    if (localKey && localKey.trim().length > 0) {
-      return localKey;
-    }
+  // 1. Tenta a chave embutida (Zero Config para o usuário)
+  if (EMBEDDED_API_KEY && EMBEDDED_API_KEY.length > 10 && !EMBEDDED_API_KEY.includes("COLE_SUA_CHAVE")) {
+    return EMBEDDED_API_KEY;
   }
 
-  // 2. Tenta pegar da variável de ambiente (Funciona no Preview/Desktop)
+  // 2. Fallback: Tenta localStorage (caso tenha configurado antes)
+  if (typeof window !== 'undefined') {
+    const localKey = localStorage.getItem('gemini_api_key');
+    if (localKey && localKey.trim().length > 0) return localKey;
+  }
+
+  // 3. Fallback: Env vars
   try {
     if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
       return process.env.API_KEY;
@@ -145,7 +151,6 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
   const apiKey = getApiKey();
   
   if (!apiKey) {
-      // Retorna o devocional estático imediatamente
       return FALLBACK_DEVOTIONAL;
   }
 
