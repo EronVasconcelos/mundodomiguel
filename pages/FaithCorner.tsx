@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateDevotionalContent, generateStoryImage, generateDevotionalAudio } from '../services/geminiService';
 import { DevotionalData, ChildProfile } from '../types';
 import { Layout } from '../components/Layout';
-import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, Zap, Trophy } from 'lucide-react';
+import { Cloud, Sun, Volume2, BookOpen, Loader2, Sparkles, Heart, StopCircle, Key, Check, Zap, Trophy, ExternalLink } from 'lucide-react';
 import { completeFaith, getDailyProgress } from '../services/progressService';
 
 const FaithCorner: React.FC = () => {
@@ -41,13 +41,12 @@ const FaithCorner: React.FC = () => {
         }
     }
     
-    // Mark progress on load
     const reached = completeFaith();
     const p = getDailyProgress();
     setMissionStats({ current: p.faithDone ? 1 : 0, target: true });
 
     if (reached) {
-      setTimeout(() => setShowMissionComplete(true), 2000); // Small delay to let content load first
+      setTimeout(() => setShowMissionComplete(true), 2000);
     }
   }, []);
 
@@ -85,33 +84,25 @@ const FaithCorner: React.FC = () => {
   const activateAI = async () => {
       setIsConnecting(true);
       try {
+          // MANDATORY: Open Key Selection Dialog
           if (hasAIStudio) {
               await (window as any).aistudio.openSelectKey();
-          } else {
-              // UX Simulation for better feel if not in IDX environment
-              await new Promise(resolve => setTimeout(resolve, 1500));
           }
-
+          
+          // CRITICAL: Assume success immediately to mitigate race condition
           localStorage.setItem('ai_active_global', 'true');
           localStorage.setItem('ai_enabled_decision', 'true');
           setAiActiveGlobal(true);
           
-          // Small delay to show "Connected" state before closing
           setTimeout(() => {
              setShowPremiumGate(false); 
              setIsConnecting(false);
              if (profile) loadContent(profile); 
-          }, 500);
+          }, 800);
 
       } catch (e) {
           console.error("Auth failed", e);
-          // Fallback just in case
-          localStorage.setItem('ai_active_global', 'true');
-          localStorage.setItem('ai_enabled_decision', 'true');
-          setAiActiveGlobal(true);
-          setShowPremiumGate(false);
           setIsConnecting(false);
-          if (profile) loadContent(profile);
       }
   };
 
@@ -134,29 +125,6 @@ const FaithCorner: React.FC = () => {
     setIsSpeaking(false);
   };
 
-  function decodeBase64(base64: string) {
-    const binaryString = atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes;
-  }
-
-  async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
-    const dataInt16 = new Int16Array(data.buffer);
-    const frameCount = dataInt16.length / numChannels;
-    const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-    for (let channel = 0; channel < numChannels; channel++) {
-        const channelData = buffer.getChannelData(channel);
-        for (let i = 0; i < frameCount; i++) {
-           channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-        }
-    }
-    return buffer;
-  }
-
   const speakDevotional = async () => {
     if (!data) return;
     if (isSpeaking) {
@@ -172,10 +140,17 @@ const FaithCorner: React.FC = () => {
             if (base64Audio) {
                 const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
                 audioContextRef.current = ctx;
-                const rawBytes = decodeBase64(base64Audio);
-                const audioBuffer = await decodeAudioData(rawBytes, ctx, 24000, 1);
+                const binaryString = atob(base64Audio);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+                
+                const dataInt16 = new Int16Array(bytes.buffer);
+                const buffer = ctx.createBuffer(1, dataInt16.length, 24000);
+                const channelData = buffer.getChannelData(0);
+                for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
+
                 const source = ctx.createBufferSource();
-                source.buffer = audioBuffer;
+                source.buffer = buffer;
                 source.connect(ctx.destination);
                 source.onended = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
                 audioSourceRef.current = source;
@@ -184,15 +159,11 @@ const FaithCorner: React.FC = () => {
                 setIsGeneratingAudio(false);
                 return;
             }
-        } catch (e) {
-            console.warn("Gemini TTS failed", e);
-        }
+        } catch (e) { console.warn(e); }
     }
 
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.lang = 'pt-BR';
-    utterance.rate = 0.9; 
-    utterance.pitch = 1.1; 
     utterance.onend = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
     setIsSpeaking(true);
     setIsGeneratingAudio(false);
@@ -225,9 +196,9 @@ const FaithCorner: React.FC = () => {
                     <button 
                         onClick={speakDevotional}
                         disabled={isGeneratingAudio}
-                        className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-md ${isSpeaking ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-white text-slate-600 border-b-4 border-slate-200'} ${isGeneratingAudio ? 'opacity-70 cursor-wait' : ''}`}
+                        className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-md ${isSpeaking ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-white text-slate-600 border-b-4 border-slate-200'}`}
                     >
-                        {isGeneratingAudio ? <Loader2 className="animate-spin" /> : isSpeaking ? <StopCircle className="animate-pulse fill-amber-900/20" /> : <Volume2 />}
+                        {isGeneratingAudio ? <Loader2 className="animate-spin" /> : isSpeaking ? <StopCircle className="animate-pulse" /> : <Volume2 />}
                         {isGeneratingAudio ? "Preparando Voz..." : isSpeaking ? "Parar Áudio" : "Ouvir Devocional"}
                     </button>
 
@@ -260,33 +231,16 @@ const FaithCorner: React.FC = () => {
                             </div>
                         )}
                     </div>
-
-                    <div className="bg-yellow-50 rounded-[2rem] p-6 border-2 border-yellow-100 text-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-yellow-300" />
-                        <h4 className="font-black text-yellow-600 uppercase tracking-widest mb-3 flex items-center justify-center gap-2"><Heart size={16} fill="#ca8a04" /> Hora de Orar</h4>
-                        <p className="text-xl font-bold text-slate-700 italic">"{data.prayer}"</p>
-                    </div>
                 </div>
-            ) : (
-                <div className="text-center p-8 text-slate-400"><p>Carregando...</p></div>
-            )}
+            ) : null}
         </Layout>
 
         {showMissionComplete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
                <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
-                  <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-                     <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
-                  </div>
+                  <Trophy className="w-12 h-12 text-yellow-500 animate-bounce mb-4" />
                   <h2 className="text-2xl font-black text-slate-800 text-center mb-2">DEVOCIONAL LIDO!</h2>
-                  <p className="text-slate-500 font-bold text-center mb-6">Que papai do céu te abençoe.</p>
-                  
-                  <button 
-                    onClick={() => setShowMissionComplete(false)}
-                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
-                  >
-                    AMÉM!
-                  </button>
+                  <button onClick={() => setShowMissionComplete(false)} className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl">AMÉM!</button>
                </div>
             </div>
         )}
@@ -294,33 +248,28 @@ const FaithCorner: React.FC = () => {
       {showPremiumGate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
            <div className="bg-white p-6 rounded-[2.5rem] max-w-md w-full relative shadow-2xl text-center">
-              <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                <Sparkles size={40} className="text-sky-500 fill-sky-200 animate-spin-slow" />
-              </div>
-              <h2 className="text-2xl font-black text-slate-800 mb-2">Devocionais Personalizados?</h2>
-              <div className="space-y-4 text-slate-500 text-sm leading-relaxed mb-8">
-                 <p className="font-medium text-slate-700 text-base">Olá! 👋</p>
-                 <p>Conecte sua conta Google para gerar devocionais únicos para <strong>{profile?.name}</strong>. É seguro e grátis.</p>
-                 <div className="flex items-center justify-center gap-2 text-xs font-bold bg-green-50 text-green-700 p-2 rounded-lg">
-                    <Zap size={14}/> Ativa para TODOS os perfis
+              <Sparkles size={40} className="text-sky-500 mx-auto mb-6 animate-spin-slow" />
+              <h2 className="text-2xl font-black text-slate-800 mb-2">Ativar IA Mágica?</h2>
+              <div className="space-y-4 text-slate-500 text-sm leading-relaxed mb-6">
+                 <p>Conecte sua conta Google para gerar conteúdo único para <strong>{profile?.name}</strong>.</p>
+                 <a 
+                    href="https://ai.google.dev/gemini-api/docs/billing" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1 text-blue-500 font-bold hover:underline"
+                 >
+                    Ver documentação de faturamento <ExternalLink size={14} />
+                 </a>
+                 <div className="bg-yellow-50 text-yellow-700 p-3 rounded-lg text-xs border border-yellow-100">
+                    <strong>Nota:</strong> É necessário selecionar um projeto do Google Cloud com faturamento ativado.
                  </div>
               </div>
               <div className="space-y-3">
-                  <button 
-                    onClick={activateAI} 
-                    disabled={isConnecting}
-                    className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl transition-all shadow-lg shadow-sky-200 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
+                  <button onClick={activateAI} disabled={isConnecting} className="w-full py-4 bg-sky-500 text-white font-black text-lg rounded-xl flex items-center justify-center gap-2">
                      {isConnecting ? <Loader2 className="animate-spin" /> : <Key size={20} />}
-                     {isConnecting ? "CONECTANDO..." : "CONECTAR GOOGLE"}
+                     CONECTAR GOOGLE
                   </button>
-                  <button 
-                    onClick={declineAI} 
-                    disabled={isConnecting}
-                    className="w-full py-3 text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors"
-                  >
-                    Não, usar devocional genérico
-                  </button>
+                  <button onClick={declineAI} disabled={isConnecting} className="w-full py-3 text-slate-400 font-bold text-sm">Usar modo simples</button>
               </div>
            </div>
         </div>

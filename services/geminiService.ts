@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
@@ -89,15 +90,12 @@ const GENERIC_BACKUP_STORY: StoryData & { image: string } = {
 // --- HELPER TO PERSONALIZE OFFLINE CONTENT ---
 const personalizeText = (text: string, profile: ChildProfile) => {
   if (!text) return "";
-  // Simple replacement of "Miguel" with child's name
   const regex = /Miguel/g;
   return text.replace(regex, profile.name);
 }
 
 export const getInstantStory = (topic: string, profile: ChildProfile): StoryData & { image: string } => {
-  // Find raw story
   let rawStory = GENERIC_BACKUP_STORY;
-  
   if (RAW_STORIES[topic]) {
     rawStory = RAW_STORIES[topic];
   } else {
@@ -107,8 +105,6 @@ export const getInstantStory = (topic: string, profile: ChildProfile): StoryData
     );
     if (foundKey) rawStory = RAW_STORIES[foundKey];
   }
-
-  // Personalize
   return {
     title: personalizeText(rawStory.title, profile),
     content: personalizeText(rawStory.content, profile),
@@ -120,7 +116,7 @@ export const getInstantStory = (topic: string, profile: ChildProfile): StoryData
 // --- API SERVICES ---
 
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
-  // If no key, fallback immediately
+  // CRITICAL: Always use current process.env.API_KEY
   if (!process.env.API_KEY) {
      const local = getInstantStory(topic, profile);
      sessionStorage.setItem('last_offline_image', local.image);
@@ -128,26 +124,11 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
   }
   
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
-  const prompt = `
-    Crie uma história para uma criança chamada ${profile.name}.
-    Idade: ${profile.age} anos.
-    Gênero: ${profile.gender === 'boy' ? 'Menino' : 'Menina'}.
-    O tema deve envolver: ${topic}.
-    
-    Interesses da criança: Numberblocks, LEGO, Super-heróis, Polícia/Bombeiros, Futebol.
-    
-    A história deve ser positiva, envolvente e um pouco mais longa (aproximadamente 300 palavras).
-    Use parágrafos claros.
-    A moral deve ser clara.
-    
-    Retorne APENAS JSON.
-  `;
+  const prompt = `Crie uma história para uma criança chamada ${profile.name}. Idade: ${profile.age} anos. Gênero: ${profile.gender === 'boy' ? 'Menino' : 'Menina'}. Tema: ${topic}. Retorne apenas JSON com title, content (aprox 300 palavras), moral.`;
 
-  // Helper to call API with error handling for 404
-  const callModel = async (modelName: string) => {
-    return await ai.models.generateContent({
-      model: modelName,
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -162,81 +143,32 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
         },
       },
     });
-  };
-
-  try {
-    let response;
-    try {
-      response = await callModel('gemini-3-flash-preview');
-    } catch (e: any) {
-      if (e.message?.includes('404') || e.status === 404) {
-        response = await callModel('gemini-2.0-flash-exp');
-      } else {
-        throw e;
-      }
-    }
-
-    const text = response.text;
-    if (!text) throw new Error("Falha ao gerar história");
-    
     sessionStorage.removeItem('last_offline_image');
-    return JSON.parse(text) as StoryData;
+    return JSON.parse(response.text) as StoryData;
   } catch (error) {
-    console.error("API Error, falling back to offline content", error);
     const offlineStory = getInstantStory(topic, profile);
     sessionStorage.setItem('last_offline_image', offlineStory.image);
-    return {
-      title: offlineStory.title,
-      content: offlineStory.content,
-      moral: offlineStory.moral
-    };
+    return { title: offlineStory.title, content: offlineStory.content, moral: offlineStory.moral };
   }
 };
 
-// --- FAITH / DEVOTIONAL GENERATOR ---
 export const generateDevotionalContent = async (profile: ChildProfile): Promise<DevotionalData> => {
   const today = new Date().toDateString();
-  const stored = localStorage.getItem(`daily_devotional_${profile.name}`);
-  
-  // Offline Data customized
-  const OFFLINE_DEVOTIONAL: DevotionalData = {
-    date: today,
-    verse: "O Senhor é o meu pastor; de nada terei falta.",
-    reference: "Salmos 23:1",
-    devotional: "Isso significa que Deus cuida de você como um pastor cuida de suas ovelhinhas. Ele garante que você tenha tudo o que precisa, como comida, família e amor. Você não precisa ter medo, porque Ele está sempre por perto!",
-    storyTitle: `A Ovelhinha Perdida e ${profile.name}`,
-    storyContent: `${profile.name} estava brincando de fazendinha. Havia muitas ovelhinhas, mas percebeu que a menorzinha sumiu! ${profile.name} procurou debaixo do sofá e achou. ${profile.name} ficou feliz, assim como Deus fica quando cuida da gente.`,
-    prayer: "Querido Deus, obrigado por cuidar de mim. Amém.",
-    imagePrompt: `A cute fluffy sheep hiding behind a pillow in a cozy child's room, soft lighting, pixar style, 3d render`
-  };
-  
-  if (stored) {
-    const parsed = JSON.parse(stored) as DevotionalData;
-    if (parsed.date === today) {
-      return parsed;
-    }
-  }
-
   if (!process.env.API_KEY) {
-    return OFFLINE_DEVOTIONAL;
+    return {
+        date: today,
+        verse: "O Senhor é o meu pastor; de nada terei falta.",
+        reference: "Salmos 23:1",
+        devotional: "Deus cuida de você!",
+        storyTitle: `A Ovelhinha de ${profile.name}`,
+        storyContent: `Jesus cuida de ${profile.name} todos os dias.`,
+        prayer: "Obrigado Deus por cuidar de mim. Amém.",
+        imagePrompt: `cute child praying pixar style`
+    };
   }
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const prompt = `
-    Crie um devocional cristão diário para uma criança chamada ${profile.name}.
-    Idade: ${profile.age} anos.
-    
-    Gere um objeto JSON com:
-    1. 'verse': Um versículo bíblico curto e fácil de entender (NVI).
-    2. 'reference': A referência bíblica (ex: Salmos 23:1).
-    3. 'devotional': Uma explicação muito simples e carinhosa do versículo para uma criança.
-    4. 'storyTitle': Título de uma história curta.
-    5. 'storyContent': Uma história curta (aprox 150 palavras) onde ${profile.name} aplica o ensinamento do versículo no dia a dia.
-    6. 'prayer': Uma oração curta de 2 frases para ${profile.name} repetir.
-    7. 'imagePrompt': Um prompt em inglês para gerar uma imagem 3D estilo Pixar relacionada à história. PERSONAGEM: ${profile.age} year old ${profile.gender}, ${profile.hairColor} ${profile.hairStyle} hair, ${profile.eyeColor} eyes, ${profile.skinTone} skin.
-
-    Retorne APENAS JSON.
-  `;
+  const prompt = `Devocional cristão diário para ${profile.name}, ${profile.age} anos. JSON com verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (3D Pixar style).`;
 
   try {
     const response = await ai.models.generateContent({
@@ -259,133 +191,40 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
         },
       },
     });
-
-    const text = response.text;
-    if (!text) throw new Error("Falha na API");
-    
-    const data = JSON.parse(text) as Omit<DevotionalData, 'date'>;
-    const finalData: DevotionalData = { ...data, date: today };
-    
-    localStorage.setItem(`daily_devotional_${profile.name}`, JSON.stringify(finalData));
-    
-    return finalData;
-
+    return { ...JSON.parse(response.text), date: today };
   } catch (error) {
-    console.error("Faith API Error", error);
-    return OFFLINE_DEVOTIONAL;
+    return { date: today, verse: "Amor de Deus", reference: "João 3:16", devotional: "Deus ama você!", storyTitle: "O Amor", storyContent: "Deus te ama muito.", prayer: "Amém", imagePrompt: "heart pixar" };
   }
 };
 
-// --- AUDIO GENERATION (TTS) ---
 export const generateDevotionalAudio = async (text: string): Promise<string | null> => {
   if (!process.env.API_KEY) return null;
-
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-preview-tts',
       contents: { parts: [{ text: text }] },
       config: {
         responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Fenrir' },
-          },
-        },
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Fenrir' } } },
       },
     });
-
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return part.inlineData.data;
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("TTS Generation failed:", error);
-    return null;
-  }
+    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+  } catch (error) { return null; }
 };
-
 
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string> => {
-  const storedOfflineImage = sessionStorage.getItem('last_offline_image');
-  if (storedOfflineImage) {
-     return storedOfflineImage;
-  }
-
   if (!process.env.API_KEY) return OFFLINE_IMAGES.HERO;
-
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
   try {
-    // Inject Character Appearance into prompt if profile exists
-    let characterDesc = "";
-    if (profile) {
-        characterDesc = `Main Character is a ${profile.age} year old cute ${profile.gender}, having ${profile.hairColor} ${profile.hairStyle} hair, ${profile.eyeColor} eyes, ${profile.skinTone} skin tone.`;
-    }
-
-    const prompt = `Masterpiece 3D render, cute styling, Pixar style, Disney animation style, 8k resolution, unreal engine 5 render, cinematic lighting, volumetric light, highly detailed 3D textures, vivid colors, peaceful, biblical or moral theme if applicable. ${characterDesc} Scene: ${storyPrompt.substring(0, 300)}`;
-
+    const char = profile ? `Child is ${profile.age}yo ${profile.gender}, ${profile.hairColor} hair.` : "";
+    const prompt = `Pixar style 3D render, highly detailed. ${char} Scene: ${storyPrompt.substring(0, 300)}`;
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          { text: prompt }
-        ]
-      },
+      contents: { parts: [{ text: prompt }] },
       config: { imageConfig: { aspectRatio: "1:1" } }
     });
-
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-    throw new Error("No image data");
-  } catch (error) {
-    return OFFLINE_IMAGES.HERO;
-  }
-};
-
-export const generateStoryVideo = async (imageBase64: string, prompt: string): Promise<string> => {
-  if (!navigator.onLine) throw new Error("Offline");
-
-  if (window.aistudio && await window.aistudio.hasSelectedApiKey()) {
-     // OK
-  } else if (window.aistudio) {
-     await window.aistudio.openSelectKey();
-  } else {
-     if (!process.env.API_KEY) throw new Error("No API Key");
-  }
-
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const cleanBase64 = imageBase64.split(',')[1];
-
-  try {
-    let operation = await ai.models.generateVideos({
-      model: 'veo-3.1-fast-generate-preview',
-      prompt: `Cinematic pan, magical movement, 3d animation style, kid friendly: ${prompt}`,
-      image: { imageBytes: cleanBase64, mimeType: 'image/png' },
-      config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '1:1' }
-    });
-
-    while (!operation.done) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      operation = await ai.operations.getVideosOperation({operation: operation});
-    }
-
-    const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (!videoUri) throw new Error("Falha na geração");
-
-    const videoResponse = await fetch(`${videoUri}&key=${process.env.API_KEY}`);
-    const blob = await videoResponse.blob();
-    return URL.createObjectURL(blob);
-  } catch (error: any) {
-    if (error.message?.includes('404') || error.status === 404) {
-      throw new Error("Vídeos indisponíveis neste dispositivo.");
-    }
-    throw error;
-  }
+    const imgPart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+    return imgPart ? `data:image/png;base64,${imgPart.inlineData.data}` : OFFLINE_IMAGES.HERO;
+  } catch (error) { return OFFLINE_IMAGES.HERO; }
 };
