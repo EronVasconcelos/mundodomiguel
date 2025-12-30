@@ -9,14 +9,14 @@ const TILE_COUNT = GRID_SIZE * GRID_SIZE;
 
 // Themes with cartoon/illustration style images suitable for children
 const THEMES = [
-  { id: 'farm', name: 'Fazendinha', url: 'https://images.unsplash.com/photo-1534135542475-10443202157a?q=80&w=800&auto=format&fit=crop' }, // Cartoonish Farm Animal (Pig) - Actually stylized photo but cute
-  { id: 'sea', name: 'Fundo do Mar', url: 'https://plus.unsplash.com/premium_photo-1664303847960-586318f59035?q=80&w=800&auto=format&fit=crop' }, // Colorful Fish/Coral
-  { id: 'hero', name: 'Super Herói', url: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?q=80&w=800&auto=format&fit=crop' }, // Action figures
-  { id: 'princess', name: 'Princesa', url: 'https://images.unsplash.com/photo-1549845003-32867c293c4d?q=80&w=800&auto=format&fit=crop' }, // Castle
-  { id: 'space', name: 'Espaço', url: 'https://images.unsplash.com/photo-1614730341194-75c60740a2d3?q=80&w=800&auto=format&fit=crop' }, // Illustration Space
-  { id: 'dino', name: 'Dinossauros', url: 'https://images.unsplash.com/photo-1559864275-f55a15eb50c3?q=80&w=800&auto=format&fit=crop' }, // Toy Dino
-  { id: 'forest', name: 'Floresta', url: 'https://images.unsplash.com/photo-1535295972055-1c762f4483e5?q=80&w=800&auto=format&fit=crop' }, // Jungle leaves/Tiger
-  { id: 'candy', name: 'Doces', url: 'https://images.unsplash.com/photo-1582058928278-746612666a0e?q=80&w=800&auto=format&fit=crop' }, // Donuts/Candy
+  { id: 'farm', name: 'Fazendinha', url: 'https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?q=80&w=800&auto=format&fit=crop' }, // Illustrated Cow
+  { id: 'sea', name: 'Fundo do Mar', url: 'https://images.unsplash.com/photo-1571752726703-4242d4cb6256?q=80&w=800&auto=format&fit=crop' }, // Sea Illustration
+  { id: 'hero', name: 'Super Herói', url: 'https://images.unsplash.com/photo-1635805737707-575885ab0820?q=80&w=800&auto=format&fit=crop' }, // Spiderman Figure (Toy/Cartoon like)
+  { id: 'princess', name: 'Castelo', url: 'https://images.unsplash.com/photo-1629814596167-a3597d667634?q=80&w=800&auto=format&fit=crop' }, // Toy Castle
+  { id: 'space', name: 'Espaço', url: 'https://images.unsplash.com/photo-1614726365723-49cfae9686ae?q=80&w=800&auto=format&fit=crop' }, // Rocket Vector Style
+  { id: 'dino', name: 'Dinossauros', url: 'https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?q=80&w=800&auto=format&fit=crop' }, // Drawn Dino
+  { id: 'forest', name: 'Floresta', url: 'https://images.unsplash.com/photo-1618331835717-801e976710b2?q=80&w=800&auto=format&fit=crop' }, // Abstract/Illustrated Forest
+  { id: 'candy', name: 'Doces', url: 'https://images.unsplash.com/photo-1535086888491-b328109d640b?q=80&w=800&auto=format&fit=crop' }, // Colorful Lollipops
 ];
 
 const PuzzleGame: React.FC = () => {

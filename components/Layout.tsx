@@ -270,16 +270,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
              <div className="flex flex-col">
                 {isHome ? (
-                    <span className="text-lg font-black text-slate-800 leading-tight flex flex-col sm:flex-row sm:gap-1">
-                        <span>Mundo Mágico</span>
-                        <span className="flex items-center gap-1">
-                            <span className="text-slate-400 text-sm font-bold">
-                                {activeProfile?.gender === 'girl' ? 'da' : 'do'}
-                            </span>
-                            <span className={activeProfile?.gender === 'girl' ? 'text-pink-500' : 'text-blue-500'}>
-                                {activeProfile?.name}
-                            </span>
-                        </span>
+                    <span className="text-xl font-black text-slate-800 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                        Mundo {activeProfile?.gender === 'girl' ? 'da' : 'do'} <span className={activeProfile?.gender === 'girl' ? 'text-pink-500' : 'text-blue-500'}>{activeProfile?.name}</span>
                     </span>
                 ) : (
                     <span className={`text-lg font-black leading-tight ${color}`}>{title}</span>
