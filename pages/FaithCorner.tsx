@@ -25,6 +25,9 @@ const FaithCorner: React.FC = () => {
   const endOfContentRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
+  // Mobile Voice Support
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
   useEffect(() => {
     const storedProfile = localStorage.getItem('child_profile');
     if (storedProfile) setProfile(JSON.parse(storedProfile));
@@ -33,8 +36,17 @@ const FaithCorner: React.FC = () => {
     const p = getDailyProgress();
     setMissionStats({ current: p.faithDone ? 1 : 0, target: true });
 
+    // Carregar vozes (hack para mobile)
+    const loadVoices = () => {
+        const vs = window.speechSynthesis.getVoices();
+        setVoices(vs);
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
     return () => {
         if (observerRef.current) observerRef.current.disconnect();
+        window.speechSynthesis.onvoiceschanged = null;
     };
   }, []);
 
@@ -131,8 +143,7 @@ const FaithCorner: React.FC = () => {
     }
     const textToRead = `Devocional de hoje. Versículo: ${data.verse}. ${data.devotional}. Agora, uma história: ${data.storyTitle}. ${data.storyContent}. Vamos orar? ${data.prayer}`;
 
-    // Tentar Gemini Audio Primeiro (Se a chave estiver configurada no Service)
-    // O service retorna null se não tiver chave
+    // 1. Tentar Gemini Audio Primeiro (API)
     setIsGeneratingAudio(true);
     try {
         const base64Audio = await generateDevotionalAudio(textToRead, profile?.gender || 'boy');
@@ -156,51 +167,53 @@ const FaithCorner: React.FC = () => {
             source.start();
             setIsSpeaking(true);
             setIsGeneratingAudio(false);
-            return;
+            return; // Sucesso com IA
         }
-    } catch (e) { console.warn(e); }
+    } catch (e) { console.warn("Falha no áudio IA, usando fallback", e); }
 
-    // --- FALLBACK WEB SPEECH API (Voz baseada no gênero) ---
+    // 2. Fallback: Voz do Navegador (Robusta para Mobile)
+    // Recarrega vozes caso não tenham carregado no init
+    let availableVoices = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
+
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.lang = 'pt-BR';
     
-    // Tenta encontrar vozes específicas
-    const voices = window.speechSynthesis.getVoices();
     const isGirl = profile?.gender === 'girl';
-    
     let selectedVoice = null;
-    
+
+    // Busca heurística por vozes PT-BR
     if (isGirl) {
-        // Tenta achar vozes femininas comuns ou padrão
-        selectedVoice = voices.find(v => 
-            (v.lang.includes('pt') || v.lang.includes('PT')) &&
-            (v.name.includes('Luciana') || v.name.includes('Fernanda') || v.name.includes('Female') || v.name.includes('Google português'))
+        selectedVoice = availableVoices.find(v => 
+            (v.lang === 'pt-BR' || v.lang === 'pt_BR') &&
+            (v.name.includes('Luciana') || v.name.includes('Fernanda') || v.name.includes('Maria') || v.name.toLowerCase().includes('female'))
         );
     } else {
-        // Tenta achar vozes masculinas
-        selectedVoice = voices.find(v => 
-            (v.lang.includes('pt') || v.lang.includes('PT')) &&
-            (v.name.includes('Daniel') || v.name.includes('Felipe') || v.name.includes('Male'))
+        selectedVoice = availableVoices.find(v => 
+            (v.lang === 'pt-BR' || v.lang === 'pt_BR') &&
+            (v.name.includes('Daniel') || v.name.includes('Felipe') || v.name.toLowerCase().includes('male'))
         );
     }
-    
+
+    // Fallback genérico para PT-BR se não achar gênero específico
+    if (!selectedVoice) {
+        selectedVoice = availableVoices.find(v => v.lang === 'pt-BR' || v.lang === 'pt_BR');
+    }
+
     if (selectedVoice) {
         utterance.voice = selectedVoice;
-        utterance.pitch = isGirl ? 1.1 : 0.9; // Ajusta levemente o tom
-    } else {
-        // Fallback genérico se não achar voz específica
-        // Se for menino e a voz padrão for feminina (comum), baixa o pitch
-        if (!isGirl) {
-             utterance.pitch = 0.8;
-        } else {
-             utterance.pitch = 1.1;
-        }
+        utterance.pitch = isGirl ? 1.1 : 0.9;
     }
 
     utterance.onend = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
+    utterance.onerror = () => { setIsSpeaking(false); setIsGeneratingAudio(false); };
+    
     setIsSpeaking(true);
     setIsGeneratingAudio(false);
-    window.speechSynthesis.speak(utterance);
+    
+    // Pequeno delay para garantir que a UI atualizou antes de bloquear a thread de áudio
+    setTimeout(() => {
+        window.speechSynthesis.speak(utterance);
+    }, 100);
   };
 
   return (

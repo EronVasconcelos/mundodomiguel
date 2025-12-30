@@ -73,18 +73,30 @@ const FALLBACK_DEVOTIONAL: DevotionalData = {
   imagePrompt: "" 
 };
 
-// Acessa a chave diretamente do ambiente
-const getApiKey = () => process.env.API_KEY;
+// --- ACESSO SEGURO À CHAVE (CRÍTICO PARA MOBILE) ---
+const getApiKey = () => {
+  try {
+    // Tenta acessar process.env (Node/Webpack)
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    // Ignora erro de referência em ambientes estritos
+  }
+  return '';
+};
 
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
   const apiKey = getApiKey();
   
   if (!apiKey) {
     console.log("Modo Offline (Sem Chave): Retornando história padrão.");
+    // Simula delay de rede para UX consistente
+    await new Promise(resolve => setTimeout(resolve, 1000));
     return {
         ...FALLBACK_STORY,
-        title: `${FALLBACK_STORY.title} (${topic})`,
-        content: `(História do Livro Mágico: ${topic})\n\n${FALLBACK_STORY.content}`
+        title: `${FALLBACK_STORY.title} (Modo Offline)`,
+        content: `(Você está sem conexão com a IA Mágica no momento. Aproveite esta história clássica!)\n\n${FALLBACK_STORY.content}`
     };
   }
   
@@ -118,7 +130,7 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     }
     throw new Error("Resposta vazia da IA");
   } catch (error) {
-    console.error("Erro AI Texto:", error);
+    console.error("Erro AI Texto (Fallback Ativado):", error);
     return FALLBACK_STORY;
   }
 };
@@ -127,6 +139,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
   const apiKey = getApiKey();
   
   if (!apiKey) {
+      await new Promise(resolve => setTimeout(resolve, 800));
       return FALLBACK_DEVOTIONAL;
   }
 
