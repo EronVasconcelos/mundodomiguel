@@ -3,13 +3,19 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
 /**
- * Handle API errors, specifically identifying when the selected API key 
- * is invalid or missing billing, allowing the UI to reset and prompt re-selection.
+ * Utilitário de tratamento de erro para capturar problemas de chave/faturamento
+ * e notificar a UI para resetar o estado de autenticação.
  */
 const handleAIError = (error: any) => {
   console.error("Gemini API Error:", error);
   const errorMessage = error?.message || "";
-  if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("API key not valid")) {
+  
+  // Se a entidade não for encontrada ou a chave for inválida/sem faturamento, 
+  // limpamos o estado local e avisamos a UI.
+  if (errorMessage.includes("Requested entity was not found") || 
+      errorMessage.includes("API key not valid") ||
+      errorMessage.includes("not found")) {
+    
     localStorage.removeItem('ai_active_global');
     localStorage.removeItem('ai_enabled_decision');
     window.dispatchEvent(new CustomEvent('ai_auth_reset'));
@@ -20,6 +26,7 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
   const apiKey = process.env.API_KEY;
   if (!apiKey) throw new Error("API Key missing");
   
+  // Criar instância nova a cada chamada para garantir que pegamos a chave atualizada
   const ai = new GoogleGenAI({ apiKey });
   const prompt = `Crie uma história para uma criança chamada ${profile.name}. Idade: ${profile.age} anos. Gênero: ${profile.gender === 'boy' ? 'Menino' : 'Menina'}. Tema: ${topic}. Retorne apenas JSON com title, content (aprox 300 palavras), moral.`;
 
@@ -52,7 +59,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
   if (!apiKey) throw new Error("API Key missing");
 
   const ai = new GoogleGenAI({ apiKey });
-  const prompt = `Devocional cristão diário para ${profile.name}, ${profile.age} anos. JSON com verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (3D Pixar style).`;
+  const prompt = `Devocional cristão diário para ${profile.name}, ${profile.age} anos. Retorne JSON com: verse, reference, devotional (reflexão curta), storyTitle, storyContent (história bíblica lúdica), prayer (oração curta), imagePrompt (descrição para IA de imagem estilo Pixar).`;
 
   try {
     const response = await ai.models.generateContent({
@@ -109,8 +116,8 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
   if (!apiKey) return "";
   const ai = new GoogleGenAI({ apiKey });
   try {
-    const char = profile ? `Child is ${profile.age}yo ${profile.gender}, ${profile.hairColor} hair.` : "";
-    const prompt = `Pixar style 3D render, highly detailed. ${char} Scene: ${storyPrompt.substring(0, 300)}`;
+    const charContext = profile ? `Child name: ${profile.name}, Age: ${profile.age}, ${profile.gender === 'boy' ? 'Boy' : 'Girl'}.` : "";
+    const prompt = `3D Pixar animation style, soft lighting, high detail. ${charContext} Scene: ${storyPrompt.substring(0, 500)}`;
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts: [{ text: prompt }] },
