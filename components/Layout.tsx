@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, Trash2, UserX, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Check, Target, LogOut, Camera, Loader2, Trash2, UserX, AlertTriangle, Download } from 'lucide-react';
 import { ChildProfile, AppRoute } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -24,13 +24,40 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   
+  // PWA Install Prompt State
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  
   // Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadProfiles();
+
+    // Listen for PWA install event
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
+
+  const handleInstallClick = () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    installPrompt.userChoice.then((choiceResult: any) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('Usuário aceitou instalar');
+        setInstallPrompt(null);
+      }
+      setShowProfileSwitcher(false);
+    });
+  };
 
   const loadProfiles = async () => {
     // Optimistic Load from LocalStorage first
@@ -326,9 +353,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                         <Plus size={20} strokeWidth={3} />
                     </button>
                     <button 
-                        onClick={handleLogout} 
-                        className="w-10 h-10 rounded-full bg-red-50 border-2 border-red-100 flex items-center justify-center text-red-400 active:scale-95 transition-transform"
-                        title="Sair"
+                        onClick={() => setShowProfileSwitcher(true)} 
+                        className="w-10 h-10 rounded-full bg-slate-50 border-2 border-slate-100 flex items-center justify-center text-slate-400 active:scale-95 transition-transform"
+                        title="Configurações"
                     >
                         <LogOut size={18} />
                     </button>
@@ -348,14 +375,24 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         </header>
       </div>
 
-      {/* --- PROFILE SWITCHER MODAL --- */}
+      {/* --- PROFILE SWITCHER / SETTINGS MODAL --- */}
       {showProfileSwitcher && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowProfileSwitcher(false)}>
             <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="text-center mb-6">
                     <h3 className="text-xl font-black text-slate-800">Quem vai brincar?</h3>
-                    <p className="text-sm text-slate-400">Alternar perfil</p>
+                    <p className="text-sm text-slate-400">Alternar perfil ou sair</p>
                 </div>
+
+                {/* INSTALL PWA BUTTON - Only shows if supported and event fired */}
+                {installPrompt && (
+                   <button 
+                      onClick={handleInstallClick}
+                      className="w-full mb-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl shadow-lg shadow-blue-200 font-black text-lg flex items-center justify-center gap-3 animate-bounce-slow"
+                   >
+                      <Download size={24} /> INSTALAR O APP
+                   </button>
+                )}
 
                 <div className="space-y-3 mb-6">
                     {profiles.map(p => (
@@ -394,25 +431,29 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 {profiles.length < 5 && (
                     <button 
                         onClick={handleAddProfile}
-                        className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-slate-600 transition-colors mb-6 active:scale-95"
+                        className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-slate-600 transition-colors mb-4 active:scale-95"
                     >
                         <Plus size={20} /> Adicionar Criança
                     </button>
                 )}
+                
+                <button 
+                     onClick={handleLogout} 
+                     className="w-full py-3 mb-6 rounded-2xl bg-slate-100 border border-slate-200 font-bold text-slate-500 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                >
+                    <LogOut size={18} /> Sair da Conta
+                </button>
 
                 {/* DELETE ACCOUNT BUTTON */}
-                <div className="border-t border-slate-100 pt-6 mt-6">
+                <div className="border-t border-slate-100 pt-6">
                     <button 
                         onClick={handleDeleteAccount}
                         disabled={uploading}
-                        className="w-full py-3 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors active:scale-95"
+                        className="w-full py-3 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-bold text-xs flex items-center justify-center gap-2 hover:bg-red-100 transition-colors active:scale-95"
                     >
-                        {uploading ? <Loader2 className="animate-spin" /> : <UserX size={18} />}
-                        Excluir Minha Conta (Responsável)
+                        {uploading ? <Loader2 className="animate-spin" /> : <UserX size={16} />}
+                        EXCLUIR MINHA CONTA (Responsável)
                     </button>
-                    <p className="text-[10px] text-red-300 text-center mt-2 px-4">
-                        Isso apaga seu login e todos os perfis. Ação irreversível.
-                    </p>
                 </div>
 
             </div>
