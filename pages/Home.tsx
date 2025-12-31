@@ -141,7 +141,7 @@ const Home: React.FC = () => {
         {/* --- SECTION 1: APRENDER --- */}
         <div>
             <h3 className="text-xl font-black text-slate-800 mb-3 px-2 flex items-center gap-2">
-                <Star size={24} className="text-yellow-400 fill-yellow-400" /> Vamos Aprender
+                {/* <Star size={24} className="text-yellow-400 fill-yellow-400" /> */} Vamos Aprender
             </h3>
             <div className="grid grid-cols-2 gap-4">
                 {/* MATH */}
@@ -169,7 +169,7 @@ const Home: React.FC = () => {
         {/* --- SECTION 2: RELAXAR --- */}
         <div>
             <h3 className="text-xl font-black text-slate-800 mb-3 px-2 flex items-center gap-2">
-                <Heart size={24} className="text-pink-400 fill-pink-400" /> Hora de Relaxar
+                {/* <Heart size={24} className="text-pink-400 fill-pink-400" /> */} Hora de Relaxar
             </h3>
             <div className="space-y-3">
                 {/* STORIES */}
@@ -209,7 +209,7 @@ const Home: React.FC = () => {
         {/* --- SECTION 3: DESAFIOS (Single Large Card) --- */}
         <div>
             <h3 className="text-xl font-black text-slate-800 mb-3 px-2 flex items-center gap-2">
-                <Brain size={24} className="text-orange-400" /> Desafios
+                {/* <Brain size={24} className="text-orange-400" /> */} Desafios
             </h3>
             <button 
                 onClick={() => navigate(AppRoute.CHALLENGE_HUB)}
@@ -231,7 +231,7 @@ const Home: React.FC = () => {
         {/* --- SECTION 4: CRIATIVIDADE --- */}
         <div>
             <h3 className="text-xl font-black text-slate-800 mb-3 px-2 flex items-center gap-2">
-                <Palette size={24} className="text-fuchsia-400" /> Arte e Cores
+                {/* <Palette size={24} className="text-fuchsia-400" /> */} Arte e Cores
             </h3>
             <div className="flex gap-3">
                <button 

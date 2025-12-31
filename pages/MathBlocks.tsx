@@ -215,10 +215,10 @@ const MathBlocks: React.FC = () => {
 
   return (
     <Layout title="Matemática" missionTarget={missionStats}>
-      <div className="flex flex-col h-full gap-6">
+      <div className="flex flex-col h-full gap-6 justify-center"> {/* Adicionado justify-center aqui */}
         
         {/* EQUATION AREA */}
-        <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden py-8">
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden py-8"> {/* Removido flex-1 */}
            
            {/* The Equation Row */}
            <div className="flex items-end justify-center gap-2 md:gap-3 w-full px-2">

@@ -2,10 +2,6 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
-// --- CONFIGURAÇÃO DA IA ---
-// Chave removida por segurança. Configure via .env ou nas configurações do app.
-const EMBEDDED_API_KEY: string = ""; 
-
 // --- DADOS DE FALLBACK (OFFLINE/MOCK) ---
 const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
 const STATIC_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop"; 
@@ -79,24 +75,15 @@ const FALLBACK_DEVOTIONAL: DevotionalData = {
 
 // --- ACESSO ROBUSTO À CHAVE ---
 const getApiKey = () => {
-  // 1. Tenta a chave embutida (se tiver sido configurada no código)
-  if (EMBEDDED_API_KEY && EMBEDDED_API_KEY.length > 20) {
-    return EMBEDDED_API_KEY;
-  }
-
-  // 2. Tenta localStorage (Configurado pelo Modo Secreto)
-  if (typeof window !== 'undefined') {
-    const localKey = localStorage.getItem('gemini_api_key');
-    if (localKey && localKey.trim().length > 0) return localKey;
-  }
-
-  // 3. Fallback: Env vars
+  // A chave de API DEVE ser obtida EXCLUSIVAMENTE da variável de ambiente process.env.API_KEY.
+  // NENHUMA UI ou lógica de armazenamento local (localStorage) para a chave de API é permitida.
   try {
     if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
       return process.env.API_KEY;
     }
-  } catch (e) {}
-
+  } catch (e) {
+    console.warn("process.env não está disponível no ambiente. A chave de API pode não ser carregada.", e);
+  }
   return '';
 };
 
