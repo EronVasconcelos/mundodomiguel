@@ -309,14 +309,14 @@ const ColoringBook: React.FC = () => {
              <div className="px-2 pt-2">
                 <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-6 rounded-3xl border-2 border-dashed border-sky-300 bg-sky-50 text-sky-600 flex flex-col items-center justify-center gap-3 active:bg-sky-100 transition-colors"
+                    className="w-full py-6 rounded-3xl border-2 border-dashed border-sky-700 bg-sky-900 text-sky-200 flex flex-col items-center justify-center gap-3 active:bg-sky-800 transition-colors"
                 >
-                  <div className="bg-white p-3 rounded-full shadow-sm text-sky-500">
+                  <div className="bg-sky-800 p-3 rounded-full shadow-sm text-sky-300">
                     <Upload size={32} />
                   </div>
                   <div className="text-center">
-                     <span className="font-black text-xl block">ENVIAR FOTO</span>
-                     <span className="text-sm font-bold text-sky-400">Do celular ou tablet</span>
+                     <span className="font-black text-xl block text-white">ENVIAR FOTO</span>
+                     <span className="text-sm font-bold text-sky-300">Do celular ou tablet</span>
                   </div>
                 </button>
              </div>
@@ -325,11 +325,11 @@ const ColoringBook: React.FC = () => {
              <div className="px-2">
                 <div className="flex items-center gap-2 mb-3 px-2">
                    <FolderOpen size={20} className="text-pink-500" />
-                   <h2 className="font-black text-slate-700 text-lg uppercase tracking-wide">Seus Desenhos</h2>
+                   <h2 className="font-black text-slate-300 text-lg uppercase tracking-wide">Seus Desenhos</h2>
                 </div>
                 
                 {savedImages.length === 0 ? (
-                    <div className="bg-slate-50 rounded-3xl p-8 flex flex-col items-center justify-center text-slate-300 gap-2 border border-dashed border-slate-200 min-h-[200px]">
+                    <div className="bg-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center text-slate-500 gap-2 border border-dashed border-slate-700 min-h-[200px]">
                        <ImagePlus size={48} />
                        <p className="font-bold text-sm">Nenhum desenho salvo</p>
                     </div>
@@ -339,7 +339,7 @@ const ColoringBook: React.FC = () => {
                         <div key={src.substring(0, 100) + i} className="relative group animate-pop">
                             <button 
                               onClick={() => loadTemplate(src)}
-                              className="w-full aspect-square bg-white rounded-3xl border border-slate-100 p-2 flex items-center justify-center transition-all overflow-hidden active:scale-95 shadow-sm"
+                              className="w-full aspect-square bg-slate-800 rounded-3xl border border-slate-700 p-2 flex items-center justify-center transition-all overflow-hidden active:scale-95 shadow-sm"
                             >
                                <img src={src} className="w-full h-full object-contain" alt="Gallery item" />
                             </button>
@@ -361,7 +361,7 @@ const ColoringBook: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="flex-1 bg-white rounded-3xl border-4 border-slate-200 overflow-hidden relative shadow-none">
+            <div className="flex-1 bg-slate-800 rounded-3xl border-4 border-slate-700 overflow-hidden relative shadow-none">
               <canvas
                 ref={canvasRef}
                 onMouseDown={startDraw}
@@ -372,21 +372,21 @@ const ColoringBook: React.FC = () => {
                 onTouchMove={(e) => tool !== 'bucket' && handleTouch(e)}
                 className="w-full h-full touch-none cursor-crosshair"
               />
-              <button onClick={() => setShowGallery(true)} className="absolute top-4 right-4 bg-slate-100 p-3 rounded-full border-b-4 border-slate-300 active:border-b-0 active:translate-y-1"><X className="text-slate-600" /></button>
+              <button onClick={() => setShowGallery(true)} className="absolute top-4 right-4 bg-slate-700 p-3 rounded-full border-b-4 border-slate-600 active:border-b-0 active:translate-y-1"><X className="text-slate-300" /></button>
             </div>
 
-            <div className="bg-white p-4 rounded-3xl border-4 border-slate-200 flex flex-col gap-4">
+            <div className="bg-slate-900 p-4 rounded-3xl border-4 border-slate-800 flex flex-col gap-4">
               <div className="flex justify-between items-center">
                 <div className="flex gap-2">
-                    <button onClick={handleUndo} className="p-4 rounded-2xl border-b-4 bg-slate-50 border-slate-200 text-slate-400 active:border-b-0 active:translate-y-1 transition-all"><Undo2 /></button>
-                    <button onClick={() => setTool('bucket')} className={`p-4 rounded-2xl border-b-4 active:border-b-0 active:translate-y-1 transition-all ${tool === 'bucket' ? 'bg-blue-100 border-blue-300 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}><PaintBucket /></button>
-                    <button onClick={() => setTool('pen')} className={`p-4 rounded-2xl border-b-4 active:border-b-0 active:translate-y-1 transition-all ${tool === 'pen' ? 'bg-blue-100 border-blue-300 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}><PenTool /></button>
-                    <button onClick={() => setTool('eraser')} className={`p-4 rounded-2xl border-b-4 active:border-b-0 active:translate-y-1 transition-all ${tool === 'eraser' ? 'bg-blue-100 border-blue-300 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}><Eraser /></button>
+                    <button onClick={handleUndo} className="p-4 rounded-2xl border-b-4 bg-slate-800 border-slate-700 text-slate-300 active:border-b-0 active:translate-y-1 transition-all"><Undo2 /></button>
+                    <button onClick={() => setTool('bucket')} className={`p-4 rounded-2xl border-b-4 active:border-b-0 active:translate-y-1 transition-all ${tool === 'bucket' ? 'bg-blue-800 border-blue-700 text-blue-200' : 'bg-slate-800 border-slate-700 text-slate-300'}`}><PaintBucket /></button>
+                    <button onClick={() => setTool('pen')} className={`p-4 rounded-2xl border-b-4 active:border-b-0 active:translate-y-1 transition-all ${tool === 'pen' ? 'bg-blue-800 border-blue-700 text-blue-200' : 'bg-slate-800 border-slate-700 text-slate-300'}`}><PenTool /></button>
+                    <button onClick={() => setTool('eraser')} className={`p-4 rounded-2xl border-b-4 active:border-b-0 active:translate-y-1 transition-all ${tool === 'eraser' ? 'bg-blue-800 border-blue-700 text-blue-200' : 'bg-slate-800 border-slate-700 text-slate-300'}`}><Eraser /></button>
                 </div>
                 
                  {/* Brush Size Slider */}
                  {(tool === 'pen' || tool === 'eraser') && (
-                  <div className="flex items-center gap-2 flex-1 mx-2 bg-slate-50 px-2 py-2 rounded-xl border border-slate-100">
+                  <div className="flex items-center gap-2 flex-1 mx-2 bg-slate-800 px-2 py-2 rounded-xl border border-slate-700">
                       <Circle size={6} className="text-slate-300 fill-slate-300" />
                       <input 
                         type="range" 
@@ -394,13 +394,13 @@ const ColoringBook: React.FC = () => {
                         max="40" 
                         value={brushSize} 
                         onChange={(e) => setBrushSize(Number(e.target.value))}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                       />
                       <Circle size={16} className="text-slate-300 fill-slate-300" />
                   </div>
                  )}
 
-                <button onClick={() => initCanvas()} className="p-4 bg-red-100 text-red-500 rounded-2xl border-b-4 border-red-300 active:border-b-0 active:translate-y-1"><Trash2 /></button>
+                <button onClick={() => initCanvas()} className="p-4 bg-red-800 text-red-300 rounded-2xl border-b-4 border-red-700 active:border-b-0 active:translate-y-1"><Trash2 /></button>
               </div>
               
               <div className="flex justify-between gap-3 overflow-x-auto pb-2 scrollbar-hide">
@@ -408,7 +408,7 @@ const ColoringBook: React.FC = () => {
                   <button
                     key={c}
                     onClick={() => setColor(c)}
-                    className={`w-12 h-12 rounded-full border-4 flex-shrink-0 transition-transform ${color === c ? 'scale-110 border-slate-800' : 'border-slate-100'}`}
+                    className={`w-12 h-12 rounded-full border-4 flex-shrink-0 transition-transform ${color === c ? 'scale-110 border-white' : 'border-slate-700'}`}
                     style={{ backgroundColor: c }}
                   />
                 ))}

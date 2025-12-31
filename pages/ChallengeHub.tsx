@@ -26,13 +26,13 @@ const ChallengeHub: React.FC = () => {
     <Layout title="Desafios" color="text-orange-500">
       <div className="flex flex-col h-full pb-6">
         
-        <div className="mb-6 bg-orange-50 rounded-3xl p-6 border border-orange-100 flex items-center gap-4">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center text-orange-500">
+        <div className="mb-6 bg-orange-900 rounded-3xl p-6 border border-orange-800 flex items-center gap-4">
+            <div className="w-16 h-16 bg-orange-800 rounded-full flex items-center justify-center text-orange-200">
                 <Brain size={32} />
             </div>
             <div>
-                <h1 className="text-xl font-black text-slate-800">Ginástica Mental</h1>
-                <p className="text-sm text-slate-500 font-medium">Jogos para ficar inteligente!</p>
+                <h1 className="text-xl font-black text-white">Ginástica Mental</h1>
+                <p className="text-sm text-orange-200 font-medium">Jogos para ficar inteligente!</p>
             </div>
         </div>
 
@@ -41,53 +41,53 @@ const ChallengeHub: React.FC = () => {
             {/* Labirinto */}
             <button 
                 onClick={() => navigate(AppRoute.CHALLENGE)} 
-                className="aspect-square bg-white rounded-3xl border-b-4 border-slate-100 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-3 relative shadow-sm"
+                className="aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-700 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-3 relative shadow-sm"
             >
-                {isMazesDone && <div className="absolute top-3 right-3 text-green-500 bg-green-50 rounded-full p-1"><CheckCircle size={20} /></div>}
-                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-500">
+                {isMazesDone && <div className="absolute top-3 right-3 text-green-500 bg-green-800 rounded-full p-1"><CheckCircle size={20} /></div>}
+                <div className="w-14 h-14 bg-orange-800 rounded-2xl flex items-center justify-center text-orange-200">
                     <Target size={32} />
                 </div>
-                <span className="font-black text-slate-700 text-lg">Labirinto</span>
-                <span className="text-xs font-bold text-slate-400">{progress.mazesSolved}/{GOALS.MAZES}</span>
+                <span className="font-black text-slate-300 text-lg">Labirinto</span>
+                <span className="text-xs font-bold text-slate-500">{progress.mazesSolved}/{GOALS.MAZES}</span>
             </button>
 
             {/* Puzzle */}
             <button 
                 onClick={() => navigate(AppRoute.PUZZLE)} 
-                className="aspect-square bg-white rounded-3xl border-b-4 border-slate-100 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-3 relative shadow-sm"
+                className="aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-700 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-3 relative shadow-sm"
             >
-                {isPuzzleDone && <div className="absolute top-3 right-3 text-green-500 bg-green-50 rounded-full p-1"><CheckCircle size={20} /></div>}
-                <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-500">
+                {isPuzzleDone && <div className="absolute top-3 right-3 text-green-500 bg-green-800 rounded-full p-1"><CheckCircle size={20} /></div>}
+                <div className="w-14 h-14 bg-amber-800 rounded-2xl flex items-center justify-center text-amber-200">
                     <Puzzle size={32} />
                 </div>
-                <span className="font-black text-slate-700 text-lg">Puzzle</span>
-                <span className="text-xs font-bold text-slate-400">{progress.puzzlesSolved}/{GOALS.PUZZLES}</span>
+                <span className="font-black text-slate-300 text-lg">Puzzle</span>
+                <span className="text-xs font-bold text-slate-500">{progress.puzzlesSolved}/{GOALS.PUZZLES}</span>
             </button>
 
             {/* Caça Palavras */}
             <button 
                 onClick={() => navigate(AppRoute.WORD_SEARCH)} 
-                className="aspect-square bg-white rounded-3xl border-b-4 border-slate-100 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-3 relative shadow-sm"
+                className="aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-700 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-3 relative shadow-sm"
             >
-                {isWordSearchDone && <div className="absolute top-3 right-3 text-green-500 bg-green-50 rounded-full p-1"><CheckCircle size={20} /></div>}
-                <div className="w-14 h-14 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-500">
+                {isWordSearchDone && <div className="absolute top-3 right-3 text-green-500 bg-green-800 rounded-full p-1"><CheckCircle size={20} /></div>}
+                <div className="w-14 h-14 bg-rose-800 rounded-2xl flex items-center justify-center text-rose-200">
                     <Search size={32} />
                 </div>
-                <span className="font-black text-slate-700 text-lg">Caça</span>
-                <span className="text-xs font-bold text-slate-400">{progress.wordSearchSolved}/{GOALS.WORD_SEARCH}</span>
+                <span className="font-black text-slate-300 text-lg">Caça</span>
+                <span className="text-xs font-bold text-slate-500">{progress.wordSearchSolved}/{GOALS.WORD_SEARCH}</span>
             </button>
 
             {/* Sombras */}
             <button 
                 onClick={() => navigate(AppRoute.SHADOW)} 
-                className="aspect-square bg-white rounded-3xl border-b-4 border-slate-100 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-3 relative shadow-sm"
+                className="aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-700 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-3 relative shadow-sm"
             >
-                {isShadowDone && <div className="absolute top-3 right-3 text-green-500 bg-green-50 rounded-full p-1"><CheckCircle size={20} /></div>}
-                <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-500">
+                {isShadowDone && <div className="absolute top-3 right-3 text-green-500 bg-green-800 rounded-full p-1"><CheckCircle size={20} /></div>}
+                <div className="w-14 h-14 bg-indigo-800 rounded-2xl flex items-center justify-center text-indigo-200">
                     <Ghost size={32} />
                 </div>
-                <span className="font-black text-slate-700 text-lg">Sombra</span>
-                <span className="text-xs font-bold text-slate-400">{progress.shadowSolved}/{GOALS.SHADOW}</span>
+                <span className="font-black text-slate-300 text-lg">Sombra</span>
+                <span className="text-xs font-bold text-slate-500">{progress.shadowSolved}/{GOALS.SHADOW}</span>
             </button>
 
         </div>

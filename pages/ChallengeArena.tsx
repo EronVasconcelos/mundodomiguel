@@ -128,24 +128,24 @@ const ChallengeArena: React.FC = () => {
       <div className={`flex flex-col items-center justify-center h-full`}>
         
         {won ? (
-          <div className="text-center animate-pop bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 mx-4 w-full">
+          <div className="text-center animate-pop bg-slate-800 p-8 rounded-[2.5rem] shadow-sm border border-slate-700 mx-4 w-full">
             <Trophy className="w-24 h-24 text-yellow-400 mx-auto drop-shadow-sm" fill="#FACC15" />
-            <h2 className="text-3xl font-black text-slate-800 mt-4">CHEGOU!</h2>
-            <div className="flex gap-4 justify-center mt-6 text-5xl bg-slate-50 p-4 rounded-3xl border border-slate-100">
+            <h2 className="text-3xl font-black text-white mt-4">CHEGOU!</h2>
+            <div className="flex gap-4 justify-center mt-6 text-5xl bg-slate-700 p-4 rounded-3xl border border-slate-600">
                <span className="animate-bounce">{theme.player}</span>
                <span>➡️</span>
                <span className="animate-bounce-slow">{theme.goal}</span>
             </div>
             <button 
               onClick={generateMaze}
-              className={`mt-8 bg-emerald-500 text-white px-8 py-4 rounded-2xl font-bold active:scale-95 transition-transform text-xl w-full flex items-center justify-center gap-2 shadow-lg shadow-emerald-200`}
+              className={`mt-8 bg-emerald-500 text-white px-8 py-4 rounded-2xl font-bold active:scale-95 transition-transform text-xl w-full flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/50`}
             >
               <RefreshCcw /> Outra Missão
             </button>
           </div>
         ) : (
-          <div className={`relative p-2 bg-white rounded-2xl shadow-sm border border-slate-200`} style={{ width: '340px', height: '340px' }}>
-            <div className={`relative w-full h-full grid ${theme.floorColor} rounded-xl overflow-hidden`} style={{ gridTemplateColumns: `repeat(${SIZE}, 1fr)` }}>
+          <div className={`relative p-2 bg-slate-800 rounded-2xl shadow-sm border border-slate-700`} style={{ width: '340px', height: '340px' }}>
+            <div className={`relative w-full h-full grid ${theme.floorColor === 'bg-slate-200' ? 'bg-slate-900' : theme.floorColor} rounded-xl overflow-hidden`} style={{ gridTemplateColumns: `repeat(${SIZE}, 1fr)` }}>
               {maze.map((cell, i) => {
                 const wallClass = `border-slate-800`;
                 return (
@@ -184,15 +184,15 @@ const ChallengeArena: React.FC = () => {
         {/* Controls */}
         <div className="mt-8 grid grid-cols-3 gap-3 w-56">
           <div />
-          <button onClick={() => move(0, -1)} className="aspect-square bg-white rounded-2xl shadow-sm border border-slate-100 active:scale-90 active:bg-slate-50 transition-all text-slate-500 flex items-center justify-center"><ArrowUp size={32} strokeWidth={2.5} /></button>
+          <button onClick={() => move(0, -1)} className="aspect-square bg-slate-800 rounded-2xl shadow-sm border border-slate-700 active:scale-90 active:bg-slate-700 transition-all text-slate-300 flex items-center justify-center"><ArrowUp size={32} strokeWidth={2.5} /></button>
           <div />
-          <button onClick={() => move(-1, 0)} className="aspect-square bg-white rounded-2xl shadow-sm border border-slate-100 active:scale-90 active:bg-slate-50 transition-all text-slate-500 flex items-center justify-center"><ArrowLeft size={32} strokeWidth={2.5} /></button>
-          <button onClick={() => move(0, 1)} className="aspect-square bg-white rounded-2xl shadow-sm border border-slate-100 active:scale-90 active:bg-slate-50 transition-all text-slate-500 flex items-center justify-center"><ArrowDown size={32} strokeWidth={2.5} /></button>
-          <button onClick={() => move(1, 0)} className="aspect-square bg-white rounded-2xl shadow-sm border border-slate-100 active:scale-90 active:bg-slate-50 transition-all text-slate-500 flex items-center justify-center"><ArrowRight size={32} strokeWidth={2.5} /></button>
+          <button onClick={() => move(-1, 0)} className="aspect-square bg-slate-800 rounded-2xl shadow-sm border border-slate-700 active:scale-90 active:bg-slate-700 transition-all text-slate-300 flex items-center justify-center"><ArrowLeft size={32} strokeWidth={2.5} /></button>
+          <button onClick={() => move(0, 1)} className="aspect-square bg-slate-800 rounded-2xl shadow-sm border border-slate-700 active:scale-90 active:bg-slate-700 transition-all text-slate-300 flex items-center justify-center"><ArrowDown size={32} strokeWidth={2.5} /></button>
+          <button onClick={() => move(1, 0)} className="aspect-square bg-slate-800 rounded-2xl shadow-sm border border-slate-700 active:scale-90 active:bg-slate-700 transition-all text-slate-300 flex items-center justify-center"><ArrowRight size={32} strokeWidth={2.5} /></button>
         </div>
         
         {!won && (
-          <button onClick={generateMaze} className="mt-8 flex items-center gap-2 text-slate-400 font-bold px-6 py-2 rounded-full hover:bg-white transition-colors">
+          <button onClick={generateMaze} className="mt-8 flex items-center gap-2 text-slate-300 font-bold px-6 py-2 rounded-full hover:bg-slate-800 transition-colors">
             <RefreshCcw className="w-4 h-4"/> Mudar Missão
           </button>
         )}
@@ -200,16 +200,16 @@ const ChallengeArena: React.FC = () => {
         {/* Mission Complete Popup */}
         {showMissionComplete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
-               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+               <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
                   <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
                      <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
                   </div>
-                  <h2 className="text-2xl font-black text-slate-800 text-center mb-2">MISSÃO LABIRINTO!</h2>
-                  <p className="text-slate-500 font-bold text-center mb-6">Você completou 3 labirintos hoje.</p>
+                  <h2 className="text-2xl font-black text-white text-center mb-2">MISSÃO LABIRINTO!</h2>
+                  <p className="text-slate-300 font-bold text-center mb-6">Você completou 3 labirintos hoje.</p>
                   
                   <button 
                     onClick={() => setShowMissionComplete(false)}
-                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
+                    className="w-full py-4 bg-yellow-600 text-yellow-950 rounded-2xl font-black text-xl active:scale-95 transition-transform"
                   >
                     CONTINUAR JOGANDO
                   </button>

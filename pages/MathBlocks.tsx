@@ -68,7 +68,7 @@ const NumberCharacterLocal: React.FC<NumberCharacterLocalProps> = ({ value, size
           </div>
         );
       })}
-      <span className={`font-black text-slate-400 mt-2 ${size === "lg" ? "text-2xl" : "text-lg"}`}>{value}</span>
+      <span className={`font-black text-slate-300 mt-2 ${size === "lg" ? "text-2xl" : "text-lg"}`}>{value}</span>
     </div>
   );
 };
@@ -194,10 +194,10 @@ const MathBlocks: React.FC = () => {
   };
 
   const renderOperator = () => {
-    if (operation === 'ADD') return <SymbolBlock colorClass="bg-slate-800 text-white"><Plus strokeWidth={4} /></SymbolBlock>;
-    if (operation === 'SUB') return <SymbolBlock colorClass="bg-slate-800 text-white"><Minus strokeWidth={4} /></SymbolBlock>;
-    if (operation === 'MUL') return <SymbolBlock colorClass="bg-slate-800 text-white"><X strokeWidth={4} /></SymbolBlock>;
-    return <SymbolBlock colorClass="bg-slate-800 text-white"><Divide strokeWidth={4} /></SymbolBlock>;
+    if (operation === 'ADD') return <SymbolBlock colorClass="bg-slate-700 text-white"><Plus strokeWidth={4} /></SymbolBlock>;
+    if (operation === 'SUB') return <SymbolBlock colorClass="bg-slate-700 text-white"><Minus strokeWidth={4} /></SymbolBlock>;
+    if (operation === 'MUL') return <SymbolBlock colorClass="bg-slate-700 text-white"><X strokeWidth={4} /></SymbolBlock>;
+    return <SymbolBlock colorClass="bg-slate-700 text-white"><Divide strokeWidth={4} /></SymbolBlock>;
   }
 
   // Generate exactly 3 options
@@ -218,7 +218,7 @@ const MathBlocks: React.FC = () => {
       <div className="flex flex-col h-full gap-6 justify-center"> {/* Adicionado justify-center aqui */}
         
         {/* EQUATION AREA */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden py-8"> {/* Removido flex-1 */}
+        <div className="bg-slate-800 rounded-[2.5rem] border border-slate-700 shadow-sm flex flex-col items-center justify-center relative overflow-hidden py-8"> {/* Removido flex-1 */}
            
            {/* The Equation Row */}
            <div className="flex items-end justify-center gap-2 md:gap-3 w-full px-2">
@@ -240,7 +240,7 @@ const MathBlocks: React.FC = () => {
               
               {/* Equals */}
               <div className="h-20 pb-4">
-                 <SymbolBlock colorClass="bg-slate-300 text-slate-500">=</SymbolBlock>
+                 <SymbolBlock colorClass="bg-slate-700 text-slate-300">=</SymbolBlock>
               </div>
               
               {/* Result Placeholder / Answer */}
@@ -258,7 +258,7 @@ const MathBlocks: React.FC = () => {
                          {isCorrect === false && <XCircle className="text-red-500" size={24} />}
                     </div>
                  ) : (
-                    <div className="w-16 h-16 bg-slate-100 rounded-xl border-4 border-dashed border-slate-300 flex items-center justify-center text-slate-300 text-3xl font-black mb-2 animate-pulse">
+                    <div className="w-16 h-16 bg-slate-700 rounded-xl border-4 border-dashed border-slate-600 flex items-center justify-center text-slate-400 text-3xl font-black mb-2 animate-pulse">
                         ?
                     </div>
                  )}
@@ -267,7 +267,7 @@ const MathBlocks: React.FC = () => {
            
            {/* Manual Refresh (if stuck) */}
            <div className="absolute top-4 right-4">
-              <button onClick={generateProblem} className="p-2 bg-slate-50 rounded-full text-slate-300 hover:bg-slate-100 transition-colors">
+              <button onClick={generateProblem} className="p-2 bg-slate-700 rounded-full text-slate-400 hover:bg-slate-600 transition-colors">
                 <RefreshCw size={20} />
               </button>
            </div>
@@ -275,7 +275,7 @@ const MathBlocks: React.FC = () => {
 
         {/* OPTIONS AREA - 3 Buttons in a Row */}
         <div className="w-full">
-           <p className="text-center font-bold text-slate-400 uppercase tracking-widest text-xs mb-4">Escolha a resposta:</p>
+           <p className="text-center font-bold text-slate-300 uppercase tracking-widest text-xs mb-4">Escolha a resposta:</p>
            <div className="flex gap-4 justify-center px-4">
              {options.map((opt) => (
                <button
@@ -285,7 +285,7 @@ const MathBlocks: React.FC = () => {
                  className={`flex-1 h-20 rounded-2xl text-3xl font-black border-b-8 transition-all active:border-b-0 active:translate-y-2
                    ${userAnswer === opt 
                       ? (isCorrect ? 'bg-green-500 border-green-700 text-white' : 'bg-red-500 border-red-700 text-white') 
-                      : 'bg-white border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50'
+                      : 'bg-slate-800 border-slate-700 text-slate-300 shadow-sm hover:bg-slate-700'
                    }`}
                >
                  {opt}
@@ -297,16 +297,16 @@ const MathBlocks: React.FC = () => {
         {/* Mission Complete Popup */}
         {showMissionComplete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
-               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+               <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
                   <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
                      <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
                   </div>
-                  <h2 className="text-2xl font-black text-slate-800 text-center mb-2">MISSÃO MATEMÁTICA!</h2>
-                  <p className="text-slate-500 font-bold text-center mb-6">Você atingiu a meta de hoje.</p>
+                  <h2 className="text-2xl font-black text-white text-center mb-2">MISSÃO MATEMÁTICA!</h2>
+                  <p className="text-slate-300 font-bold text-center mb-6">Você atingiu a meta de hoje.</p>
                   
                   <button 
                     onClick={generateProblem}
-                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
+                    className="w-full py-4 bg-yellow-600 text-yellow-950 rounded-2xl font-black text-xl active:scale-95 transition-transform"
                   >
                     CONTINUAR JOGANDO
                   </button>
