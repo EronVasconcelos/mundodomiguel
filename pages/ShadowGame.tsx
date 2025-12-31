@@ -137,7 +137,7 @@ const ShadowGame: React.FC = () => {
         {/* Main Target Display */}
         <div className="flex-1 flex flex-col items-center justify-center w-full">
             <div className="relative animate-slide-up">
-                <div className="w-48 h-48 bg-slate-800 rounded-[3rem] border-4 border-slate-700 shadow-xl flex items-center justify-center relative overflow-hidden">
+                <div className="w-48 h-48 bg-white rounded-[3rem] border-4 border-slate-100 shadow-xl flex items-center justify-center relative overflow-hidden">
                    {/* Background Decor */}
                    <div className="absolute inset-0 opacity-10" style={{ backgroundColor: target.color }} />
                    
@@ -155,7 +155,7 @@ const ShadowGame: React.FC = () => {
                 )}
             </div>
             
-            <h2 className="text-2xl font-black text-slate-300 mt-8 uppercase tracking-widest">
+            <h2 className="text-2xl font-black text-slate-400 mt-8 uppercase tracking-widest">
                 {won ? "ACERTOU!" : "Qual é a sombra?"}
             </h2>
         </div>
@@ -174,15 +174,15 @@ const ShadowGame: React.FC = () => {
                         disabled={won}
                         className={`
                             h-32 rounded-3xl flex items-center justify-center transition-all duration-300 border-4
-                            ${wrongIndex === idx ? 'bg-red-900 border-red-700 animate-shake text-red-300' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 active:scale-95 text-slate-300'}
-                            ${won && isCorrect ? 'bg-green-900 border-green-700 ring-4 ring-green-800/50 text-green-300' : ''}
+                            ${wrongIndex === idx ? 'bg-red-100 border-red-300 animate-shake' : 'bg-slate-200 border-slate-300 hover:bg-slate-300 active:scale-95'}
+                            ${won && isCorrect ? 'bg-green-100 border-green-400 ring-4 ring-green-200' : ''}
                         `}
                     >
                         <OptIcon 
                             size={64} 
                             color="#334155" 
                             fill="#334155" // Silhouette look
-                            className={`transition-all ${won && isCorrect ? 'scale-110' : 'opacity-40'}`} 
+                            className={`transition-all ${won && isCorrect ? 'scale-110' : 'opacity-60'}`} 
                         />
                     </button>
                 );
@@ -192,16 +192,16 @@ const ShadowGame: React.FC = () => {
         {/* Mission Complete Popup */}
         {showMissionComplete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
-                <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+                <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
                     <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
                         <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
                     </div>
-                    <h2 className="text-2xl font-black text-white text-center mb-2">MESTRE DAS SOMBRAS!</h2>
-                    <p className="text-slate-300 font-bold text-center mb-6">Você encontrou 5 sombras hoje.</p>
+                    <h2 className="text-2xl font-black text-slate-800 text-center mb-2">MESTRE DAS SOMBRAS!</h2>
+                    <p className="text-slate-500 font-bold text-center mb-6">Você encontrou 5 sombras hoje.</p>
                     
                     <button 
                     onClick={() => setShowMissionComplete(false)}
-                    className="w-full py-4 bg-yellow-600 text-yellow-950 rounded-2xl font-black text-xl active:scale-95 transition-transform"
+                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
                     >
                     CONTINUAR
                     </button>

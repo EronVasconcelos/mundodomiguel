@@ -146,7 +146,7 @@ const StoryTime: React.FC = () => {
                         <button 
                            key={idx} 
                            onClick={() => handleSelectStaticStory(s)}
-                           className="w-full bg-slate-700 hover:bg-slate-600 border-l-4 border-indigo-500 p-5 rounded-r-2xl text-left active:scale-95 transition-all flex items-center justify-between group"
+                           className="w-full bg-slate-800 hover:bg-slate-700 border-l-4 border-indigo-500 p-5 rounded-r-2xl text-left active:scale-95 transition-all flex items-center justify-between group"
                         >
                            <div>
                               <span className="block font-black text-lg text-slate-200 group-hover:text-yellow-400 transition-colors">{s.title}</span>

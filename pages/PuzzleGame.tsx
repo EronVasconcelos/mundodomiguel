@@ -174,7 +174,7 @@ const PuzzleGame: React.FC = () => {
         {/* Shuffle Button */}
         <button 
             onClick={shuffleImage} 
-            className="bg-slate-800 text-indigo-300 px-6 py-3 rounded-2xl border border-slate-700 shadow-sm active:scale-95 transition-transform font-bold text-sm flex items-center gap-2"
+            className="bg-white text-indigo-600 px-6 py-3 rounded-2xl border border-slate-200 shadow-sm active:scale-95 transition-transform font-bold text-sm flex items-center gap-2"
         >
             <Shuffle size={20} /> TROCAR IMAGEM
         </button>
@@ -230,7 +230,7 @@ const PuzzleGame: React.FC = () => {
                     <h2 className="text-3xl font-black text-white mb-2">LINDO!</h2>
                     <button 
                         onClick={nextLevel} 
-                        className="bg-slate-800 text-indigo-300 px-8 py-3 rounded-2xl font-black text-lg flex items-center gap-2 active:scale-95 transition-transform shadow-lg mt-4"
+                        className="bg-white text-indigo-600 px-8 py-3 rounded-2xl font-black text-lg flex items-center gap-2 active:scale-95 transition-transform shadow-lg mt-4"
                     >
                         <RefreshCw /> NOVO JOGO
                     </button>
@@ -240,27 +240,27 @@ const PuzzleGame: React.FC = () => {
 
         {/* Mini Preview & Instruction */}
         {!won && (
-            <div className="flex items-center gap-4 bg-slate-800 p-3 rounded-2xl border border-slate-700 shadow-sm max-w-xs">
-                <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-700 shrink-0">
+            <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm max-w-xs">
+                <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 shrink-0">
                     <img src={currentImageUrl} className="w-full h-full object-cover" />
                 </div>
-                <p className="text-slate-300 text-xs font-bold leading-tight">Monte a imagem movendo as peças para o espaço vazio.</p>
+                <p className="text-slate-400 text-xs font-bold leading-tight">Monte a imagem movendo as peças para o espaço vazio.</p>
             </div>
         )}
 
         {/* Mission Complete Popup */}
         {showMissionComplete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
-                <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+                <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
                     <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
                         <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
                     </div>
-                    <h2 className="text-2xl font-black text-white text-center mb-2">QUEBRA-CABEÇA!</h2>
-                    <p className="text-slate-300 font-bold text-center mb-6">Você completou o desafio de hoje.</p>
+                    <h2 className="text-2xl font-black text-slate-800 text-center mb-2">QUEBRA-CABEÇA!</h2>
+                    <p className="text-slate-500 font-bold text-center mb-6">Você completou o desafio de hoje.</p>
                     
                     <button 
                     onClick={() => { setShowMissionComplete(false); nextLevel(); }}
-                    className="w-full py-4 bg-yellow-600 text-yellow-950 rounded-2xl font-black text-xl active:scale-95 transition-transform flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform flex items-center justify-center gap-2"
                     >
                         CONTINUAR <ArrowRight />
                     </button>

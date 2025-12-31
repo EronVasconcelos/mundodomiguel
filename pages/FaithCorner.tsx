@@ -172,17 +172,17 @@ const FaithCorner: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col font-sans bg-slate-900 text-white relative">
-        <Layout title="Cantinho da Fé" color="text-sky-300" missionTarget={missionStats}>
+    <div className="h-full flex flex-col font-sans bg-sky-50 text-slate-800 relative">
+        <Layout title="Cantinho da Fé" color="text-sky-600" missionTarget={missionStats}>
             
             {loading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
                     <Loader2 className="animate-spin text-sky-400 w-12 h-12" />
-                    <p className="text-sky-300 font-bold animate-pulse">Buscando a palavra de hoje...</p>
+                    <p className="text-sky-400 font-bold animate-pulse">Buscando a palavra de hoje...</p>
                 </div>
             ) : data ? (
                 <div className="space-y-6 pb-12">
-                    <div className="bg-gradient-to-br from-sky-600 to-blue-700 rounded-[2.5rem] p-6 text-white shadow-lg relative overflow-hidden">
+                    <div className="bg-gradient-to-br from-sky-400 to-blue-500 rounded-[2.5rem] p-6 text-white shadow-lg relative overflow-hidden">
                         <Cloud className="absolute -top-4 -right-4 w-32 h-32 text-white/20" />
                         <Sun className="absolute top-4 left-4 w-12 h-12 text-yellow-300 animate-spin-slow" />
                         <div className="relative z-10 text-center mt-6">
@@ -199,38 +199,38 @@ const FaithCorner: React.FC = () => {
                         <button 
                             onClick={speakDevotional}
                             disabled={isGeneratingAudio}
-                            className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-md ${isSpeaking ? 'bg-amber-700 text-amber-950 border-b-4 border-amber-600' : 'bg-slate-800 text-slate-300 border-b-4 border-slate-700'}`}
+                            className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-md ${isSpeaking ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-white text-slate-600 border-b-4 border-slate-200'}`}
                         >
                             {isGeneratingAudio ? <Loader2 className="animate-spin" /> : isSpeaking ? <StopCircle className="animate-pulse" /> : <Volume2 />}
                             {isGeneratingAudio ? "Criando Áudio..." : isSpeaking ? "Parar Áudio" : "Ouvir Devocional"}
                         </button>
                     )}
 
-                    <div className="bg-slate-800 rounded-[2rem] p-6 border border-slate-700 shadow-sm relative">
-                        <div className="absolute -top-3 left-6 bg-sky-800 text-sky-200 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">Para {profile?.name}</div>
-                        <p className="text-lg leading-relaxed text-slate-300 font-medium">{data.devotional}</p>
+                    <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative">
+                        <div className="absolute -top-3 left-6 bg-sky-100 text-sky-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">Para {profile?.name}</div>
+                        <p className="text-lg leading-relaxed text-slate-600 font-medium">{data.devotional}</p>
                     </div>
 
-                    <div className="bg-slate-800 rounded-[2rem] p-6 border-l-8 border-sky-300 shadow-sm">
+                    <div className="bg-white rounded-[2rem] p-6 border-l-8 border-sky-300 shadow-sm">
                         <div className="flex items-center gap-2 mb-4">
                             <BookOpen className="text-sky-500" size={24} />
-                            <h3 className="font-black text-slate-300 text-xl">{data.storyTitle}</h3>
+                            <h3 className="font-black text-xl text-slate-700">{data.storyTitle}</h3>
                         </div>
-                        <div className="prose prose-invert text-slate-300 leading-relaxed">
+                        <div className="prose prose-slate text-slate-600 leading-relaxed">
                             {data.storyContent.split('\n').map((p, i) => <p key={i} className="mb-2">{p}</p>)}
                         </div>
                     </div>
 
-                    <div className="relative aspect-square w-full bg-slate-800 rounded-[2.5rem] overflow-hidden shadow-inner border-4 border-slate-700">
+                    <div className="relative aspect-square w-full bg-slate-200 rounded-[2.5rem] overflow-hidden shadow-inner border-4 border-white">
                         {imageLoading ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-2">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2">
                                 <Sparkles className="animate-spin text-yellow-400 w-8 h-8" />
                                 <span className="text-xs font-bold">Pintando...</span>
                             </div>
                         ) : imageUrl ? (
                             <img src={imageUrl} alt="História" className="w-full h-full object-cover animate-fade-in" />
                         ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-slate-500">
+                            <div className="absolute inset-0 flex items-center justify-center text-slate-300">
                                 <Cloud size={48} />
                             </div>
                         )}
@@ -243,10 +243,10 @@ const FaithCorner: React.FC = () => {
 
         {showMissionComplete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
-               <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
                   <Trophy className="w-12 h-12 text-yellow-500 animate-bounce mb-4" />
-                  <h2 className="text-2xl font-black text-white text-center mb-2">DEVOCIONAL LIDO!</h2>
-                  <button onClick={() => setShowMissionComplete(false)} className="w-full py-4 bg-yellow-600 text-yellow-950 rounded-2xl font-black text-xl">AMÉM!</button>
+                  <h2 className="text-2xl font-black text-slate-800 text-center mb-2">DEVOCIONAL LIDO!</h2>
+                  <button onClick={() => setShowMissionComplete(false)} className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl">AMÉM!</button>
                </div>
             </div>
         )}

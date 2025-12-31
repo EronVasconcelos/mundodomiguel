@@ -205,14 +205,14 @@ const WordLearning: React.FC = () => {
         
         <div className="w-full max-w-xs flex flex-col gap-2 mb-4">
            <div className="flex justify-between items-center px-2">
-             <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">Progresso</span>
+             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Progresso</span>
              <div className="flex gap-1">
                 {Array.from({length: 4}).map((_, i) => (
-                  <div key={i} className={`w-2 h-2 rounded-full ${i < level ? getLevelColor() : 'bg-slate-700'}`} />
+                  <div key={i} className={`w-2 h-2 rounded-full ${i < level ? getLevelColor() : 'bg-slate-200'}`} />
                 ))}
              </div>
            </div>
-           <div className="w-full bg-slate-700 h-4 rounded-full overflow-hidden">
+           <div className="w-full bg-slate-200 h-4 rounded-full overflow-hidden">
              <div 
                className={`h-full ${getLevelColor()} transition-all duration-500`}
                style={{ width: `${(score % 5) * 20}%` }} 
@@ -221,7 +221,7 @@ const WordLearning: React.FC = () => {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center w-full">
-            <div className={`w-56 h-56 bg-slate-800 rounded-[3rem] flex items-center justify-center text-[8rem] mb-8 border-b-8 border-slate-700 relative`}>
+            <div className={`w-56 h-56 bg-white rounded-[3rem] flex items-center justify-center text-[8rem] mb-8 border-b-8 border-slate-200 relative`}>
               {level === 4 && <Crown className="absolute -top-6 -right-6 text-yellow-400 fill-yellow-400 w-16 h-16 animate-bounce" />}
               {currentWord?.icon}
             </div>
@@ -241,9 +241,9 @@ const WordLearning: React.FC = () => {
                 </button>
             </div>
             ) : (
-            <div className="mb-8 min-h-[5rem] flex flex-wrap justify-center gap-2 bg-slate-800 rounded-2xl p-4 w-full max-w-sm border-2 border-slate-700">
+            <div className="mb-8 min-h-[5rem] flex flex-wrap justify-center gap-2 bg-slate-100 rounded-2xl p-4 w-full max-w-sm border-2 border-slate-200">
                 {selectedSyllables.map((s, i) => (
-                    <span key={i} className="text-5xl font-black text-slate-200 animate-pop bg-slate-700 px-2 rounded-lg border-b-4 border-slate-600">{s}</span>
+                    <span key={i} className="text-5xl font-black text-slate-800 animate-pop bg-white px-2 rounded-lg border-b-4 border-slate-300">{s}</span>
                 ))}
                 {selectedSyllables.length === 0 && <span className="text-slate-400 text-xl font-bold self-center">Toque nas sílabas...</span>}
             </div>
@@ -264,7 +264,7 @@ const WordLearning: React.FC = () => {
                   disabled={isUsed}
                   className={`min-w-[5rem] h-20 px-4 rounded-2xl font-black text-3xl border-b-8 transition-all
                     ${isUsed 
-                      ? 'bg-slate-700 text-slate-400 border-slate-600 scale-95' 
+                      ? 'bg-slate-100 text-slate-300 border-slate-200 scale-95' 
                       : `${getLevelColor()} text-white border-black/20 active:border-b-0 active:translate-y-2`
                     }`}
                 >
@@ -276,7 +276,7 @@ const WordLearning: React.FC = () => {
         )}
         
         <div className="mt-6 w-full flex justify-center">
-           <button onClick={() => { setSelectedSyllables([]); }} className="text-slate-300 font-bold flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-full border-2 border-slate-700">
+           <button onClick={() => { setSelectedSyllables([]); }} className="text-slate-400 font-bold flex items-center gap-2 bg-white px-4 py-2 rounded-full border-2 border-slate-100">
              <RefreshCw size={16} /> Reiniciar palavra
            </button>
         </div>
@@ -284,16 +284,16 @@ const WordLearning: React.FC = () => {
         {/* Mission Complete Popup */}
         {showMissionComplete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
-               <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
+               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
                   <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
                      <Trophy className="w-12 h-12 text-yellow-500 animate-bounce" />
                   </div>
-                  <h2 className="text-2xl font-black text-white text-center mb-2">PARABÉNS!</h2>
-                  <p className="text-slate-300 font-bold text-center mb-6">Você completou o Nível {level-1}!</p>
+                  <h2 className="text-2xl font-black text-slate-800 text-center mb-2">PARABÉNS!</h2>
+                  <p className="text-slate-500 font-bold text-center mb-6">Você completou o Nível {level-1}!</p>
                   
                   <button 
                     onClick={() => setShowMissionComplete(false)}
-                    className="w-full py-4 bg-yellow-600 text-yellow-950 rounded-2xl font-black text-xl active:scale-95 transition-transform"
+                    className="w-full py-4 bg-yellow-400 text-yellow-900 rounded-2xl font-black text-xl active:scale-95 transition-transform"
                   >
                     CONTINUAR
                   </button>

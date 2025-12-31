@@ -135,7 +135,7 @@ const ArtStudio: React.FC = () => {
       <div className="flex flex-col h-full gap-4">
         
         {/* Canvas Container */}
-        <div className="flex-1 bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden relative shadow-sm">
+        <div className="flex-1 bg-white rounded-3xl border border-slate-200 overflow-hidden relative shadow-sm">
            <canvas
             ref={canvasRef}
             onMouseDown={startDrawing}
@@ -149,33 +149,33 @@ const ArtStudio: React.FC = () => {
         </div>
 
         {/* Tools Panel */}
-        <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 flex flex-col gap-4 shadow-none">
+        <div className="bg-white p-5 rounded-3xl border border-slate-200 flex flex-col gap-4 shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
           
           {/* Top Row: Tools & Clear */}
           <div className="flex justify-between items-center">
              <div className="flex gap-2">
                 <button 
                   onClick={handleUndo}
-                  className="p-3 rounded-2xl border bg-slate-800 border-slate-700 text-slate-300 active:scale-95 transition-transform"
+                  className="p-3 rounded-2xl border bg-slate-50 border-slate-100 text-slate-400 active:scale-95 transition-transform"
                 >
                   <Undo2 />
                 </button>
                 <button 
                   onClick={() => setTool('pen')} 
-                  className={`p-3 rounded-2xl border transition-all active:scale-95 ${tool === 'pen' ? 'bg-amber-800 border-amber-700 text-amber-200' : 'bg-slate-800 border-slate-700 text-slate-300'}`}
+                  className={`p-3 rounded-2xl border transition-all active:scale-95 ${tool === 'pen' ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
                 >
                   <PenTool />
                 </button>
                 <button 
                   onClick={() => setTool('eraser')} 
-                  className={`p-3 rounded-2xl border transition-all active:scale-95 ${tool === 'eraser' ? 'bg-amber-800 border-amber-700 text-amber-200' : 'bg-slate-800 border-slate-700 text-slate-300'}`}
+                  className={`p-3 rounded-2xl border transition-all active:scale-95 ${tool === 'eraser' ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
                 >
                   <Eraser />
                 </button>
              </div>
 
              {/* Brush Size Slider */}
-             <div className="flex items-center gap-2 flex-1 mx-4 bg-slate-800 px-3 py-2 rounded-xl border border-slate-700">
+             <div className="flex items-center gap-2 flex-1 mx-4 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
                 <Circle size={8} className="text-slate-300 fill-slate-300" />
                 <input 
                   type="range" 
@@ -183,12 +183,12 @@ const ArtStudio: React.FC = () => {
                   max="40" 
                   value={brushSize} 
                   onChange={(e) => setBrushSize(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
                 />
                 <Circle size={20} className="text-slate-300 fill-slate-300" />
              </div>
              
-             <button onClick={clearCanvas} className="p-3 bg-red-800 text-red-300 rounded-2xl border border-red-700 active:scale-95 transition-transform">
+             <button onClick={clearCanvas} className="p-3 bg-red-100 text-red-500 rounded-2xl border border-red-200 active:scale-95 transition-transform">
                <Trash2 />
              </button>
           </div>
@@ -199,7 +199,7 @@ const ArtStudio: React.FC = () => {
               <button
                 key={c}
                 onClick={() => { setColor(c); setTool('pen'); }}
-                className={`w-12 h-12 rounded-full border-4 flex-shrink-0 transition-transform ${color === c && tool === 'pen' ? 'scale-110 border-white' : 'border-slate-700'}`}
+                className={`w-12 h-12 rounded-full border-4 flex-shrink-0 transition-transform ${color === c && tool === 'pen' ? 'scale-110 border-slate-800' : 'border-slate-100'}`}
                 style={{ backgroundColor: c }}
               />
             ))}
