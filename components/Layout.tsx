@@ -22,7 +22,7 @@ const DEFAULT_AVATAR = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/sv
 export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-slate-700", missionTarget }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isHome = location.pathname === '/';
+  const isHome = location.pathname === '/' || location.pathname === AppRoute.HOME;
   
   const [activeProfile, setActiveProfile] = useState<ChildProfile | null>(null);
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
@@ -75,7 +75,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 eyeColor: p.eye_color,
                 skinTone: p.skin_tone,
                 avatarBase: p.avatar_base,
-                photoUrl: p.photo_url
+                photo_url: p.photo_url
             }));
             list = mappedProfiles;
             setProfiles(list);
@@ -204,15 +204,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
   const getProfileImage = (p: ChildProfile | null) => p?.photoUrl || p?.avatarBase || DEFAULT_AVATAR;
 
-  // --- PULL TO REFRESH LOGIC ---
+  // --- PULL TO REFRESH LOGIC (Restricted to Home) ---
   const handleTouchStart = (e: React.TouchEvent) => {
+      if (!isHome) return;
       if (contentRef.current?.scrollTop === 0) {
           pullStartY.current = e.touches[0].clientY;
       }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-      if (!pullStartY.current) return;
+      if (!isHome || !pullStartY.current) return;
       const currentY = e.touches[0].clientY;
       const diff = currentY - pullStartY.current;
       
@@ -223,6 +224,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
   };
 
   const handleTouchEnd = () => {
+      if (!isHome) return;
       if (pullDist > PULL_THRESHOLD) {
           setIsRefreshing(true);
           setPullDist(PULL_THRESHOLD); 
@@ -402,15 +404,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
          </div>
       )}
 
-      {/* --- PULL TO REFRESH SPINNER --- */}
-      <div 
-        className="absolute top-0 left-0 w-full flex justify-center pointer-events-none z-0 transition-transform duration-200"
-        style={{ transform: `translateY(${Math.min(pullDist, 100) - 40}px)` }}
-      >
-         <div className={`w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-blue-500 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullDist * 2}deg)` }}>
-            {isRefreshing ? <Loader2 /> : <RefreshCw />}
-         </div>
-      </div>
+      {/* --- PULL TO REFRESH SPINNER (Only visible if isHome) --- */}
+      {isHome && (
+        <div 
+            className="absolute top-0 left-0 w-full flex justify-center pointer-events-none z-0 transition-transform duration-200"
+            style={{ transform: `translateY(${Math.min(pullDist, 100) - 40}px)` }}
+        >
+            <div className={`w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-blue-500 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullDist * 2}deg)` }}>
+                {isRefreshing ? <Loader2 /> : <RefreshCw />}
+            </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main 
@@ -420,7 +424,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
          onTouchMove={handleTouchMove}
          onTouchEnd={handleTouchEnd}
          style={{ 
-             transform: `translateY(${pullDist}px)`, 
+             transform: isHome ? `translateY(${pullDist}px)` : 'none', 
              transition: isRefreshing ? 'transform 0.3s' : 'none' 
          }}
       >

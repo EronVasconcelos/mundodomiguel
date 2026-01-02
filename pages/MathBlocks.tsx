@@ -31,7 +31,6 @@ interface NumberCharacterLocalProps {
 }
 
 const NumberCharacterLocal: React.FC<NumberCharacterLocalProps> = ({ value, size = "md" }) => {
-  // Ajuste visual para parecer um bloco 3D (border-b-4 ou shadow simulada)
   const blockSizeClass = size === "lg" ? "w-16 h-16 text-3xl" : size === "md" ? "w-12 h-12 text-xl" : "w-8 h-8 text-sm";
   
   if (value > 10 && value % 10 !== 0) {
@@ -73,9 +72,8 @@ const NumberCharacterLocal: React.FC<NumberCharacterLocalProps> = ({ value, size
   );
 };
 
-// Componente Visual para Operadores e Igualdade (Estilo Bloco)
 const SymbolBlock: React.FC<{ children: React.ReactNode, colorClass?: string }> = ({ children, colorClass = "bg-slate-700 text-white" }) => (
-    <div className="flex flex-col items-center justify-end pb-6 h-full"> 
+    <div className="flex flex-col items-center justify-end pb-10 h-full"> 
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-black border-b-4 border-black/20 shadow-sm ${colorClass}`}>
             {children}
         </div>
@@ -164,7 +162,7 @@ const MathBlocks: React.FC = () => {
   };
 
   const handleAnswer = (val: number) => {
-    if (isCorrect === true) return; // Prevent double clicking if already correct
+    if (isCorrect === true) return; 
 
     setUserAnswer(val);
     
@@ -174,7 +172,6 @@ const MathBlocks: React.FC = () => {
       const p = getDailyProgress();
       setMissionStats({ ...missionStats, current: p.mathCount });
 
-      // Auto advance after short delay
       setTimeout(() => {
           if (reached) {
               setShowMissionComplete(true);
@@ -185,7 +182,6 @@ const MathBlocks: React.FC = () => {
 
     } else {
       setIsCorrect(false);
-      // Reset error state after visual feedback
       setTimeout(() => {
           setUserAnswer(null);
           setIsCorrect(null);
@@ -200,7 +196,6 @@ const MathBlocks: React.FC = () => {
     return <SymbolBlock colorClass="bg-slate-800 text-white"><Divide strokeWidth={4} /></SymbolBlock>;
   }
 
-  // Generate exactly 3 options
   const options = React.useMemo(() => {
     const opts = new Set<number>();
     opts.add(target);
@@ -215,36 +210,36 @@ const MathBlocks: React.FC = () => {
 
   return (
     <Layout title="Matemática" missionTarget={missionStats}>
-      <div className="flex flex-col h-full gap-6 justify-center"> {/* Adicionado justify-center aqui */}
+      <div className="flex flex-col h-full gap-6 justify-center">
         
-        {/* EQUATION AREA */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden py-8"> {/* Removido flex-1 */}
+        {/* EQUATION AREA - Increased py and removed overflow-hidden */}
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center relative py-16">
            
            {/* The Equation Row */}
            <div className="flex items-end justify-center gap-2 md:gap-3 w-full px-2">
               
-              {/* Num 1 */}
-              <div className="flex flex-col items-center justify-end h-32 w-16">
+              {/* Num 1 - Increased height to h-80 */}
+              <div className="flex flex-col items-center justify-end h-80 w-16">
                  <NumberCharacterLocal value={num1} />
               </div>
               
               {/* Operator */}
-              <div className="h-20 pb-4">
+              <div className="h-24">
                   {renderOperator()}
               </div>
               
-              {/* Num 2 */}
-              <div className="flex flex-col items-center justify-end h-32 w-16">
+              {/* Num 2 - Increased height to h-80 */}
+              <div className="flex flex-col items-center justify-end h-80 w-16">
                 <NumberCharacterLocal value={num2} />
               </div>
               
               {/* Equals */}
-              <div className="h-20 pb-4">
+              <div className="h-24">
                  <SymbolBlock colorClass="bg-slate-300 text-slate-500">=</SymbolBlock>
               </div>
               
-              {/* Result Placeholder / Answer */}
-              <div className="flex flex-col items-center justify-end h-32 w-20">
+              {/* Result Placeholder / Answer - Increased height to h-80 */}
+              <div className="flex flex-col items-center justify-end h-80 w-20">
                  {userAnswer !== null ? (
                     <div className={`animate-pop flex flex-col items-center`}>
                         <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl font-black border-b-4 shadow-sm mb-2
@@ -265,7 +260,6 @@ const MathBlocks: React.FC = () => {
               </div>
            </div>
            
-           {/* Manual Refresh (if stuck) */}
            <div className="absolute top-4 right-4">
               <button onClick={generateProblem} className="p-2 bg-slate-50 rounded-full text-slate-300 hover:bg-slate-100 transition-colors">
                 <RefreshCw size={20} />
@@ -273,7 +267,6 @@ const MathBlocks: React.FC = () => {
            </div>
         </div>
 
-        {/* OPTIONS AREA - 3 Buttons in a Row */}
         <div className="w-full">
            <p className="text-center font-bold text-slate-400 uppercase tracking-widest text-xs mb-4">Escolha a resposta:</p>
            <div className="flex gap-4 justify-center px-4">
@@ -294,7 +287,6 @@ const MathBlocks: React.FC = () => {
            </div>
         </div>
 
-        {/* Mission Complete Popup */}
         {showMissionComplete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
                <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center animate-pop relative overflow-hidden shadow-2xl border-4 border-yellow-300">
