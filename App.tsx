@@ -10,7 +10,7 @@ import Home from './pages/Home';
 import MathBlocks from './pages/MathBlocks';
 import ArtStudio from './pages/ArtStudio';
 import ColoringBook from './pages/ColoringBook';
-import ChallengeHub from './pages/ChallengeHub'; // Novo
+import ChallengeHub from './pages/ChallengeHub';
 import ChallengeArena from './pages/ChallengeArena';
 import WordSearch from './pages/WordSearch';
 import PuzzleGame from './pages/PuzzleGame';
@@ -23,6 +23,7 @@ import MemoryGame from './pages/games/MemoryGame';
 import SnakeGame from './pages/games/SnakeGame';
 import SpaceShooter from './pages/games/SpaceShooter';
 import RacingGame from './pages/games/RacingGame';
+import SplashScreen from './pages/SplashScreen'; // Importação da nova Splash
 import { AppRoute } from './types';
 
 // Auth Guard Component
@@ -30,6 +31,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [checking, setChecking] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -42,33 +44,42 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         if (!session && !isPublic) {
           navigate(AppRoute.WELCOME);
+          setChecking(false);
         } else if (session) {
-           // Logged in, check if has profiles
+           // Usuário logado: Ativar Splash apenas se estiver indo para a Home pela primeira vez
+           if (location.pathname === AppRoute.HOME || location.pathname === '/') {
+              setShowSplash(true);
+              // Mantém a splash por 2.5 segundos para o efeito visual
+              setTimeout(() => {
+                setShowSplash(false);
+                setChecking(false);
+              }, 2500);
+           } else {
+              setChecking(false);
+           }
+
+           // Validação de perfis em segundo plano
            const storedProfiles = localStorage.getItem('child_profiles');
            if (!storedProfiles || JSON.parse(storedProfiles).length === 0) {
-              // If no local profiles, double check DB (in case of fresh login on new device)
               const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true });
               if ((count || 0) === 0 && location.pathname !== AppRoute.PROFILE) {
                  navigate(AppRoute.PROFILE);
               }
            }
+        } else {
+           setChecking(false);
         }
       } catch (e) {
-        console.warn("Auth check failed, assuming offline/logged out", e);
-        // Fallback: If auth fails entirely (e.g. invalid URL), go to welcome if not public
-        const publicRoutes = [AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER];
-        if (!publicRoutes.includes(location.pathname as AppRoute)) {
-            navigate(AppRoute.WELCOME);
-        }
-      } finally {
+        console.warn("Auth check failed", e);
         setChecking(false);
       }
     };
 
     checkAuth();
-  }, [location, navigate]);
+  }, []); // Executa apenas no mount inicial
 
-  if (checking) return null; // Or a loading spinner
+  if (showSplash) return <SplashScreen />;
+  if (checking) return null; 
 
   return <>{children}</>;
 };
