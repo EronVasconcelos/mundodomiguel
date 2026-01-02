@@ -1,3 +1,4 @@
+
 {
   "short_name": "Mundo Miguel",
   "name": "O Mundo do Miguel",
@@ -16,8 +17,8 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#f0f9ff",
-  "background_color": "#f0f9ff",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a",
   "scope": "/",
   "lang": "pt-BR"
 }
