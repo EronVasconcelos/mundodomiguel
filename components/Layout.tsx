@@ -264,7 +264,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                  </button>
              ) : (
                 <button 
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate(-1)}
                     className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95"
                 >
                     <ArrowLeft size={24} strokeWidth={3} />

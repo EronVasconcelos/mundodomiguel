@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, GameState } from '../../types';
@@ -93,7 +94,7 @@ const MemoryGame: React.FC = () => {
     <div className="h-full flex flex-col font-sans bg-pink-950 text-white relative">
       {/* Header */}
       <div className="p-4 flex items-center justify-between bg-pink-900/50 backdrop-blur-md border-b border-pink-800">
-         <button onClick={() => navigate(AppRoute.ARCADE)} className="w-10 h-10 bg-pink-800 rounded-full flex items-center justify-center active:scale-95"><ArrowLeft /></button>
+         <button onClick={() => navigate(-1)} className="w-10 h-10 bg-pink-800 rounded-full flex items-center justify-center active:scale-95 transition-transform"><ArrowLeft size={24} strokeWidth={3} /></button>
          <h1 className="text-xl font-black uppercase">Memória</h1>
          <div className="bg-pink-800 px-3 py-1 rounded-full text-sm font-bold">{moves} Jogadas</div>
       </div>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
@@ -19,8 +20,8 @@ const ArcadeHub: React.FC = () => {
       {/* Header */}
       <div className="px-4 pt-6 pb-2 z-10">
          <header className="bg-indigo-900/50 backdrop-blur-md rounded-3xl px-4 py-3 flex items-center justify-between border border-indigo-700/50">
-            <button onClick={() => navigate(AppRoute.HOME)} className="w-10 h-10 bg-indigo-800 rounded-full flex items-center justify-center text-indigo-300 active:scale-95 transition-transform">
-               <ArrowLeft size={24} />
+            <button onClick={() => navigate(-1)} className="w-10 h-10 bg-indigo-800 rounded-full flex items-center justify-center text-indigo-300 active:scale-95 transition-transform">
+               <ArrowLeft size={24} strokeWidth={3} />
             </button>
             <h1 className="text-xl font-black uppercase tracking-wider text-center flex-1 mx-2 text-indigo-300 flex items-center justify-center gap-2">
                <Gamepad2 size={20}/> Arcade
