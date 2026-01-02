@@ -14,10 +14,10 @@ const SplashScreen: React.FC = () => {
       <Star className="absolute bottom-1/4 right-1/3 text-yellow-200 fill-yellow-200 animate-pulse opacity-40" size={20} />
 
       <div className="z-10 text-center flex flex-col items-center">
-        {/* Círculo do Foguete */}
+        {/* Círculo do Foguete - Design Unificado */}
         <div className="mb-8 relative">
            <div className="w-40 h-40 bg-blue-500 rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(59,130,246,0.6)] border-4 border-blue-400 animate-pop">
-             <Rocket size={80} className="text-white ml-1 mb-1 animate-levitate" />
+             <Rocket size={80} className="text-white ml-1.5 mb-1.5 animate-levitate" />
            </div>
            {/* Faíscas/Brilho */}
            <div className="absolute -bottom-2 w-20 h-4 bg-blue-400/20 blur-xl rounded-full animate-pulse" />

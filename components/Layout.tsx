@@ -276,7 +276,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 {isHome ? (
                     <>
                         <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                            <Rocket size={16} className="text-white fill-white" />
+                            <Rocket size={16} className="text-white ml-0.5 mb-0.5" />
                         </div>
                         <span className="text-xl font-black text-slate-800 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
                             Mundo {activeProfile?.gender === 'girl' ? 'da' : 'do'} <span className={activeProfile?.gender === 'girl' ? 'text-pink-500' : 'text-blue-500'}>{activeProfile?.name}</span>
