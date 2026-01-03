@@ -171,36 +171,36 @@ const Home: React.FC = () => {
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
                 Hora de Relaxar
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
                 {/* STORIES */}
                 <button 
                     onClick={() => navigate(AppRoute.STORY)}
-                    className="w-full bg-white border-b-4 border-violet-200 p-3 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-violet-50 transition-all flex items-center gap-4 relative overflow-hidden"
+                    className="w-full bg-white border-b-4 border-violet-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 active:bg-violet-50 transition-all flex items-center gap-5 relative overflow-hidden"
                 >
-                    <div className="w-12 h-12 bg-violet-200 rounded-2xl flex items-center justify-center text-violet-600 shrink-0 shadow-sm">
-                        <BookOpen size={24} />
+                    <div className="w-14 h-14 bg-violet-200 rounded-2xl flex items-center justify-center text-violet-600 shrink-0 shadow-sm">
+                        <BookOpen size={32} />
                     </div>
                     <div className="text-left flex-1">
-                        <span className="block font-black text-violet-800 text-base">Histórias Mágicas</span>
-                        <span className="text-[10px] text-violet-500 font-bold uppercase">Ler ou Criar com IA</span>
+                        <span className="block font-black text-violet-800 text-xl">Histórias Mágicas</span>
+                        <span className="text-xs text-violet-500 font-bold uppercase">Ler ou Criar com IA</span>
                     </div>
-                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-violet-300">
-                        <Play size={12} fill="currentColor" />
+                    <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-400">
+                        <Play size={14} fill="currentColor" />
                     </div>
                 </button>
 
                 {/* FAITH */}
                 <button 
                     onClick={() => navigate(AppRoute.FAITH)}
-                    className="w-full bg-white border-b-4 border-cyan-200 p-3 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-cyan-50 transition-all flex items-center gap-4 relative overflow-hidden"
+                    className="w-full bg-white border-b-4 border-cyan-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 active:bg-cyan-50 transition-all flex items-center gap-5 relative overflow-hidden"
                 >
-                     {isFaithDone && <div className="absolute top-3 right-3 text-cyan-500 bg-white rounded-full p-1"><CheckCircle size={12} /></div>}
-                    <div className="w-12 h-12 bg-cyan-200 rounded-2xl flex items-center justify-center text-cyan-700 shrink-0 shadow-sm">
-                        <Heart size={24} className="fill-cyan-700" />
+                     {isFaithDone && <div className="absolute top-3 right-3 text-cyan-500 bg-white rounded-full p-1"><CheckCircle size={14} /></div>}
+                    <div className="w-14 h-14 bg-cyan-200 rounded-2xl flex items-center justify-center text-cyan-700 shrink-0 shadow-sm">
+                        <Heart size={32} className="fill-cyan-700" />
                     </div>
                     <div className="text-left flex-1">
-                        <span className="block font-black text-cyan-800 text-base">Cantinho da Fé</span>
-                        <span className="text-[10px] text-cyan-600 font-bold uppercase">Devocional Diário</span>
+                        <span className="block font-black text-cyan-800 text-xl">Cantinho da Fé</span>
+                        <span className="text-xs text-cyan-600 font-bold uppercase">Devocional Diário</span>
                     </div>
                 </button>
             </div>
@@ -213,17 +213,17 @@ const Home: React.FC = () => {
             </h3>
             <button 
                 onClick={() => navigate(AppRoute.CHALLENGE_HUB)}
-                className="w-full bg-white border-b-4 border-orange-200 p-3 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-orange-50 transition-all flex items-center gap-4 relative group"
+                className="w-full bg-white border-b-4 border-orange-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 active:bg-orange-50 transition-all flex items-center gap-5 relative group"
             >
-                <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-500 shrink-0">
-                    <Target size={28} />
+                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-500 shrink-0">
+                    <Target size={36} />
                 </div>
                 <div className="text-left flex-1">
-                    <span className="block font-black text-orange-800 text-base">Jogos de Lógica</span>
-                    <span className="text-[10px] text-orange-500 font-bold uppercase">Labirinto, Sombra, Puzzle...</span>
+                    <span className="block font-black text-orange-800 text-xl">Jogos de Lógica</span>
+                    <span className="text-xs text-orange-500 font-bold uppercase">Labirinto, Sombra, Puzzle...</span>
                 </div>
-                <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-orange-300">
-                    <ChevronRight size={16} />
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-400">
+                    <ChevronRight size={20} />
                 </div>
             </button>
         </div>
