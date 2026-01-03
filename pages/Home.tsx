@@ -100,37 +100,37 @@ const Home: React.FC = () => {
 
   return (
     <Layout title="Home">
-      <div className="flex flex-col gap-6 pb-6">
+      <div className="flex flex-col gap-4 pb-6">
         
         {/* --- HERO: DAILY PROGRESS --- */}
         <button 
            onClick={() => setShowMissionModal(true)}
-           className="bg-amber-50 rounded-[2rem] p-5 shadow-sm border-b-4 border-amber-200 relative overflow-hidden active:scale-[0.98] transition-all text-left"
+           className="bg-amber-50 rounded-[2rem] p-4 shadow-sm border-b-4 border-amber-200 relative overflow-hidden active:scale-[0.98] transition-all text-left"
         >
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-amber-500 shadow-sm border-2 border-amber-100">
-                        <Trophy size={24} className="fill-amber-500" />
+                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-amber-500 shadow-sm border-2 border-amber-100">
+                        <Trophy size={20} className="fill-amber-500" />
                     </div>
                     <div>
-                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-tight">Missão Diária</h2>
+                        <h2 className="text-xs font-black text-slate-800 uppercase tracking-tight">Missão Diária</h2>
                         <div className="flex items-center gap-1">
-                           <span className="text-xs font-bold text-slate-500">{progressPercent}% Concluído</span>
+                           <span className="text-[10px] font-bold text-slate-500">{progressPercent}% Concluído</span>
                         </div>
                     </div>
                 </div>
                 <div className="text-right">
                     <div className="flex items-baseline gap-1 justify-end">
-                        <span className="text-3xl font-black text-slate-800">{completedTasks}</span>
-                        <span className="text-sm font-bold text-slate-400">/{totalTasks}</span>
+                        <span className="text-2xl font-black text-slate-800">{completedTasks}</span>
+                        <span className="text-xs font-bold text-slate-400">/{totalTasks}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-amber-600 text-xs font-bold justify-end">
-                        Ver Lista <ChevronRight size={12} />
+                    <div className="flex items-center gap-1 text-amber-600 text-[10px] font-bold justify-end">
+                        Ver Lista <ChevronRight size={10} />
                     </div>
                 </div>
             </div>
 
-            <div className="w-full bg-white h-4 rounded-full overflow-hidden border border-amber-100">
+            <div className="w-full bg-white h-3 rounded-full overflow-hidden border border-amber-100">
                 <div 
                     className="h-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_10px_rgba(251,191,36,0.5)] transition-all duration-1000 ease-out rounded-full" 
                     style={{ width: `${Math.max(5, progressPercent)}%` }} 
@@ -139,98 +139,98 @@ const Home: React.FC = () => {
         </button>
 
         {/* --- SECTION 1: APRENDER --- */}
-        <div className="bg-emerald-50 rounded-3xl p-4 py-6 mb-6">
-            <h3 className="text-xl font-black text-slate-800 mb-3 px-2 flex items-center gap-2">
+        <div className="bg-emerald-50 rounded-3xl p-4 py-4">
+            <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
                 Vamos Aprender
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
                 {/* MATH */}
                 <button 
                     onClick={() => navigate(AppRoute.MATH)}
-                    className="bg-white border-b-4 border-emerald-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-emerald-50 transition-all flex flex-col items-center justify-center gap-3 h-40 relative group"
+                    className="bg-white border-b-4 border-emerald-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-emerald-50 transition-all flex flex-col items-center justify-center gap-2 h-36 relative group"
                 >
-                    {isMathDone && <div className="absolute top-2 right-2 text-emerald-500 bg-white rounded-full p-1 shadow-sm"><CheckCircle size={16} /></div>}
-                    <div className="w-16 h-16"><MathIcon /></div>
-                    <span className="font-black text-emerald-700 text-lg">Matemática</span>
+                    {isMathDone && <div className="absolute top-2 right-2 text-emerald-500 bg-white rounded-full p-1 shadow-sm"><CheckCircle size={14} /></div>}
+                    <div className="w-14 h-14"><MathIcon /></div>
+                    <span className="font-black text-emerald-700 text-base">Matemática</span>
                 </button>
 
                 {/* WORDS */}
                 <button 
                     onClick={() => navigate(AppRoute.WORDS)}
-                    className="bg-white border-b-4 border-sky-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-sky-50 transition-all flex flex-col items-center justify-center gap-3 h-40 relative group"
+                    className="bg-white border-b-4 border-sky-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-sky-50 transition-all flex flex-col items-center justify-center gap-2 h-36 relative group"
                 >
-                    {isWordsDone && <div className="absolute top-2 right-2 text-sky-500 bg-white rounded-full p-1 shadow-sm"><CheckCircle size={16} /></div>}
-                    <div className="w-16 h-16"><WordsIcon /></div>
-                    <span className="font-black text-sky-700 text-lg">Palavras</span>
+                    {isWordsDone && <div className="absolute top-2 right-2 text-sky-500 bg-white rounded-full p-1 shadow-sm"><CheckCircle size={14} /></div>}
+                    <div className="w-14 h-14"><WordsIcon /></div>
+                    <span className="font-black text-sky-700 text-base">Palavras</span>
                 </button>
             </div>
         </div>
 
         {/* --- SECTION 2: RELAXAR --- */}
-        <div className="bg-violet-50 rounded-3xl p-4 py-6 mb-6">
-            <h3 className="text-xl font-black text-slate-800 mb-3 px-2 flex items-center gap-2">
+        <div className="bg-violet-50 rounded-3xl p-4 py-4">
+            <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
                 Hora de Relaxar
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {/* STORIES */}
                 <button 
                     onClick={() => navigate(AppRoute.STORY)}
-                    className="w-full bg-white border-b-4 border-violet-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-violet-50 transition-all flex items-center gap-4 relative overflow-hidden"
+                    className="w-full bg-white border-b-4 border-violet-200 p-3 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-violet-50 transition-all flex items-center gap-4 relative overflow-hidden"
                 >
-                    <div className="w-14 h-14 bg-violet-200 rounded-2xl flex items-center justify-center text-violet-600 shrink-0 shadow-sm">
-                        <BookOpen size={28} />
+                    <div className="w-12 h-12 bg-violet-200 rounded-2xl flex items-center justify-center text-violet-600 shrink-0 shadow-sm">
+                        <BookOpen size={24} />
                     </div>
                     <div className="text-left flex-1">
-                        <span className="block font-black text-violet-800 text-lg">Histórias Mágicas</span>
-                        <span className="text-xs text-violet-500 font-bold uppercase">Ler ou Criar com IA</span>
+                        <span className="block font-black text-violet-800 text-base">Histórias Mágicas</span>
+                        <span className="text-[10px] text-violet-500 font-bold uppercase">Ler ou Criar com IA</span>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-violet-300">
-                        <Play size={14} fill="currentColor" />
+                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-violet-300">
+                        <Play size={12} fill="currentColor" />
                     </div>
                 </button>
 
                 {/* FAITH */}
                 <button 
                     onClick={() => navigate(AppRoute.FAITH)}
-                    className="w-full bg-white border-b-4 border-cyan-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-cyan-50 transition-all flex items-center gap-4 relative overflow-hidden"
+                    className="w-full bg-white border-b-4 border-cyan-200 p-3 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-cyan-50 transition-all flex items-center gap-4 relative overflow-hidden"
                 >
-                     {isFaithDone && <div className="absolute top-4 right-4 text-cyan-500 bg-white rounded-full p-1"><CheckCircle size={14} /></div>}
-                    <div className="w-14 h-14 bg-cyan-200 rounded-2xl flex items-center justify-center text-cyan-700 shrink-0 shadow-sm">
-                        <Heart size={28} className="fill-cyan-700" />
+                     {isFaithDone && <div className="absolute top-3 right-3 text-cyan-500 bg-white rounded-full p-1"><CheckCircle size={12} /></div>}
+                    <div className="w-12 h-12 bg-cyan-200 rounded-2xl flex items-center justify-center text-cyan-700 shrink-0 shadow-sm">
+                        <Heart size={24} className="fill-cyan-700" />
                     </div>
                     <div className="text-left flex-1">
-                        <span className="block font-black text-cyan-800 text-lg">Cantinho da Fé</span>
-                        <span className="text-xs text-cyan-600 font-bold uppercase">Devocional Diário</span>
+                        <span className="block font-black text-cyan-800 text-base">Cantinho da Fé</span>
+                        <span className="text-[10px] text-cyan-600 font-bold uppercase">Devocional Diário</span>
                     </div>
                 </button>
             </div>
         </div>
 
-        {/* --- SECTION 3: DESAFIOS (Single Large Card) --- */}
-        <div className="bg-orange-50 rounded-3xl p-4 py-6 mb-6">
-            <h3 className="text-xl font-black text-slate-800 mb-3 px-2 flex items-center gap-2">
+        {/* --- SECTION 3: DESAFIOS --- */}
+        <div className="bg-orange-50 rounded-3xl p-4 py-4">
+            <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
                 Desafios
             </h3>
             <button 
                 onClick={() => navigate(AppRoute.CHALLENGE_HUB)}
-                className="w-full bg-white border-b-4 border-orange-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-orange-50 transition-all flex items-center gap-4 relative group"
+                className="w-full bg-white border-b-4 border-orange-200 p-3 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-orange-50 transition-all flex items-center gap-4 relative group"
             >
-                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-500 shrink-0">
-                    <Target size={32} />
+                <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-500 shrink-0">
+                    <Target size={28} />
                 </div>
                 <div className="text-left flex-1">
-                    <span className="block font-black text-orange-800 text-lg">Jogos de Lógica</span>
-                    <span className="text-xs text-orange-500 font-bold uppercase">Labirinto, Sombra, Puzzle...</span>
+                    <span className="block font-black text-orange-800 text-base">Jogos de Lógica</span>
+                    <span className="text-[10px] text-orange-500 font-bold uppercase">Labirinto, Sombra, Puzzle...</span>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-orange-300">
-                    <ChevronRight size={18} />
+                <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-orange-300">
+                    <ChevronRight size={16} />
                 </div>
             </button>
         </div>
 
         {/* --- SECTION 4: CRIATIVIDADE --- */}
-        <div className="bg-fuchsia-50 rounded-3xl p-4 py-6 mb-6">
-            <h3 className="text-xl font-black text-slate-800 mb-3 px-2 flex items-center gap-2">
+        <div className="bg-fuchsia-50 rounded-3xl p-4 py-4">
+            <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
                 Arte e Cores
             </h3>
             <div className="flex gap-3">
@@ -238,45 +238,45 @@ const Home: React.FC = () => {
                   onClick={() => navigate(AppRoute.ART)}
                   className="flex-1 bg-white p-3 rounded-2xl border-b-4 border-fuchsia-200 active:border-b-0 active:translate-y-1 active:bg-fuchsia-50 transition-all flex items-center gap-3"
                >
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-fuchsia-400 shadow-sm"><Palette size={20} /></div>
-                  <span className="font-black text-fuchsia-700 text-lg">Desenhar</span>
+                  <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-fuchsia-400 shadow-sm"><Palette size={18} /></div>
+                  <span className="font-black text-fuchsia-700 text-base">Desenhar</span>
                </button>
                <button 
                   onClick={() => navigate(AppRoute.COLORING)}
                   className="flex-1 bg-white p-3 rounded-2xl border-b-4 border-pink-200 active:border-b-0 active:translate-y-1 active:bg-pink-50 transition-all flex items-center gap-3"
                >
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-pink-400 shadow-sm"><Brush size={20} /></div>
-                  <span className="font-black text-pink-700 text-lg">Colorir</span>
+                  <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-pink-400 shadow-sm"><Brush size={18} /></div>
+                  <span className="font-black text-pink-700 text-base">Colorir</span>
                </button>
             </div>
         </div>
 
-        {/* --- SECTION 5: ARCADE (Banner) --- */}
+        {/* --- SECTION 5: ARCADE --- */}
         <button 
           onClick={handleArcadeClick}
-          className={`w-full mt-2 rounded-[2rem] p-6 text-left relative overflow-hidden group flex items-center gap-6 shadow-md transition-all active:scale-95 border-b-8
+          className={`w-full rounded-[2rem] p-5 text-left relative overflow-hidden group flex items-center gap-6 shadow-md transition-all active:scale-95 border-b-8
             ${isArcadeUnlocked 
                 ? 'bg-slate-800 text-white border-slate-900 shadow-slate-300' 
                 : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}
           `}
         >
-           <div className={`w-14 h-14 flex-shrink-0 rounded-2xl flex items-center justify-center ${isArcadeUnlocked ? 'bg-slate-700 text-yellow-400' : 'bg-slate-300 text-slate-400'}`}>
-               {isArcadeUnlocked ? <Gamepad2 size={28} /> : <Lock size={28} />}
+           <div className={`w-12 h-12 flex-shrink-0 rounded-2xl flex items-center justify-center ${isArcadeUnlocked ? 'bg-slate-700 text-yellow-400' : 'bg-slate-300 text-slate-400'}`}>
+               {isArcadeUnlocked ? <Gamepad2 size={24} /> : <Lock size={24} />}
            </div>
            
            <div className="relative z-10 flex-1">
-              <span className={`text-xs font-bold uppercase tracking-wider block ${isArcadeUnlocked ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-[10px] font-bold uppercase tracking-wider block ${isArcadeUnlocked ? 'text-slate-400' : 'text-slate-500'}`}>
                   {isArcadeUnlocked ? "Área de Jogos" : "Complete a missão para liberar"}
               </span>
-              <span className={`text-2xl font-black leading-none ${isArcadeUnlocked ? 'text-white' : 'text-slate-500'}`}>
+              <span className={`text-xl font-black leading-none ${isArcadeUnlocked ? 'text-white' : 'text-slate-500'}`}>
                   Arcade
               </span>
            </div>
-           {isArcadeUnlocked && <Rocket className="text-yellow-400 w-24 h-24 absolute -right-6 -bottom-6 rotate-12 opacity-20" />}
+           {isArcadeUnlocked && <Rocket className="text-yellow-400 w-20 h-20 absolute -right-5 -bottom-5 rotate-12 opacity-20" />}
         </button>
 
         {/* --- FOOTER --- */}
-        <footer className="text-center mt-8 opacity-40 pb-4">
+        <footer className="text-center mt-4 opacity-40 pb-4">
           <p className="text-[10px] font-bold uppercase tracking-widest mb-1">Reinicia diariamente à 00:00h</p>
           <p className="text-[10px]">v1.5 Premium Edition</p>
         </footer>
@@ -318,7 +318,6 @@ const Home: React.FC = () => {
                        onClick={() => navigate(AppRoute.FAITH)}
                     />
                     
-                    {/* Atalho para os desafios agora redireciona para o Hub */}
                     <button onClick={() => { setShowMissionModal(false); navigate(AppRoute.CHALLENGE_HUB); }} className={`w-full flex items-center gap-4 p-3 rounded-2xl border-b-4 active:scale-95 active:border-b-0 active:translate-y-1 transition-all text-left bg-white border-slate-100`}>
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm bg-slate-200 text-slate-400`}>
                             <Target size={20}/>
@@ -328,7 +327,6 @@ const Home: React.FC = () => {
                             <span className="text-xs font-black text-slate-400">Ver Lista</span>
                         </div>
                     </button>
-
                  </div>
 
                  {isArcadeUnlocked ? (
