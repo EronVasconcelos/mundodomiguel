@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateStoryText, generateStoryImage, STATIC_STORIES, isAIAvailable } from '../services/geminiService';
-import { Sparkles, Loader2, BookOpen, Moon, WifiOff, Download, Gift, Pencil, Wand2, Book, ArrowLeft } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, Moon, WifiOff, Download, Gift, Pencil, Wand2, Book, ArrowLeft, RefreshCcw } from 'lucide-react';
 import { StoryData, ChildProfile } from '../types';
 
 const StoryTime: React.FC = () => {
@@ -41,12 +41,23 @@ const StoryTime: React.FC = () => {
     const stored = localStorage.getItem('child_profile');
     if (stored) setProfile(JSON.parse(stored));
     
-    // Verifica se a IA está disponível na inicialização
-    const isAvailable = isAIAvailable();
-    setAiEnabled(isAvailable);
+    // Verifica disponibilidade da IA
+    checkAI();
   }, []);
 
+  const checkAI = () => {
+    const available = isAIAvailable();
+    setAiEnabled(available);
+    if (!available) {
+      setActiveTab('kids');
+    }
+  };
+
   const handleTabSwitch = (tab: 'kids' | 'ai') => {
+    if (tab === 'ai' && !aiEnabled) {
+      alert("A IA está desativada. Verifique se o modo online está ativado.");
+      return;
+    }
     setActiveTab(tab);
     resetStoryState();
   };
@@ -58,13 +69,11 @@ const StoryTime: React.FC = () => {
     setImageLoading(false);
   };
 
-  // Handler for STATIC stories (Livro Kids)
   const handleSelectStaticStory = (selectedStory: StoryData) => {
     resetStoryState();
     setStory(selectedStory);
   };
   
-  // Handler for AI stories
   const handleCreateAIStory = async (topic: string) => {
     if (!profile || !aiEnabled) return;
     if (!topic.trim()) return;
@@ -79,12 +88,11 @@ const StoryTime: React.FC = () => {
 
       setImageLoading(true);
       const img = await generateStoryImage(storyData.content, profile);
-      // Se img for null (offline/erro), a UI lidará
       setImageUrl(img);
       setImageLoading(false);
     } catch (e) {
       console.error(e);
-      alert("Ops! Não consegui criar a história agora.");
+      alert("Ops! Não consegui criar a história agora. Tente novamente.");
       setLoading(false);
       setImageLoading(false);
     }
@@ -116,35 +124,45 @@ const StoryTime: React.FC = () => {
                <ArrowLeft size={24} strokeWidth={3} />
             </button>
             <h1 className="text-xl font-black uppercase text-yellow-400">Hora da História</h1>
-            <div className="w-10 flex items-center justify-center">
+            <button onClick={checkAI} className="w-10 flex items-center justify-center active:rotate-180 transition-transform duration-500">
               {aiEnabled ? <Moon className="text-yellow-200 fill-yellow-200" /> : <WifiOff className="text-slate-500" size={20} />}
-            </div>
+            </button>
          </header>
        </div>
 
       <div className="flex-1 overflow-y-auto p-4 pb-20 scroll-smooth">
         {!story && !loading && (
           <div className="space-y-6">
-            {/* TABS - Só mostra opção de troca se IA estiver disponível */}
-            {aiEnabled ? (
-                <div className="flex bg-slate-800 p-1 rounded-2xl border border-slate-700">
-                <button onClick={() => handleTabSwitch('kids')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'kids' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
+            
+            <div className="flex bg-slate-800 p-1 rounded-2xl border border-slate-700">
+                <button 
+                  onClick={() => handleTabSwitch('kids')} 
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'kids' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                >
                     <Book size={18} /> Livro Kids
                 </button>
-                <button onClick={() => handleTabSwitch('ai')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'ai' ? 'bg-fuchsia-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
+                <button 
+                  onClick={() => handleTabSwitch('ai')} 
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all
+                    ${activeTab === 'ai' ? 'bg-fuchsia-600 text-white shadow-md' : aiEnabled ? 'text-slate-400 hover:text-white' : 'text-slate-600 cursor-not-allowed'}
+                  `}
+                >
                     <Wand2 size={18} /> IA Mágica
                 </button>
-                </div>
-            ) : (
+            </div>
+
+            {!aiEnabled && (
                 <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 text-center mb-4">
-                    <p className="text-slate-400 text-sm font-bold flex items-center justify-center gap-2">
-                        <WifiOff size={16}/> Modo Offline: Apenas histórias do Livro
+                    <p className="text-slate-400 text-sm font-bold flex flex-col items-center justify-center gap-2">
+                        <span className="flex items-center gap-2 text-yellow-500"><WifiOff size={16}/> Modo IA Indisponível</span>
+                        <span className="text-xs opacity-60">Ative o "Modo IA Online" para criar histórias.</span>
+                        <button onClick={checkAI} className="mt-2 text-indigo-400 text-xs flex items-center gap-1"><RefreshCcw size={12}/> Verificar novamente</button>
                     </p>
                 </div>
             )}
 
-            {/* TAB CONTENT: LIVRO KIDS (Lista Estática) */}
-            {(activeTab === 'kids' || !aiEnabled) && (
+            {/* TAB CONTENT: LIVRO KIDS */}
+            {activeTab === 'kids' && (
                <div className="animate-slide-up space-y-4">
                   <div className="text-center mb-6">
                      <h2 className="text-2xl font-black text-indigo-300">Biblioteca Encantada</h2>
@@ -169,13 +187,12 @@ const StoryTime: React.FC = () => {
                </div>
             )}
 
-            {/* TAB CONTENT: IA MÁGICA (Gerador) - Só renderiza se AI enabled */}
+            {/* TAB CONTENT: IA MÁGICA */}
             {activeTab === 'ai' && aiEnabled && (
                <div className="animate-slide-up space-y-6">
                   <div className="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700">
                      <h2 className="text-xl font-black text-center mb-4 text-fuchsia-300">O que vamos imaginar?</h2>
                      
-                     {/* INPUT CUSTOMIZADO */}
                      <div className="space-y-3 mb-8">
                         <label className="text-xs font-bold text-slate-400 uppercase ml-2">Criar História</label>
                         <div className="flex gap-2">
@@ -196,7 +213,6 @@ const StoryTime: React.FC = () => {
                         </div>
                      </div>
 
-                     {/* SUGESTÕES */}
                      <div>
                         <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 ml-2">Sugestões de Personagens</h3>
                         <div className="grid grid-cols-2 gap-3">
@@ -240,8 +256,8 @@ const StoryTime: React.FC = () => {
                 ✨ Moral: {story.moral}
             </div>
             
-            {/* AREA DA IMAGEM (Apenas se for Modo IA e a imagem foi gerada com sucesso) */}
-            {activeTab === 'ai' && aiEnabled && (
+            {/* AREA DA IMAGEM */}
+            {aiEnabled && (
                 <div className="mt-8">
                     {!showImageReveal ? (
                         <button 

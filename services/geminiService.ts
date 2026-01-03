@@ -6,7 +6,6 @@ import { StoryData, DevotionalData, ChildProfile } from '../types';
 const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
 const STATIC_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop"; 
 
-// --- STATIC LIBRARY (LIVRO KIDS) ---
 export const STATIC_STORIES: StoryData[] = [
   {
     title: "Os Três Porquinhos",
@@ -38,42 +37,49 @@ const FALLBACK_DEVOTIONAL: DevotionalData = {
 
 // --- API AVAILABILITY CHECK ---
 export const isAIAvailable = (): boolean => {
-    return !!process.env.API_KEY;
+    // Verifica se a chave existe e não é a string literal "undefined"
+    const key = process.env.API_KEY;
+    return !!key && key !== "undefined" && key.length > 10;
 };
 
 // --- CONTENT GENERATION ---
 
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
-  if (!process.env.API_KEY) throw new Error("API Key missing");
+  if (!isAIAvailable()) throw new Error("IA não disponível. Verifique sua conexão.");
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const prompt = `Você é um contador de histórias mágico. Crie uma história infantil curta e cativante para ${profile.name}, de ${profile.age} anos. Tema: ${topic}. Retorne JSON: title, content, moral.`;
+  const prompt = `Você é um contador de histórias mágico para crianças. Crie uma história infantil curta, educativa e cativante para ${profile.name}, de ${profile.age} anos. Tema: ${topic}. Retorne JSON rigoroso: title, content, moral.`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          title: { type: Type.STRING },
-          content: { type: Type.STRING },
-          moral: { type: Type.STRING },
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            content: { type: Type.STRING },
+            moral: { type: Type.STRING },
+          },
+          required: ["title", "content", "moral"],
         },
-        required: ["title", "content", "moral"],
       },
-    },
-  });
-  
-  return JSON.parse(response.text || '{}') as StoryData;
+    });
+    
+    return JSON.parse(response.text || '{}') as StoryData;
+  } catch (error) {
+    console.error("Erro na geração de história:", error);
+    throw error;
+  }
 };
 
 export const generateDevotionalContent = async (profile: ChildProfile): Promise<DevotionalData> => {
-  if (!process.env.API_KEY) return FALLBACK_DEVOTIONAL;
+  if (!isAIAvailable()) return FALLBACK_DEVOTIONAL;
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const prompt = `Crie um devocional cristão para uma criança de ${profile.age} anos chamada ${profile.name}. Retorne JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (visual description only).`;
+  const prompt = `Crie um devocional cristão curto e gentil para uma criança de ${profile.age} anos chamada ${profile.name}. Retorne JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (visual description for Pixar style image).`;
 
   try {
     const response = await ai.models.generateContent({
@@ -98,37 +104,39 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
     });
     return { ...JSON.parse(response.text || '{}'), date: new Date().toDateString() };
   } catch (error) {
+    console.error("Erro no devocional IA:", error);
     return FALLBACK_DEVOTIONAL;
   }
 };
 
 export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'girl' = 'boy'): Promise<string | null> => {
-  if (!process.env.API_KEY) return null;
+  if (!isAIAvailable()) return null;
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-preview-tts',
-      contents: [{ parts: [{ text: text }] }],
+      contents: [{ parts: [{ text: `Diga com voz doce e calma para uma criança: ${text}` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: { 
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: gender === 'girl' ? 'Kore' : 'Fenrir' } } 
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: gender === 'girl' ? 'Kore' : 'Puck' } } 
         },
       },
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
   } catch (error) {
+    console.error("Erro no áudio TTS:", error);
     return null; 
   }
 };
 
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string | null> => {
-  if (!process.env.API_KEY) return null;
+  if (!isAIAvailable()) return null;
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const charDesc = profile ? `a cute ${profile.age} year old ${profile.gender} with ${profile.hairColor} hair and ${profile.skinTone} skin` : "a cute child";
-  const prompt = `Disney Pixar animation style, 3D render. Subject: ${charDesc}. Scene: ${storyPrompt.substring(0, 300)}. Vibrant colors, magical lighting, high detail. NO TEXT.`;
+  const charDesc = profile ? `a cute ${profile.age} year old ${profile.gender === 'boy' ? 'boy' : 'girl'} with ${profile.hairColor} hair and ${profile.skinTone} skin` : "a cute child";
+  const prompt = `Disney Pixar 3D animation style, cinematic lighting, high quality. Subject: ${charDesc}. Scene: ${storyPrompt.substring(0, 300)}. NO TEXT.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -143,7 +151,7 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
       }
     }
   } catch (error) {
-    console.error("Image generation failed", error);
+    console.error("Erro na geração de imagem:", error);
   }
   return null;
 };

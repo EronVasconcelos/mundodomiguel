@@ -5,11 +5,11 @@ import { AppRoute, DailyProgress } from '../types';
 import { Layout } from '../components/Layout';
 import { 
   Gamepad2, Heart, Lock, CheckCircle, Target, X, Trophy, Rocket, 
-  Palette, Brush, Search, Puzzle, Ghost, Star, BookOpen, Music, Play, Zap, ChevronRight, Brain
+  Palette, Brush, BookOpen, Play, ChevronRight, Zap, ZapOff
 } from 'lucide-react';
 import { getDailyProgress, getGoals, checkUnlock, fetchRemoteProgress } from '../services/progressService';
+import { isAIAvailable } from '../services/geminiService';
 
-// --- CUSTOM ICONS (SVG) ---
 const MathIcon = () => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <circle cx="50" cy="50" r="45" fill="#d1fae5" />
@@ -31,10 +31,12 @@ const Home: React.FC = () => {
   const [progress, setProgress] = useState<DailyProgress | null>(null);
   const [showMissionModal, setShowMissionModal] = useState(false);
   const [showUnlockBanner, setShowUnlockBanner] = useState(false);
+  const [aiActive, setAiActive] = useState(false);
 
   const GOALS = getGoals();
 
   useEffect(() => {
+    setAiActive(isAIAvailable());
     const localP = getDailyProgress();
     setProgress(localP);
 
@@ -119,13 +121,15 @@ const Home: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="text-right">
-                    <div className="flex items-baseline gap-1 justify-end">
+                <div className="text-right flex flex-col items-end">
+                    <div className="flex items-baseline gap-1">
                         <span className="text-2xl font-black text-slate-800">{completedTasks}</span>
                         <span className="text-xs font-bold text-slate-400">/{totalTasks}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-amber-600 text-[10px] font-bold justify-end">
-                        Ver Lista <ChevronRight size={10} />
+                    {/* IA Indicator */}
+                    <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter ${aiActive ? 'text-emerald-500' : 'text-slate-300'}`}>
+                        {aiActive ? <Zap size={10} className="fill-emerald-500" /> : <ZapOff size={10} />}
+                        {aiActive ? 'IA Ativa' : 'IA Offline'}
                     </div>
                 </div>
             </div>
@@ -278,7 +282,7 @@ const Home: React.FC = () => {
         {/* --- FOOTER --- */}
         <footer className="text-center mt-4 opacity-40 pb-4">
           <p className="text-[10px] font-bold uppercase tracking-widest mb-1">Reinicia diariamente à 00:00h</p>
-          <p className="text-[10px]">v1.5 Premium Edition</p>
+          <p className="text-[10px]">v1.6 Online Edition</p>
         </footer>
 
         {/* --- MISSION MODAL --- */}
@@ -317,20 +321,10 @@ const Home: React.FC = () => {
                        icon={<Heart size={16}/>}
                        onClick={() => navigate(AppRoute.FAITH)}
                     />
-                    
-                    <button onClick={() => { setShowMissionModal(false); navigate(AppRoute.CHALLENGE_HUB); }} className={`w-full flex items-center gap-4 p-3 rounded-2xl border-b-4 active:scale-95 active:border-b-0 active:translate-y-1 transition-all text-left bg-white border-slate-100`}>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm bg-slate-200 text-slate-400`}>
-                            <Target size={20}/>
-                        </div>
-                        <div className="flex-1">
-                            <span className={`block font-bold text-sm text-slate-600`}>Jogos de Lógica</span>
-                            <span className="text-xs font-black text-slate-400">Ver Lista</span>
-                        </div>
-                    </button>
                  </div>
 
                  {isArcadeUnlocked ? (
-                    <button onClick={() => { setShowMissionModal(false); navigate(AppRoute.ARCADE); }} className="w-full py-4 bg-green-500 text-white rounded-2xl font-black shadow-lg shadow-green-200 animate-bounce">
+                    <button onClick={() => { setShowMissionModal(false); navigate(AppRoute.ARCADE); }} className="w-full py-4 bg-green-500 text-white rounded-2xl font-black text-xl shadow-lg shadow-green-200 animate-bounce">
                        JOGAR AGORA!
                     </button>
                  ) : (
