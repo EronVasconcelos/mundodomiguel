@@ -17,47 +17,24 @@ const StoryTime: React.FC = () => {
   
   const [story, setStory] = useState<StoryData | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(true); // Permite visualização inicial
   const [showImageReveal, setShowImageReveal] = useState(false); 
   
   const IMAGINATION_TOPICS = [
-    "Patrulha Canina",
-    "Mickey e Minnie",
-    "Princesas Disney",
-    "Homem Aranha",
-    "Frozen - Uma Aventura",
-    "Bob Esponja",
-    "Peppa Pig",
-    "Toy Story",
-    "Dinossauros",
-    "Minecraft",
-    "Unicórnios",
-    "Animais da Floresta",
-    "Fundo do Mar",
-    "Viagem ao Espaço"
+    "Patrulha Canina", "Mickey e Minnie", "Princesas Disney", "Homem Aranha",
+    "Frozen", "Bob Esponja", "Peppa Pig", "Toy Story", "Dinossauros",
+    "Minecraft", "Unicórnios", "Animais da Floresta", "Fundo do Mar", "Espaço"
   ];
 
   useEffect(() => {
     const stored = localStorage.getItem('child_profile');
     if (stored) setProfile(JSON.parse(stored));
     
-    // Verifica disponibilidade da IA
-    checkAI();
+    // Verifica disponibilidade apenas para feedback visual secundário
+    setAiEnabled(isAIAvailable());
   }, []);
 
-  const checkAI = () => {
-    const available = isAIAvailable();
-    setAiEnabled(available);
-    if (!available) {
-      setActiveTab('kids');
-    }
-  };
-
   const handleTabSwitch = (tab: 'kids' | 'ai') => {
-    if (tab === 'ai' && !aiEnabled) {
-      alert("A IA está desativada. Verifique se o modo online está ativado.");
-      return;
-    }
     setActiveTab(tab);
     resetStoryState();
   };
@@ -67,6 +44,7 @@ const StoryTime: React.FC = () => {
     setImageUrl(null);
     setShowImageReveal(false);
     setImageLoading(false);
+    setLoading(false);
   };
 
   const handleSelectStaticStory = (selectedStory: StoryData) => {
@@ -75,24 +53,27 @@ const StoryTime: React.FC = () => {
   };
   
   const handleCreateAIStory = async (topic: string) => {
-    if (!profile || !aiEnabled) return;
+    if (!profile) return;
     if (!topic.trim()) return;
 
     setLoading(true);
     resetStoryState();
+    setLoading(true);
     
     try {
+      // Tenta gerar o texto
       const storyData = await generateStoryText(topic, profile);
       setStory(storyData);
       setLoading(false);
 
+      // Inicia geração de imagem em paralelo
       setImageLoading(true);
       const img = await generateStoryImage(storyData.content, profile);
       setImageUrl(img);
       setImageLoading(false);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Ops! Não consegui criar a história agora. Tente novamente.");
+      alert(e.message || "Ops! Não consegui criar a história agora. Tente de novo!");
       setLoading(false);
       setImageLoading(false);
     }
@@ -102,7 +83,7 @@ const StoryTime: React.FC = () => {
     if (!imageUrl) return;
     const link = document.createElement('a');
     link.href = imageUrl;
-    link.download = `historia-magica-${new Date().getTime()}.png`;
+    link.download = `historia-magica.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -124,9 +105,9 @@ const StoryTime: React.FC = () => {
                <ArrowLeft size={24} strokeWidth={3} />
             </button>
             <h1 className="text-xl font-black uppercase text-yellow-400">Hora da História</h1>
-            <button onClick={checkAI} className="w-10 flex items-center justify-center active:rotate-180 transition-transform duration-500">
+            <div className="w-10 flex items-center justify-center">
               {aiEnabled ? <Moon className="text-yellow-200 fill-yellow-200" /> : <WifiOff className="text-slate-500" size={20} />}
-            </button>
+            </div>
          </header>
        </div>
 
@@ -137,29 +118,19 @@ const StoryTime: React.FC = () => {
             <div className="flex bg-slate-800 p-1 rounded-2xl border border-slate-700">
                 <button 
                   onClick={() => handleTabSwitch('kids')} 
-                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'kids' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'kids' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}
                 >
                     <Book size={18} /> Livro Kids
                 </button>
                 <button 
                   onClick={() => handleTabSwitch('ai')} 
                   className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all
-                    ${activeTab === 'ai' ? 'bg-fuchsia-600 text-white shadow-md' : aiEnabled ? 'text-slate-400 hover:text-white' : 'text-slate-600 cursor-not-allowed'}
+                    ${activeTab === 'ai' ? 'bg-fuchsia-600 text-white shadow-md' : 'text-slate-400'}
                   `}
                 >
                     <Wand2 size={18} /> IA Mágica
                 </button>
             </div>
-
-            {!aiEnabled && (
-                <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 text-center mb-4">
-                    <p className="text-slate-400 text-sm font-bold flex flex-col items-center justify-center gap-2">
-                        <span className="flex items-center gap-2 text-yellow-500"><WifiOff size={16}/> Modo IA Indisponível</span>
-                        <span className="text-xs opacity-60">Ative o "Modo IA Online" para criar histórias.</span>
-                        <button onClick={checkAI} className="mt-2 text-indigo-400 text-xs flex items-center gap-1"><RefreshCcw size={12}/> Verificar novamente</button>
-                    </p>
-                </div>
-            )}
 
             {/* TAB CONTENT: LIVRO KIDS */}
             {activeTab === 'kids' && (
@@ -180,7 +151,7 @@ const StoryTime: React.FC = () => {
                               <span className="block font-black text-lg text-slate-200 group-hover:text-yellow-400 transition-colors">{s.title}</span>
                               <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Ler História</span>
                            </div>
-                           <BookOpen size={20} className="text-indigo-500 opacity-50 group-hover:opacity-100" />
+                           <BookOpen size={20} className="text-indigo-500 opacity-50" />
                         </button>
                      ))}
                   </div>
@@ -188,7 +159,7 @@ const StoryTime: React.FC = () => {
             )}
 
             {/* TAB CONTENT: IA MÁGICA */}
-            {activeTab === 'ai' && aiEnabled && (
+            {activeTab === 'ai' && (
                <div className="animate-slide-up space-y-6">
                   <div className="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700">
                      <h2 className="text-xl font-black text-center mb-4 text-fuchsia-300">O que vamos imaginar?</h2>
@@ -201,7 +172,7 @@ const StoryTime: React.FC = () => {
                               value={customTopic}
                               onChange={(e) => setCustomTopic(e.target.value)}
                               placeholder="Ex: Um gato astronauta..."
-                              className="flex-1 bg-slate-900 border border-slate-600 rounded-2xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-fuchsia-500 transition-colors"
+                              className="flex-1 bg-slate-900 border border-slate-600 rounded-2xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-fuchsia-500"
                            />
                            <button 
                               onClick={() => handleCreateAIStory(customTopic)}
@@ -233,7 +204,6 @@ const StoryTime: React.FC = () => {
           </div>
         )}
 
-        {/* LOADING STATE */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
             <Loader2 className="w-16 h-16 animate-spin text-fuchsia-400 mb-4" />
@@ -243,67 +213,57 @@ const StoryTime: React.FC = () => {
           </div>
         )}
 
-        {/* STORY DISPLAY */}
         {story && (
           <div className="space-y-6 animate-slide-up pb-8">
             <h2 className="text-3xl font-black text-yellow-400 text-center leading-tight mt-2">{story.title}</h2>
-            
             <div className="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 text-slate-300 leading-relaxed text-lg shadow-lg">
               {story.content.split('\n').map((p, i) => <p key={i} className="mb-4 last:mb-0 indent-4">{p}</p>)}
             </div>
-
             <div className="p-4 bg-indigo-900/30 rounded-2xl text-yellow-100 font-bold italic text-center border border-indigo-500/30">
                 ✨ Moral: {story.moral}
             </div>
             
-            {/* AREA DA IMAGEM */}
-            {aiEnabled && (
-                <div className="mt-8">
-                    {!showImageReveal ? (
-                        <button 
-                            onClick={() => setShowImageReveal(true)}
-                            className="w-full py-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-[2rem] shadow-[0_0_30px_rgba(219,39,119,0.3)] animate-pulse flex flex-col items-center justify-center gap-3 border-4 border-white/20 active:scale-95 transition-transform"
-                        >
-                            <Gift size={48} className="text-white mb-1" />
-                            <span className="text-2xl font-black text-white uppercase tracking-widest">Abrir Presente Mágico</span>
-                            <span className="text-sm font-bold text-pink-200">Toque para ver o desenho!</span>
-                        </button>
-                    ) : (
-                        <div className="animate-pop space-y-4">
-                            <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-indigo-500 shadow-2xl relative group">
-                                {imageUrl ? (
-                                    <>
-                                        <img src={imageUrl} alt="Story Illustration" className="w-full h-full object-cover" />
-                                        <button 
-                                            onClick={handleDownloadImage}
-                                            className="absolute top-4 right-4 w-12 h-12 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 active:scale-95 hover:bg-black/70 transition-all shadow-lg"
-                                            title="Baixar Imagem"
-                                        >
-                                            <Download size={24} />
-                                        </button>
-                                    </>
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 gap-4 text-slate-400">
-                                        {imageLoading ? (
-                                            <>
-                                                <Loader2 className="w-12 h-12 animate-spin text-fuchsia-400" />
-                                                <p className="font-bold text-center px-6">Pintando o desenho...<br/>Quase pronto!</p>
-                                            </>
-                                        ) : (
-                                            <p className="font-bold text-center px-6 text-sm">Imagem não disponível offline.</p>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+            <div className="mt-8">
+                {!showImageReveal ? (
+                    <button 
+                        onClick={() => setShowImageReveal(true)}
+                        className="w-full py-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-[2rem] shadow-[0_0_30px_rgba(219,39,119,0.3)] animate-pulse flex flex-col items-center justify-center gap-3 border-4 border-white/20 active:scale-95 transition-transform"
+                    >
+                        <Gift size={48} className="text-white mb-1" />
+                        <span className="text-2xl font-black text-white uppercase tracking-widest">Abrir Presente Mágico</span>
+                    </button>
+                ) : (
+                    <div className="animate-pop space-y-4">
+                        <div className="aspect-square w-full bg-slate-900 rounded-[2.5rem] overflow-hidden border-4 border-indigo-500 shadow-2xl relative group">
+                            {imageUrl ? (
+                                <>
+                                    <img src={imageUrl} alt="Story Illustration" className="w-full h-full object-cover" />
+                                    <button 
+                                        onClick={handleDownloadImage}
+                                        className="absolute top-4 right-4 w-12 h-12 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 active:scale-95 shadow-lg"
+                                    >
+                                        <Download size={24} />
+                                    </button>
+                                </>
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 gap-4 text-slate-400">
+                                    {imageLoading ? (
+                                        <>
+                                            <Loader2 className="w-12 h-12 animate-spin text-fuchsia-400" />
+                                            <p className="font-bold text-center px-6">Pintando o desenho...<br/>Quase pronto!</p>
+                                        </>
+                                    ) : (
+                                        <p className="font-bold text-center px-6 text-sm">Imagem offline ou em processamento.</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-            )}
-
+                    </div>
+                )}
+            </div>
             <button onClick={resetStoryState} className="w-full bg-slate-700 text-slate-300 py-4 rounded-2xl font-bold hover:bg-slate-600 transition-colors mt-6">
                 Ler Outra História
             </button>
-
           </div>
         )}
       </div>

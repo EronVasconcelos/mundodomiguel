@@ -31,12 +31,14 @@ const Home: React.FC = () => {
   const [progress, setProgress] = useState<DailyProgress | null>(null);
   const [showMissionModal, setShowMissionModal] = useState(false);
   const [showUnlockBanner, setShowUnlockBanner] = useState(false);
-  const [aiActive, setAiActive] = useState(false);
+  const [aiActive, setAiActive] = useState(true); // Default como true para não desencorajar o clique
 
   const GOALS = getGoals();
 
   useEffect(() => {
+    // Verifica disponibilidade silenciosamente apenas para o indicador visual
     setAiActive(isAIAvailable());
+    
     const localP = getDailyProgress();
     setProgress(localP);
 
@@ -126,10 +128,10 @@ const Home: React.FC = () => {
                         <span className="text-2xl font-black text-slate-800">{completedTasks}</span>
                         <span className="text-xs font-bold text-slate-400">/{totalTasks}</span>
                     </div>
-                    {/* IA Indicator */}
+                    {/* IA Indicator (Informational Only) */}
                     <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter ${aiActive ? 'text-emerald-500' : 'text-slate-300'}`}>
                         {aiActive ? <Zap size={10} className="fill-emerald-500" /> : <ZapOff size={10} />}
-                        {aiActive ? 'IA Ativa' : 'IA Offline'}
+                        {aiActive ? 'Conectado' : 'Conectando...'}
                     </div>
                 </div>
             </div>
@@ -148,7 +150,6 @@ const Home: React.FC = () => {
                 Vamos Aprender
             </h3>
             <div className="grid grid-cols-2 gap-3">
-                {/* MATH */}
                 <button 
                     onClick={() => navigate(AppRoute.MATH)}
                     className="bg-white border-b-4 border-emerald-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-emerald-50 transition-all flex flex-col items-center justify-center gap-2 h-36 relative group"
@@ -158,7 +159,6 @@ const Home: React.FC = () => {
                     <span className="font-black text-emerald-700 text-base">Matemática</span>
                 </button>
 
-                {/* WORDS */}
                 <button 
                     onClick={() => navigate(AppRoute.WORDS)}
                     className="bg-white border-b-4 border-sky-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-sky-50 transition-all flex flex-col items-center justify-center gap-2 h-36 relative group"
@@ -176,7 +176,6 @@ const Home: React.FC = () => {
                 Hora de Relaxar
             </h3>
             <div className="space-y-3">
-                {/* STORIES */}
                 <button 
                     onClick={() => navigate(AppRoute.STORY)}
                     className="w-full bg-white border-b-4 border-violet-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 active:bg-violet-50 transition-all flex items-center gap-5 relative overflow-hidden"
@@ -193,7 +192,6 @@ const Home: React.FC = () => {
                     </div>
                 </button>
 
-                {/* FAITH */}
                 <button 
                     onClick={() => navigate(AppRoute.FAITH)}
                     className="w-full bg-white border-b-4 border-cyan-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 active:bg-cyan-50 transition-all flex items-center gap-5 relative overflow-hidden"
@@ -279,13 +277,11 @@ const Home: React.FC = () => {
            {isArcadeUnlocked && <Rocket className="text-yellow-400 w-20 h-20 absolute -right-5 -bottom-5 rotate-12 opacity-20" />}
         </button>
 
-        {/* --- FOOTER --- */}
         <footer className="text-center mt-4 opacity-40 pb-4">
           <p className="text-[10px] font-bold uppercase tracking-widest mb-1">Reinicia diariamente à 00:00h</p>
-          <p className="text-[10px]">v1.6 Online Edition</p>
+          <p className="text-[10px]">v1.7 Hyper-Link Edition</p>
         </footer>
 
-        {/* --- MISSION MODAL --- */}
         {showMissionModal && (
            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in" onClick={() => setShowMissionModal(false)}>
               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl relative animate-slide-up border-4 border-indigo-100" onClick={e => e.stopPropagation()}>
@@ -335,20 +331,6 @@ const Home: React.FC = () => {
               </div>
            </div>
         )}
-
-        {/* --- UNLOCK BANNER POPUP --- */}
-        {showUnlockBanner && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-4 animate-pop pointer-events-auto cursor-pointer border-4 border-white" onClick={() => navigate(AppRoute.ARCADE)}>
-                   <Trophy className="animate-bounce" size={32} />
-                   <div>
-                      <span className="block font-black text-xl">ARCADE LIBERADO!</span>
-                      <span className="text-sm font-bold text-yellow-100">Toque para jogar</span>
-                   </div>
-                </div>
-            </div>
-        )}
-
       </div>
     </Layout>
   );
