@@ -5,22 +5,19 @@ import { AppRoute, DailyProgress } from '../types';
 import { Layout } from '../components/Layout';
 import { 
   Gamepad2, Heart, Lock, CheckCircle, Target, X, Trophy, Rocket, 
-  Palette, Brush, BookOpen, Play, ChevronRight, Zap, ZapOff
+  Palette, Brush, BookOpen, Play, ChevronRight, Zap, ZapOff, Sparkles
 } from 'lucide-react';
 import { getDailyProgress, getGoals, checkUnlock, fetchRemoteProgress } from '../services/progressService';
 import { isAIAvailable } from '../services/geminiService';
 
-// Extensão de tipos para o AI Studio
 declare global {
-  // Use interface merging if AIStudio is already defined, or define it here if not.
   interface AIStudio {
     hasSelectedApiKey: () => Promise<boolean>;
     openSelectKey: () => Promise<void>;
   }
-
   interface Window {
-    // The property 'aistudio' must have identical modifiers (readonly) across all declarations.
-    readonly aistudio: AIStudio;
+    // Removed readonly to match other potential declarations of aistudio in the global environment
+    aistudio: AIStudio;
   }
 }
 
@@ -45,41 +42,45 @@ const Home: React.FC = () => {
   const [progress, setProgress] = useState<DailyProgress | null>(null);
   const [showMissionModal, setShowMissionModal] = useState(false);
   const [showUnlockBanner, setShowUnlockBanner] = useState(false);
-  const [aiActive, setAiActive] = useState(true);
+  const [aiActive, setAiActive] = useState(false);
 
   const GOALS = getGoals();
 
   useEffect(() => {
-    updateAIStatus();
-    
+    initApp();
+  }, []);
+
+  const initApp = async () => {
+    // 1. Verifica status da IA
+    const hasKey = await checkAIStatus();
+    setAiActive(hasKey);
+
+    // 2. Carrega Progresso
     const localP = getDailyProgress();
     setProgress(localP);
 
+    // 3. Sync Remoto
     fetchRemoteProgress().then(remoteP => {
         if (remoteP) {
             setProgress(remoteP);
             const wasLocked = !localP.arcadeUnlocked;
-            const isNowUnlocked = checkUnlock(remoteP);
-            if (wasLocked && isNowUnlocked) setShowUnlockBanner(true);
-        } else {
-            const wasLocked = !localP.arcadeUnlocked;
-            const isNowUnlocked = checkUnlock(localP);
-            if (wasLocked && isNowUnlocked) setShowUnlockBanner(true);
+            if (wasLocked && checkUnlock(remoteP)) setShowUnlockBanner(true);
         }
     });
-  }, []);
-
-  const updateAIStatus = async () => {
-    const available = isAIAvailable();
-    setAiActive(available);
   };
 
-  const handleAIConnect = async () => {
+  const checkAIStatus = async (): Promise<boolean> => {
+    if (window.aistudio) {
+        return await window.aistudio.hasSelectedApiKey();
+    }
+    return isAIAvailable();
+  };
+
+  const handleActivateAI = async () => {
     if (window.aistudio) {
         await window.aistudio.openSelectKey();
-        updateAIStatus();
-    } else {
-        alert("Modo IA Online não detectado.");
+        // Após abrir o seletor, assumimos sucesso conforme instruções do SDK
+        setAiActive(true);
     }
   };
 
@@ -88,51 +89,40 @@ const Home: React.FC = () => {
   const isMathDone = progress.mathCount >= GOALS.MATH;
   const isWordsDone = progress.wordLevel >= GOALS.WORDS_LEVEL;
   const isFaithDone = progress.faithDone;
-  const isMazesDone = progress.mazesSolved >= GOALS.MAZES;
-  const isWordSearchDone = (progress.wordSearchSolved || 0) >= GOALS.WORD_SEARCH;
-  const isPuzzleDone = (progress.puzzlesSolved || 0) >= GOALS.PUZZLES;
-  const isShadowDone = (progress.shadowSolved || 0) >= GOALS.SHADOW;
   const isArcadeUnlocked = progress.arcadeUnlocked;
 
   const totalTasks = 7;
   const completedTasks = [
-    isMathDone, isWordsDone, isFaithDone, isMazesDone, 
-    isWordSearchDone, isPuzzleDone, isShadowDone
+    isMathDone, isWordsDone, isFaithDone, 
+    progress.mazesSolved >= GOALS.MAZES, 
+    (progress.wordSearchSolved || 0) >= GOALS.WORD_SEARCH, 
+    (progress.puzzlesSolved || 0) >= GOALS.PUZZLES, 
+    (progress.shadowSolved || 0) >= GOALS.SHADOW
   ].filter(Boolean).length;
   
   const progressPercent = Math.round((completedTasks / totalTasks) * 100);
-
-  const handleArcadeClick = () => {
-    if (isArcadeUnlocked) {
-      navigate(AppRoute.ARCADE);
-    } else {
-      setShowMissionModal(true);
-    }
-  };
-
-  const MissionItem = ({ label, current, target, done, icon, onClick }: any) => (
-    <button onClick={onClick} className={`w-full flex items-center gap-4 p-3 rounded-2xl border-b-4 active:scale-95 active:border-b-0 active:translate-y-1 transition-all text-left ${done ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100'}`}>
-       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm ${done ? 'bg-green-500' : 'bg-slate-200 text-slate-400'}`}>
-          {done ? <CheckCircle size={20}/> : icon}
-       </div>
-       <div className="flex-1">
-          <span className={`block font-bold text-sm ${done ? 'text-green-700' : 'text-slate-600'}`}>{label}</span>
-          {!done && (
-            <div className="w-full bg-slate-100 h-2 rounded-full mt-1 overflow-hidden">
-                <div className="h-full bg-blue-400 transition-all duration-500" style={{ width: `${Math.min((current/target)*100, 100)}%` }} />
-            </div>
-          )}
-       </div>
-       <span className={`text-xs font-black ${done ? 'text-green-600' : 'text-slate-400'}`}>
-         {typeof current === 'boolean' ? (current ? '1/1' : '0/1') : `${current}/${target}`}
-       </span>
-    </button>
-  );
 
   return (
     <Layout title="Home">
       <div className="flex flex-col gap-4 pb-6">
         
+        {/* --- AI ACTIVATION BANNER --- */}
+        {!aiActive && (
+            <button 
+                onClick={handleActivateAI}
+                className="bg-gradient-to-r from-indigo-600 to-fuchsia-600 p-4 rounded-[2rem] text-white flex items-center gap-4 shadow-lg animate-pulse border-b-4 border-indigo-800 active:scale-95 transition-transform"
+            >
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <Sparkles className="text-yellow-300" fill="currentColor" />
+                </div>
+                <div className="text-left">
+                    <span className="block font-black text-lg leading-tight">ATIVAR MÁGICA (IA)</span>
+                    <span className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Toque para conectar sua chave</span>
+                </div>
+                <ChevronRight className="ml-auto opacity-50" />
+            </button>
+        )}
+
         {/* --- HERO: DAILY PROGRESS --- */}
         <button 
            onClick={() => setShowMissionModal(true)}
@@ -155,143 +145,77 @@ const Home: React.FC = () => {
                         <span className="text-2xl font-black text-slate-800">{completedTasks}</span>
                         <span className="text-xs font-bold text-slate-400">/{totalTasks}</span>
                     </div>
-                    {/* Botão de Status/Conexão da IA */}
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); handleAIConnect(); }}
-                        className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full border transition-colors ${aiActive ? 'text-emerald-500 border-emerald-200 bg-emerald-50' : 'text-red-500 border-red-200 bg-red-50'}`}
-                    >
+                    <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter ${aiActive ? 'text-emerald-500' : 'text-slate-400'}`}>
                         {aiActive ? <Zap size={10} className="fill-emerald-500" /> : <ZapOff size={10} />}
-                        {aiActive ? 'IA Conectada' : 'IA Desconectada'}
-                    </button>
+                        {aiActive ? 'IA Ativa' : 'IA Offline'}
+                    </div>
                 </div>
             </div>
 
             <div className="w-full bg-white h-3 rounded-full overflow-hidden border border-amber-100">
                 <div 
-                    className="h-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_10px_rgba(251,191,36,0.5)] transition-all duration-1000 ease-out rounded-full" 
+                    className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-1000 ease-out rounded-full" 
                     style={{ width: `${Math.max(5, progressPercent)}%` }} 
                 />
             </div>
         </button>
 
-        {/* --- RESTO DA HOME MANTIDA --- */}
+        {/* --- APRENDER --- */}
         <div className="bg-emerald-50 rounded-3xl p-4 py-4">
-            <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
-                Vamos Aprender
-            </h3>
+            <h3 className="text-lg font-black text-slate-800 mb-2 px-2">Vamos Aprender</h3>
             <div className="grid grid-cols-2 gap-3">
-                <button 
-                    onClick={() => navigate(AppRoute.MATH)}
-                    className="bg-white border-b-4 border-emerald-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-emerald-50 transition-all flex flex-col items-center justify-center gap-2 h-36 relative group"
-                >
+                <button onClick={() => navigate(AppRoute.MATH)} className="bg-white border-b-4 border-emerald-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-2 h-32 relative">
                     {isMathDone && <div className="absolute top-2 right-2 text-emerald-500 bg-white rounded-full p-1 shadow-sm"><CheckCircle size={14} /></div>}
-                    <div className="w-14 h-14"><MathIcon /></div>
-                    <span className="font-black text-emerald-700 text-base">Matemática</span>
+                    <div className="w-12 h-12"><MathIcon /></div>
+                    <span className="font-black text-emerald-700">Matemática</span>
                 </button>
-
-                <button 
-                    onClick={() => navigate(AppRoute.WORDS)}
-                    className="bg-white border-b-4 border-sky-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 active:bg-sky-50 transition-all flex flex-col items-center justify-center gap-2 h-36 relative group"
-                >
+                <button onClick={() => navigate(AppRoute.WORDS)} className="bg-white border-b-4 border-sky-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-2 h-32 relative">
                     {isWordsDone && <div className="absolute top-2 right-2 text-sky-500 bg-white rounded-full p-1 shadow-sm"><CheckCircle size={14} /></div>}
-                    <div className="w-14 h-14"><WordsIcon /></div>
-                    <span className="font-black text-sky-700 text-base">Palavras</span>
+                    <div className="w-12 h-12"><WordsIcon /></div>
+                    <span className="font-black text-sky-700">Palavras</span>
                 </button>
             </div>
         </div>
 
+        {/* --- RELAXAR (IA) --- */}
         <div className="bg-violet-50 rounded-3xl p-4 py-4">
-            <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
-                Hora de Relaxar
-            </h3>
+            <h3 className="text-lg font-black text-slate-800 mb-2 px-2">Mundo da Imaginação</h3>
             <div className="space-y-3">
-                <button 
-                    onClick={() => navigate(AppRoute.STORY)}
-                    className="w-full bg-white border-b-4 border-violet-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 active:bg-violet-50 transition-all flex items-center gap-5 relative overflow-hidden"
-                >
-                    <div className="w-14 h-14 bg-violet-200 rounded-2xl flex items-center justify-center text-violet-600 shrink-0 shadow-sm">
+                <button onClick={() => navigate(AppRoute.STORY)} className="w-full bg-white border-b-4 border-violet-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 transition-all flex items-center gap-5">
+                    <div className="w-14 h-14 bg-violet-200 rounded-2xl flex items-center justify-center text-violet-600 shrink-0">
                         <BookOpen size={32} />
                     </div>
                     <div className="text-left flex-1">
                         <span className="block font-black text-violet-800 text-xl">Histórias Mágicas</span>
-                        <span className="text-xs text-violet-500 font-bold uppercase">Ler ou Criar com IA</span>
+                        <span className="text-xs text-violet-500 font-bold uppercase tracking-widest">Criar com IA</span>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-400">
-                        <Play size={14} fill="currentColor" />
-                    </div>
+                    <ChevronRight className="text-violet-200" />
                 </button>
 
-                <button 
-                    onClick={() => navigate(AppRoute.FAITH)}
-                    className="w-full bg-white border-b-4 border-cyan-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 active:bg-cyan-50 transition-all flex items-center gap-5 relative overflow-hidden"
-                >
-                     {isFaithDone && <div className="absolute top-3 right-3 text-cyan-500 bg-white rounded-full p-1"><CheckCircle size={14} /></div>}
-                    <div className="w-14 h-14 bg-cyan-200 rounded-2xl flex items-center justify-center text-cyan-700 shrink-0 shadow-sm">
+                <button onClick={() => navigate(AppRoute.FAITH)} className="w-full bg-white border-b-4 border-cyan-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 transition-all flex items-center gap-5">
+                    {isFaithDone && <div className="absolute top-3 right-3 text-cyan-500 bg-white rounded-full p-1 shadow-sm"><CheckCircle size={14} /></div>}
+                    <div className="w-14 h-14 bg-cyan-200 rounded-2xl flex items-center justify-center text-cyan-700 shrink-0">
                         <Heart size={32} className="fill-cyan-700" />
                     </div>
                     <div className="text-left flex-1">
                         <span className="block font-black text-cyan-800 text-xl">Cantinho da Fé</span>
-                        <span className="text-xs text-cyan-600 font-bold uppercase">Devocional Diário</span>
+                        <span className="text-xs text-cyan-600 font-bold uppercase tracking-widest">Devocional IA</span>
                     </div>
+                    <ChevronRight className="text-cyan-200" />
                 </button>
             </div>
         </div>
 
-        <div className="bg-orange-50 rounded-3xl p-4 py-4">
-            <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
-                Desafios
-            </h3>
-            <button 
-                onClick={() => navigate(AppRoute.CHALLENGE_HUB)}
-                className="w-full bg-white border-b-4 border-orange-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 active:bg-orange-50 transition-all flex items-center gap-5 relative group"
-            >
-                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-500 shrink-0">
-                    <Target size={36} />
-                </div>
-                <div className="text-left flex-1">
-                    <span className="block font-black text-orange-800 text-xl">Jogos de Lógica</span>
-                    <span className="text-xs text-orange-500 font-bold uppercase">Labirinto, Sombra, Puzzle...</span>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-400">
-                    <ChevronRight size={20} />
-                </div>
-            </button>
-        </div>
-
-        <div className="bg-fuchsia-50 rounded-3xl p-4 py-4">
-            <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
-                Arte e Cores
-            </h3>
-            <div className="flex gap-3">
-               <button 
-                  onClick={() => navigate(AppRoute.ART)}
-                  className="flex-1 bg-white p-3 rounded-2xl border-b-4 border-fuchsia-200 active:border-b-0 active:translate-y-1 active:bg-fuchsia-50 transition-all flex items-center gap-3"
-               >
-                  <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-fuchsia-400 shadow-sm"><Palette size={18} /></div>
-                  <span className="font-black text-fuchsia-700 text-base">Desenhar</span>
-               </button>
-               <button 
-                  onClick={() => navigate(AppRoute.COLORING)}
-                  className="flex-1 bg-white p-3 rounded-2xl border-b-4 border-pink-200 active:border-b-0 active:translate-y-1 active:bg-pink-50 transition-all flex items-center gap-3"
-               >
-                  <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-pink-400 shadow-sm"><Brush size={18} /></div>
-                  <span className="font-black text-pink-700 text-base">Colorir</span>
-               </button>
-            </div>
-        </div>
-
+        {/* --- ARCADE --- */}
         <button 
-          onClick={handleArcadeClick}
-          className={`w-full rounded-[2rem] p-5 text-left relative overflow-hidden group flex items-center gap-6 shadow-md transition-all active:scale-95 border-b-8
-            ${isArcadeUnlocked 
-                ? 'bg-slate-800 text-white border-slate-900 shadow-slate-300' 
-                : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}
+          onClick={() => isArcadeUnlocked ? navigate(AppRoute.ARCADE) : setShowMissionModal(true)}
+          className={`w-full rounded-[2rem] p-5 text-left relative overflow-hidden flex items-center gap-6 shadow-md transition-all active:scale-95 border-b-8
+            ${isArcadeUnlocked ? 'bg-slate-800 text-white border-slate-900' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}
           `}
         >
            <div className={`w-12 h-12 flex-shrink-0 rounded-2xl flex items-center justify-center ${isArcadeUnlocked ? 'bg-slate-700 text-yellow-400' : 'bg-slate-300 text-slate-400'}`}>
                {isArcadeUnlocked ? <Gamepad2 size={24} /> : <Lock size={24} />}
            </div>
-           
            <div className="relative z-10 flex-1">
               <span className={`text-[10px] font-bold uppercase tracking-wider block ${isArcadeUnlocked ? 'text-slate-400' : 'text-slate-500'}`}>
                   {isArcadeUnlocked ? "Área de Jogos" : "Complete a missão para liberar"}
@@ -300,63 +224,12 @@ const Home: React.FC = () => {
                   Arcade
               </span>
            </div>
-           {isArcadeUnlocked && <Rocket className="text-yellow-400 w-20 h-20 absolute -right-5 -bottom-5 rotate-12 opacity-20" />}
         </button>
 
         <footer className="text-center mt-4 opacity-40 pb-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-1">Reinicia diariamente à 00:00h</p>
-          <p className="text-[10px]">v1.8 AI-Studio-Fixed</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest">v2.0 Auto-IA Connect</p>
         </footer>
 
-        {showMissionModal && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in" onClick={() => setShowMissionModal(false)}>
-              <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl relative animate-slide-up border-4 border-indigo-100" onClick={e => e.stopPropagation()}>
-                 <button onClick={() => setShowMissionModal(false)} className="absolute top-4 right-4 text-slate-400 bg-slate-100 rounded-full p-2"><X size={20}/></button>
-                 
-                 <div className="text-center mb-6">
-                    <h2 className="text-2xl font-black text-indigo-900">Missão do Dia 🚀</h2>
-                    <p className="text-slate-500 text-sm font-bold">Complete para liberar o Arcade!</p>
-                 </div>
-
-                 <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto scrollbar-hide">
-                    <MissionItem 
-                       label="Aprender Palavras" 
-                       current={progress.wordLevel} 
-                       target={GOALS.WORDS_LEVEL} 
-                       done={isWordsDone} 
-                       icon="Aa"
-                       onClick={() => navigate(AppRoute.WORDS)}
-                    />
-                    <MissionItem 
-                       label="Matemática" 
-                       current={progress.mathCount} 
-                       target={GOALS.MATH} 
-                       done={isMathDone} 
-                       icon="1+2"
-                       onClick={() => navigate(AppRoute.MATH)}
-                    />
-                    <MissionItem 
-                       label="Ler o Devocional" 
-                       current={progress.faithDone} 
-                       target={true} 
-                       done={isFaithDone} 
-                       icon={<Heart size={16}/>}
-                       onClick={() => navigate(AppRoute.FAITH)}
-                    />
-                 </div>
-
-                 {isArcadeUnlocked ? (
-                    <button onClick={() => { setShowMissionModal(false); navigate(AppRoute.ARCADE); }} className="w-full py-4 bg-green-500 text-white rounded-2xl font-black text-xl shadow-lg shadow-green-200 animate-bounce">
-                       JOGAR AGORA!
-                    </button>
-                 ) : (
-                    <div className="text-center p-3 bg-slate-50 rounded-2xl text-slate-400 text-xs font-bold">
-                       Continue estudando para liberar!
-                    </div>
-                 )}
-              </div>
-           </div>
-        )}
       </div>
     </Layout>
   );

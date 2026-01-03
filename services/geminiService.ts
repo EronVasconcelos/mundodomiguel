@@ -19,31 +19,15 @@ export const STATIC_STORIES: StoryData[] = [
   }
 ];
 
-const FALLBACK_DEVOTIONAL: DevotionalData = {
-  date: new Date().toDateString(),
-  verse: "O Senhor é o meu pastor; nada me faltará.",
-  reference: "Salmos 23:1",
-  devotional: "Assim como um pastor cuida de suas ovelhinhas, Deus cuida de você com muito amor. Ele sabe de tudo o que você precisa.",
-  storyTitle: "O Pastor Amoroso",
-  storyContent: "Davi era um menino que cuidava de ovelhas. Ele sabia o nome de cada uma! Assim também é Deus conosco. Você pode confiar nEle sempre.",
-  prayer: "Senhor Jesus, obrigado por cuidar de mim como um bom pastor. Amém.",
-  imagePrompt: "a cute child shepherd with sheep in a beautiful green field, pixar style" 
-};
-
-// --- API AVAILABILITY CHECK ---
 export const isAIAvailable = (): boolean => {
     const key = process.env.API_KEY;
-    // Verifica se a chave existe e não é uma string de erro comum
-    return !!key && key !== "" && key !== "undefined" && key.length > 5;
+    return !!key && key !== "undefined" && key.length > 5;
 };
 
-// Auxiliar para instanciar com tratamento de erro
 const getAIClient = () => {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-        throw new Error("API_KEY_MISSING");
-    }
-    return new GoogleGenAI({ apiKey });
+    const key = process.env.API_KEY;
+    if (!key || key === "undefined") throw new Error("IA_OFFLINE");
+    return new GoogleGenAI({ apiKey: key });
 };
 
 // --- CONTENT GENERATION ---
@@ -51,11 +35,9 @@ const getAIClient = () => {
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
   try {
     const ai = getAIClient();
-    const prompt = `Você é um contador de histórias mágico para crianças. Crie uma história infantil curta, educativa e cativante para ${profile.name}, de ${profile.age} anos. Tema: ${topic}. Retorne JSON rigoroso: title, content, moral.`;
-
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: prompt,
+      contents: `Crie uma história infantil mágica para ${profile.name} (${profile.age} anos) sobre: ${topic}. Retorne JSON: title, content, moral.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -69,23 +51,19 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
         },
       },
     });
-    
     return JSON.parse(response.text || '{}') as StoryData;
   } catch (error: any) {
-    console.error("Erro na geração de história:", error);
-    if (error.message === "API_KEY_MISSING") throw new Error("A chave da IA não foi configurada. Toque no ícone de rede na Home para conectar.");
-    throw new Error("Não consegui criar a história. Tente novamente em instantes!");
+    if (error.message === "IA_OFFLINE") throw new Error("A IA ainda não foi conectada. Toque no banner azul na Home!");
+    throw error;
   }
 };
 
 export const generateDevotionalContent = async (profile: ChildProfile): Promise<DevotionalData> => {
   try {
     const ai = getAIClient();
-    const prompt = `Crie um devocional cristão curto e gentil para uma criança de ${profile.age} anos chamada ${profile.name}. Retorne JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt.`;
-
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: prompt,
+      contents: `Crie um devocional cristão para ${profile.name} (${profile.age} anos). JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -105,8 +83,13 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
     });
     return { ...JSON.parse(response.text || '{}'), date: new Date().toDateString() };
   } catch (error) {
-    console.error("Erro no devocional IA:", error);
-    return FALLBACK_DEVOTIONAL;
+    return {
+      date: new Date().toDateString(),
+      verse: "O Senhor é o meu pastor...", reference: "Salmos 23:1",
+      devotional: "IA desconectada. Verifique sua chave.",
+      storyTitle: "Ovelhinha", storyContent: "A IA está offline agora.",
+      prayer: "Amém", imagePrompt: "fallback"
+    };
   }
 };
 
@@ -115,7 +98,7 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
     const ai = getAIClient();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-preview-tts',
-      contents: [{ parts: [{ text: `Diga com voz doce e calma para uma criança: ${text}` }] }],
+      contents: [{ parts: [{ text }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: { 
@@ -124,30 +107,19 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
       },
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
-  } catch (error) {
-    return null; 
-  }
+  } catch (error) { return null; }
 };
 
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string | null> => {
   try {
     const ai = getAIClient();
-    const charDesc = profile ? `a cute ${profile.age} year old ${profile.gender === 'boy' ? 'boy' : 'girl'} with ${profile.hairColor} hair and ${profile.skinTone} skin` : "a cute child";
-    const prompt = `Disney Pixar 3D animation style, cinematic lighting, high quality. Subject: ${charDesc}. Scene: ${storyPrompt.substring(0, 300)}. NO TEXT.`;
-
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: prompt }] },
+      contents: { parts: [{ text: `Disney Pixar style, 3D render. Scene: ${storyPrompt.substring(0, 400)}` }] },
       config: { imageConfig: { aspectRatio: "1:1" } }
     });
-    
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData?.data) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-  } catch (error) {}
-  return null;
+    return `data:image/png;base64,${response.candidates?.[0]?.content?.parts.find(p => p.inlineData)?.inlineData?.data}`;
+  } catch (error) { return null; }
 };
 
 export const getFallbackStoryImage = () => STATIC_STORY_IMAGE;
