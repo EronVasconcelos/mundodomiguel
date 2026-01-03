@@ -10,6 +10,20 @@ import {
 import { getDailyProgress, getGoals, checkUnlock, fetchRemoteProgress } from '../services/progressService';
 import { isAIAvailable } from '../services/geminiService';
 
+// Extensão de tipos para o AI Studio
+declare global {
+  // Use interface merging if AIStudio is already defined, or define it here if not.
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+
+  interface Window {
+    // The property 'aistudio' must have identical modifiers (readonly) across all declarations.
+    readonly aistudio: AIStudio;
+  }
+}
+
 const MathIcon = () => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <circle cx="50" cy="50" r="45" fill="#d1fae5" />
@@ -31,13 +45,12 @@ const Home: React.FC = () => {
   const [progress, setProgress] = useState<DailyProgress | null>(null);
   const [showMissionModal, setShowMissionModal] = useState(false);
   const [showUnlockBanner, setShowUnlockBanner] = useState(false);
-  const [aiActive, setAiActive] = useState(true); // Default como true para não desencorajar o clique
+  const [aiActive, setAiActive] = useState(true);
 
   const GOALS = getGoals();
 
   useEffect(() => {
-    // Verifica disponibilidade silenciosamente apenas para o indicador visual
-    setAiActive(isAIAvailable());
+    updateAIStatus();
     
     const localP = getDailyProgress();
     setProgress(localP);
@@ -55,6 +68,20 @@ const Home: React.FC = () => {
         }
     });
   }, []);
+
+  const updateAIStatus = async () => {
+    const available = isAIAvailable();
+    setAiActive(available);
+  };
+
+  const handleAIConnect = async () => {
+    if (window.aistudio) {
+        await window.aistudio.openSelectKey();
+        updateAIStatus();
+    } else {
+        alert("Modo IA Online não detectado.");
+    }
+  };
 
   if (!progress) return null;
 
@@ -128,11 +155,14 @@ const Home: React.FC = () => {
                         <span className="text-2xl font-black text-slate-800">{completedTasks}</span>
                         <span className="text-xs font-bold text-slate-400">/{totalTasks}</span>
                     </div>
-                    {/* IA Indicator (Informational Only) */}
-                    <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter ${aiActive ? 'text-emerald-500' : 'text-slate-300'}`}>
+                    {/* Botão de Status/Conexão da IA */}
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); handleAIConnect(); }}
+                        className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full border transition-colors ${aiActive ? 'text-emerald-500 border-emerald-200 bg-emerald-50' : 'text-red-500 border-red-200 bg-red-50'}`}
+                    >
                         {aiActive ? <Zap size={10} className="fill-emerald-500" /> : <ZapOff size={10} />}
-                        {aiActive ? 'Conectado' : 'Conectando...'}
-                    </div>
+                        {aiActive ? 'IA Conectada' : 'IA Desconectada'}
+                    </button>
                 </div>
             </div>
 
@@ -144,7 +174,7 @@ const Home: React.FC = () => {
             </div>
         </button>
 
-        {/* --- SECTION 1: APRENDER --- */}
+        {/* --- RESTO DA HOME MANTIDA --- */}
         <div className="bg-emerald-50 rounded-3xl p-4 py-4">
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
                 Vamos Aprender
@@ -170,7 +200,6 @@ const Home: React.FC = () => {
             </div>
         </div>
 
-        {/* --- SECTION 2: RELAXAR --- */}
         <div className="bg-violet-50 rounded-3xl p-4 py-4">
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
                 Hora de Relaxar
@@ -208,7 +237,6 @@ const Home: React.FC = () => {
             </div>
         </div>
 
-        {/* --- SECTION 3: DESAFIOS --- */}
         <div className="bg-orange-50 rounded-3xl p-4 py-4">
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
                 Desafios
@@ -230,7 +258,6 @@ const Home: React.FC = () => {
             </button>
         </div>
 
-        {/* --- SECTION 4: CRIATIVIDADE --- */}
         <div className="bg-fuchsia-50 rounded-3xl p-4 py-4">
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2 flex items-center gap-2">
                 Arte e Cores
@@ -253,7 +280,6 @@ const Home: React.FC = () => {
             </div>
         </div>
 
-        {/* --- SECTION 5: ARCADE --- */}
         <button 
           onClick={handleArcadeClick}
           className={`w-full rounded-[2rem] p-5 text-left relative overflow-hidden group flex items-center gap-6 shadow-md transition-all active:scale-95 border-b-8
@@ -279,7 +305,7 @@ const Home: React.FC = () => {
 
         <footer className="text-center mt-4 opacity-40 pb-4">
           <p className="text-[10px] font-bold uppercase tracking-widest mb-1">Reinicia diariamente à 00:00h</p>
-          <p className="text-[10px]">v1.7 Hyper-Link Edition</p>
+          <p className="text-[10px]">v1.8 AI-Studio-Fixed</p>
         </footer>
 
         {showMissionModal && (
