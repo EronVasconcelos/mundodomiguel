@@ -16,7 +16,6 @@ interface LayoutProps {
   missionTarget?: { current: number; target: number | boolean; label?: string };
 }
 
-// Generic Gender-Neutral Avatar
 const DEFAULT_AVATAR = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f1f5f9"/><circle cx="100" cy="100" r="60" fill="%23cbd5e1"/><rect x="70" y="80" width="20" height="20" rx="5" fill="%23334155"/><rect x="110" y="80" width="20" height="20" rx="5" fill="%23334155"/><path d="M70 130 Q100 150 130 130" stroke="%23334155" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="100" cy="100" r="55" stroke="%2394a3b8" stroke-width="4" fill="none"/></svg>`;
 
 export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-slate-700", missionTarget }) => {
@@ -28,15 +27,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
   const [aiAvailable, setAiAvailable] = useState(true);
   
-  // Drawer & Installation State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   
-  // Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Pull to Refresh State
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pullStartY = useRef(0);
   const [pullDist, setPullDist] = useState(0);
@@ -60,7 +56,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     const storedList = localStorage.getItem('child_profiles');
     let list: ChildProfile[] = storedList ? JSON.parse(storedList) : [];
     
-    // Background fetch sync
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
         const { data } = await supabase.from('child_profiles').select('*');
@@ -75,21 +70,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                 eyeColor: p.eye_color,
                 skinTone: p.skin_tone,
                 avatarBase: p.avatar_base,
-                photo_url: p.photo_url
+                photoUrl: p.photo_url
             }));
             list = mappedProfiles;
             setProfiles(list);
             localStorage.setItem('child_profiles', JSON.stringify(mappedProfiles));
-
-            if (list.length === 0 && !location.pathname.includes(AppRoute.PROFILE)) {
-                 setActiveProfile(null);
-                 localStorage.removeItem('active_profile_id');
-                 localStorage.removeItem('child_profile');
-                 if (location.pathname !== AppRoute.WELCOME && location.pathname !== AppRoute.LOGIN) {
-                    navigate(AppRoute.PROFILE);
-                 }
-                 return;
-            }
         }
     }
     
@@ -102,18 +87,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     }
   };
 
-  // --- ACTIONS ---
-
-  const handleInstallClick = () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    installPrompt.userChoice.then((choiceResult: any) => {
-      if (choiceResult.outcome === 'accepted') {
-        setInstallPrompt(null);
-      }
-    });
-  };
-
   const handleSwitchProfile = (profile: ChildProfile) => {
     setActiveProfile(profile);
     localStorage.setItem('active_profile_id', profile.id);
@@ -122,66 +95,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     window.location.reload(); 
   };
 
-  const handleEditProfile = (profile: ChildProfile) => {
-      setIsMenuOpen(false);
-      navigate(AppRoute.PROFILE, { state: { profile } });
-  };
-
-  const handleDeleteProfile = async (e: React.MouseEvent, idToDelete: string) => {
-    e.stopPropagation(); 
-    if (!window.confirm("Apagar este perfil e todo o progresso?")) return;
-
-    try {
-        const { error } = await supabase.from('child_profiles').delete().eq('id', idToDelete);
-        if (error) throw error;
-
-        const updatedList = profiles.filter(p => p.id !== idToDelete);
-        setProfiles(updatedList);
-        localStorage.setItem('child_profiles', JSON.stringify(updatedList));
-
-        // If we deleted the active profile, switch or logout
-        if (activeProfile?.id === idToDelete) {
-            if (updatedList.length > 0) {
-                handleSwitchProfile(updatedList[0]);
-            } else {
-                localStorage.removeItem('active_profile_id');
-                localStorage.removeItem('child_profile');
-                setActiveProfile(null);
-                setIsMenuOpen(false);
-                navigate(AppRoute.PROFILE);
-            }
-        }
-    } catch (err) {
-        alert("Erro ao apagar. Verifique conexão.");
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!window.confirm("ATENÇÃO: Isso excluirá sua conta e todos os perfis. Não há volta.")) return;
-    const confirmText = prompt("Digite DELETAR para confirmar:");
-    if (confirmText !== "DELETAR") return;
-
-    setUploading(true);
-    try {
-        await supabase.rpc('delete_user_account');
-        localStorage.clear();
-        await supabase.auth.signOut();
-        navigate(AppRoute.WELCOME);
-    } catch (error: any) {
-        alert("Erro ao excluir: " + error.message);
-    } finally {
-        setUploading(false);
-    }
-  };
-
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file || !activeProfile) return;
-      if (file.size > 2 * 1024 * 1024) {
-          alert("Foto muito grande.");
-          return;
-      }
-
       setUploading(true);
       const reader = new FileReader();
       reader.onload = async (event) => {
@@ -189,10 +105,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
           try {
               await supabase.from('child_profiles').update({ photo_url: base64 }).eq('id', activeProfile.id);
               const updatedProfile = { ...activeProfile, photoUrl: base64 };
-              const updatedList = profiles.map(p => p.id === activeProfile.id ? updatedProfile : p);
               setActiveProfile(updatedProfile);
-              setProfiles(updatedList);
-              localStorage.setItem('child_profiles', JSON.stringify(updatedList));
+              loadProfiles();
           } catch (err) {
               alert("Erro ao salvar foto.");
           } finally {
@@ -203,39 +117,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
   };
 
   const getProfileImage = (p: ChildProfile | null) => p?.photoUrl || p?.avatarBase || DEFAULT_AVATAR;
-
-  // --- PULL TO REFRESH LOGIC (Restricted to Home) ---
-  const handleTouchStart = (e: React.TouchEvent) => {
-      if (!isHome) return;
-      if (contentRef.current?.scrollTop === 0) {
-          pullStartY.current = e.touches[0].clientY;
-      }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-      if (!isHome || !pullStartY.current) return;
-      const currentY = e.touches[0].clientY;
-      const diff = currentY - pullStartY.current;
-      
-      if (diff > 0 && contentRef.current?.scrollTop === 0) {
-          if (diff < 200) e.preventDefault(); 
-          setPullDist(Math.pow(diff, 0.8)); 
-      }
-  };
-
-  const handleTouchEnd = () => {
-      if (!isHome) return;
-      if (pullDist > PULL_THRESHOLD) {
-          setIsRefreshing(true);
-          setPullDist(PULL_THRESHOLD); 
-          setTimeout(() => {
-              window.location.reload();
-          }, 800);
-      } else {
-          setPullDist(0);
-          pullStartY.current = 0;
-      }
-  };
 
   return (
     <div 
@@ -249,30 +130,20 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
     >
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleAvatarUpload} />
 
-      {/* --- HEADER --- */}
       <div className="px-4 pt-4 pb-2 z-20 flex-shrink-0">
         <header className="bg-white/80 backdrop-blur-md rounded-[2rem] shadow-sm border border-slate-100 p-2 relative h-16 flex items-center justify-between">
-          
-          {/* Left: Menu/Back */}
           <div className="flex-shrink-0 z-10 w-12 pl-1">
              {isHome ? (
-                 <button 
-                    onClick={() => setIsMenuOpen(true)}
-                    className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full transition-colors active:scale-95"
-                 >
+                 <button onClick={() => setIsMenuOpen(true)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95">
                     <Menu size={24} strokeWidth={2.5} />
                  </button>
              ) : (
-                <button 
-                    onClick={() => navigate(-1)}
-                    className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95"
-                >
+                <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95">
                     <ArrowLeft size={24} strokeWidth={3} />
                 </button>
              )}
           </div>
 
-          {/* Center: Title & Rocket */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="flex items-center gap-2 max-w-[60%] overflow-hidden">
                 {isHome ? (
@@ -290,154 +161,62 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
               </div>
           </div>
 
-          {/* Right: Actions */}
           <div className="flex-shrink-0 z-10 w-12 flex justify-end pr-1">
-             {isHome ? (
-                <>
-                   {installPrompt ? (
-                       <button 
-                         onClick={handleInstallClick}
-                         className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center animate-pulse"
-                       >
-                          <Download size={20} />
-                       </button>
-                   ) : (
-                      <div className="w-10 h-10 rounded-full border-2 border-slate-100 overflow-hidden">
-                          <img src={getProfileImage(activeProfile)} className="w-full h-full object-cover" />
-                      </div>
-                   )}
-                </>
-             ) : missionTarget && (
-                <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 px-2 py-1.5 rounded-full">
-                    <Target size={14} className="text-slate-400" />
-                    <span className="text-xs font-black text-slate-600">
-                        {typeof missionTarget.target === 'boolean' 
-                           ? (missionTarget.current ? '1/1' : '0/1') 
-                           : `${missionTarget.current}/${missionTarget.target}`
-                        }
-                    </span>
-                </div>
-             )}
+             <div className="w-10 h-10 rounded-full border-2 border-slate-100 overflow-hidden shadow-sm">
+                 <img src={getProfileImage(activeProfile)} className="w-full h-full object-cover" />
+             </div>
           </div>
         </header>
       </div>
 
-      {/* --- SIDE MENU DRAWER (HAMBURGER) --- */}
       {isMenuOpen && (
          <div className="fixed inset-0 z-50 flex">
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsMenuOpen(false)} />
-            
-            {/* Drawer */}
-            <div className="relative w-4/5 max-w-xs h-full bg-white shadow-2xl flex flex-col p-6 animate-slide-up" style={{ animationDirection: 'normal', animationName: 'slideRight' }}>
+            <div className="relative w-4/5 max-w-xs h-full bg-white shadow-2xl flex flex-col p-6 animate-slide-up" style={{ animationName: 'slideRight' }}>
                 <div className="flex justify-between items-center mb-8">
                    <h2 className="text-2xl font-black text-slate-800">Menu</h2>
                    <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-slate-100 rounded-full"><X size={20}/></button>
                 </div>
 
-                {/* Current Profile Card */}
                 {activeProfile && (
-                   <div className="bg-slate-50 border-2 border-slate-100 rounded-3xl p-4 mb-6 flex flex-col items-center relative overflow-hidden">
-                      <div className="w-20 h-20 rounded-full border-4 border-white shadow-md overflow-hidden mb-3 relative">
+                   <div className="bg-slate-50 border-2 border-slate-100 rounded-3xl p-4 mb-6 flex flex-col items-center">
+                      <div className="w-20 h-20 rounded-full border-4 border-white shadow-md overflow-hidden mb-3">
                          <img src={getProfileImage(activeProfile)} className="w-full h-full object-cover" />
                       </div>
                       <h3 className="font-black text-xl text-slate-800 mb-3">{activeProfile.name}</h3>
-                      
-                      {/* Active Profile Actions */}
-                      <div className="flex gap-2 w-full">
-                         <button 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex-1 py-2 bg-white border border-slate-200 rounded-xl text-slate-500 font-bold text-xs flex items-center justify-center gap-1 active:scale-95"
-                         >
-                            {uploading ? <Loader2 className="animate-spin" size={14} /> : <Camera size={14} />} Foto
-                         </button>
-                         <button 
-                            onClick={() => handleEditProfile(activeProfile)}
-                            className="flex-1 py-2 bg-blue-100 border border-blue-200 rounded-xl text-blue-600 font-bold text-xs flex items-center justify-center gap-1 active:scale-95"
-                         >
-                            <Pencil size={14} /> Editar
-                         </button>
-                         <button 
-                            onClick={(e) => handleDeleteProfile(e, activeProfile.id)}
-                            className="flex-1 py-2 bg-red-100 border border-red-200 rounded-xl text-red-600 font-bold text-xs flex items-center justify-center gap-1 active:scale-95"
-                         >
-                            <Trash2 size={14} /> Excluir
-                         </button>
-                      </div>
+                      <button onClick={() => fileInputRef.current?.click()} className="w-full py-2 bg-white border border-slate-200 rounded-xl text-slate-500 font-bold text-xs flex items-center justify-center gap-1 active:scale-95">
+                         {uploading ? <Loader2 className="animate-spin" size={14} /> : <Camera size={14} />} Trocar Foto
+                      </button>
                    </div>
                 )}
 
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Trocar Perfil</h3>
                 <div className="flex-1 overflow-y-auto space-y-2 mb-4 scrollbar-hide">
                     {profiles.map(p => (
-                       <button 
-                         key={p.id}
-                         onClick={() => handleSwitchProfile(p)}
-                         className={`w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${activeProfile?.id === p.id ? 'bg-blue-50 border-blue-200' : 'border-transparent hover:bg-slate-50'}`}
-                       >
+                       <button key={p.id} onClick={() => handleSwitchProfile(p)} className={`w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${activeProfile?.id === p.id ? 'bg-blue-50 border-blue-200' : 'border-transparent hover:bg-slate-50'}`}>
                           <img src={getProfileImage(p)} className="w-10 h-10 rounded-full border border-slate-200 object-cover" />
                           <span className={`font-bold flex-1 text-left ${activeProfile?.id === p.id ? 'text-blue-600' : 'text-slate-600'}`}>{p.name}</span>
                        </button>
                     ))}
-                    {profiles.length < 5 && (
-                       <button onClick={() => { setIsMenuOpen(false); navigate(AppRoute.PROFILE); }} className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 font-bold flex items-center justify-center gap-2">
-                          <Plus size={18} /> Adicionar Novo
-                       </button>
-                    )}
                 </div>
 
-                {/* Footer Actions */}
                 <div className="space-y-3 pt-4 border-t border-slate-100">
-                   {installPrompt && (
-                      <button onClick={handleInstallClick} className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-bold flex items-center justify-center gap-2">
-                         <Download size={18} /> Instalar App
-                      </button>
-                   )}
                    <button onClick={async () => { await supabase.auth.signOut(); localStorage.clear(); navigate(AppRoute.WELCOME); }} className="w-full py-3 text-slate-500 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 rounded-xl">
                       <LogOut size={18} /> Sair
-                   </button>
-                   <button onClick={handleDeleteAccount} className="w-full py-2 text-xs text-red-400 font-bold flex items-center justify-center gap-1 hover:text-red-600">
-                      <UserX size={14} /> Excluir Conta
                    </button>
                 </div>
             </div>
          </div>
       )}
 
-      {/* --- PULL TO REFRESH SPINNER (Only visible if isHome) --- */}
-      {isHome && (
-        <div 
-            className="absolute top-0 left-0 w-full flex justify-center pointer-events-none z-0 transition-transform duration-200"
-            style={{ transform: `translateY(${Math.min(pullDist, 100) - 40}px)` }}
-        >
-            <div className={`w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-blue-500 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullDist * 2}deg)` }}>
-                {isRefreshing ? <Loader2 /> : <RefreshCw />}
-            </div>
-        </div>
-      )}
-
-      {/* Main Content Area */}
-      <main 
-         ref={contentRef}
-         className="flex-1 overflow-y-auto overflow-x-hidden p-4 relative flex flex-col z-10 scrollbar-hide"
-         onTouchStart={handleTouchStart}
-         onTouchMove={handleTouchMove}
-         onTouchEnd={handleTouchEnd}
-         style={{ 
-             transform: isHome ? `translateY(${pullDist}px)` : 'none', 
-             transition: isRefreshing ? 'transform 0.3s' : 'none' 
-         }}
-      >
+      <main ref={contentRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 relative flex flex-col z-10 scrollbar-hide">
         <div className="flex-1 flex flex-col max-w-lg mx-auto w-full">
           {children}
         </div>
       </main>
 
       <style>{`
-        @keyframes slideRight {
-           from { transform: translateX(-100%); }
-           to { transform: translateX(0); }
-        }
+        @keyframes slideRight { from { transform: translateX(-100%); } to { transform: translateX(0); } }
       `}</style>
     </div>
   );

@@ -44,9 +44,8 @@ const BlockPuzzle: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [draggingPiece, setDraggingPiece] = useState<ActivePiece | null>(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
-  const [previewPos, setPreviewPos] = useState<number | null>(null);
+  const [previewPos, setPreviewPos] = useState<{ r: number, c: number } | null>(null);
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const spawnPieces = useCallback(() => {
@@ -76,19 +75,15 @@ const BlockPuzzle: React.FC = () => {
 
   const checkGameOver = (currentGrid: (string | null)[], currentPieces: ActivePiece[]) => {
     if (currentPieces.length === 0) return;
-    
     const canPlaceAny = currentPieces.some(piece => {
-      for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
+      for (let r = 0; r <= GRID_SIZE - piece.shape.length; r++) {
+        for (let c = 0; c <= GRID_SIZE - piece.shape[0].length; c++) {
           if (canFit(piece.shape, r, c, currentGrid)) return true;
         }
       }
       return false;
     });
-
-    if (!canPlaceAny) {
-      setGameState(GameState.GAME_OVER);
-    }
+    if (!canPlaceAny) setGameState(GameState.GAME_OVER);
   };
 
   const canFit = (shape: number[][], row: number, col: number, currentGrid: (string | null)[]) => {
@@ -97,7 +92,7 @@ const BlockPuzzle: React.FC = () => {
         if (shape[r][c]) {
           const targetR = row + r;
           const targetC = col + c;
-          if (targetR >= GRID_SIZE || targetC >= GRID_SIZE || currentGrid[targetR * GRID_SIZE + targetC]) {
+          if (targetR < 0 || targetR >= GRID_SIZE || targetC < 0 || targetC >= GRID_SIZE || currentGrid[targetR * GRID_SIZE + targetC]) {
             return false;
           }
         }
@@ -118,50 +113,28 @@ const BlockPuzzle: React.FC = () => {
       }
     }
 
-    // Check for completed rows and columns
-    const rowsToClear = [];
+    const rowsToClear: number[] = [];
+    const colsToClear: number[] = [];
     for (let r = 0; r < GRID_SIZE; r++) {
-      let full = true;
-      for (let c = 0; c < GRID_SIZE; c++) {
-        if (!newGrid[r * GRID_SIZE + c]) { full = false; break; }
-      }
-      if (full) rowsToClear.push(r);
+      if (Array.from({ length: GRID_SIZE }, (_, i) => newGrid[r * GRID_SIZE + i]).every(cell => cell !== null)) rowsToClear.push(r);
     }
-
-    const colsToClear = [];
     for (let c = 0; c < GRID_SIZE; c++) {
-      let full = true;
-      for (let r = 0; r < GRID_SIZE; r++) {
-        if (!newGrid[r * GRID_SIZE + c]) { full = false; break; }
-      }
-      if (full) colsToClear.push(c);
+      if (Array.from({ length: GRID_SIZE }, (_, i) => newGrid[i * GRID_SIZE + c]).every(cell => cell !== null)) colsToClear.push(c);
     }
 
-    // Points
     let points = cellsPlaced * 10;
     if (rowsToClear.length > 0 || colsToClear.length > 0) {
-      const clearedCount = rowsToClear.length + colsToClear.length;
-      points += clearedCount * 100 * clearedCount; // Bonus for multi-line
-      
-      // Clear cells
-      rowsToClear.forEach(r => {
-        for (let c = 0; c < GRID_SIZE; c++) newGrid[r * GRID_SIZE + c] = null;
-      });
-      colsToClear.forEach(c => {
-        for (let r = 0; r < GRID_SIZE; r++) newGrid[r * GRID_SIZE + c] = null;
-      });
+      const totalLines = rowsToClear.length + colsToClear.length;
+      points += totalLines * 100 * totalLines;
+      rowsToClear.forEach(r => { for (let c = 0; c < GRID_SIZE; c++) newGrid[r * GRID_SIZE + c] = null; });
+      colsToClear.forEach(c => { for (let r = 0; r < GRID_SIZE; r++) newGrid[r * GRID_SIZE + c] = null; });
     }
 
     setScore(s => s + points);
     setGrid(newGrid);
-    
-    const remainingPieces = pieces.filter(p => p.id !== piece.id);
-    if (remainingPieces.length === 0) {
-      spawnPieces();
-    } else {
-      setPieces(remainingPieces);
-      checkGameOver(newGrid, remainingPieces);
-    }
+    const remaining = pieces.filter(p => p.id !== piece.id);
+    if (remaining.length === 0) spawnPieces();
+    else { setPieces(remaining); checkGameOver(newGrid, remaining); }
   };
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent, piece: ActivePiece) => {
@@ -175,22 +148,22 @@ const BlockPuzzle: React.FC = () => {
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     setDragPosition({ x: clientX, y: clientY });
 
-    if (gridRef.current) {
+    if (gridRef.current && draggingPiece) {
       const rect = gridRef.current.getBoundingClientRect();
       const cellSize = rect.width / GRID_SIZE;
+      const pieceYOffset = 100; 
       
-      // Offset piece position slightly so it's above finger
-      const pieceYOffset = 80; 
-      
-      const localX = clientX - rect.left;
+      // Calculate top-left based on touch point
+      const localX = clientX - rect.left - (draggingPiece.shape[0].length * cellSize) / 2;
       const localY = clientY - rect.top - pieceYOffset;
       
       const col = Math.round(localX / cellSize);
       const row = Math.round(localY / cellSize);
 
-      if (draggingPiece && col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
+      if (row >= 0 && row <= GRID_SIZE - draggingPiece.shape.length && 
+          col >= 0 && col <= GRID_SIZE - draggingPiece.shape[0].length) {
         if (canFit(draggingPiece.shape, row, col, grid)) {
-          setPreviewPos(row * GRID_SIZE + col);
+          setPreviewPos({ r: row, c: col });
         } else {
           setPreviewPos(null);
         }
@@ -201,152 +174,91 @@ const BlockPuzzle: React.FC = () => {
   };
 
   const handleDragEnd = () => {
-    if (draggingPiece && previewPos !== null) {
-      const row = Math.floor(previewPos / GRID_SIZE);
-      const col = previewPos % GRID_SIZE;
-      placePiece(draggingPiece, row, col);
+    if (draggingPiece && previewPos) {
+      placePiece(draggingPiece, previewPos.r, previewPos.c);
     }
     setDraggingPiece(null);
     setPreviewPos(null);
   };
 
-  const renderPiece = (piece: ActivePiece, isGhost: boolean = false) => {
-    return (
-      <div 
-        className={`grid gap-1 transition-transform ${isGhost ? 'opacity-30 scale-90' : 'active:scale-110'}`}
-        style={{ 
-          gridTemplateColumns: `repeat(${piece.shape[0].length}, 1fr)`,
-          width: piece.shape[0].length * 25,
-          height: piece.shape.length * 25
-        }}
-      >
-        {piece.shape.flat().map((cell, i) => (
-          <div 
-            key={i} 
-            className="w-6 h-6 rounded-md shadow-sm border-b-4 border-black/20"
-            style={{ 
-              backgroundColor: cell ? piece.color : 'transparent',
-              opacity: cell ? 1 : 0
-            }}
-          />
-        ))}
-      </div>
-    );
-  };
+  const renderPiece = (piece: ActivePiece, sizeMultiplier: number = 1) => (
+    <div className="grid gap-1" style={{ 
+      gridTemplateColumns: `repeat(${piece.shape[0].length}, 1fr)`,
+      width: piece.shape[0].length * 30 * sizeMultiplier,
+      height: piece.shape.length * 30 * sizeMultiplier
+    }}>
+      {piece.shape.flat().map((cell, i) => (
+        <div key={i} className="rounded-md border-b-4 border-black/20" style={{ 
+          backgroundColor: cell ? piece.color : 'transparent',
+          opacity: cell ? 1 : 0,
+          width: 30 * sizeMultiplier,
+          height: 30 * sizeMultiplier
+        }} />
+      ))}
+    </div>
+  );
 
   return (
-    <div 
-      className="h-full flex flex-col font-sans bg-slate-900 text-white relative touch-none select-none"
-      ref={containerRef}
-      onMouseMove={draggingPiece ? updateDragPos : undefined}
-      onTouchMove={draggingPiece ? updateDragPos : undefined}
-      onMouseUp={handleDragEnd}
-      onTouchEnd={handleDragEnd}
-    >
-      {/* Header */}
+    <div className="h-full flex flex-col font-sans bg-[#0f172a] text-white relative touch-none select-none" 
+         onMouseMove={draggingPiece ? updateDragPos : undefined}
+         onTouchMove={draggingPiece ? updateDragPos : undefined}
+         onMouseUp={handleDragEnd} onTouchEnd={handleDragEnd}>
+      
       <div className="p-4 flex items-center justify-between bg-slate-800/80 backdrop-blur-md border-b border-slate-700 z-20">
          <button onClick={() => navigate(-1)} className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center active:scale-95 transition-transform"><ArrowLeft size={24} strokeWidth={3} /></button>
-         <h1 className="text-xl font-black uppercase text-sky-400">Blocos Mágicos</h1>
+         <h1 className="text-xl font-black uppercase text-sky-400">Puzzle Blocos</h1>
          <div className="bg-slate-700 px-4 py-1 rounded-full text-lg font-black tracking-widest flex items-center gap-2 border border-slate-600">
             <Star size={16} className="text-yellow-400 fill-yellow-400" /> {score}
          </div>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-4 gap-8">
-        
-        {/* Game Grid */}
-        <div 
-          ref={gridRef}
-          className="bg-slate-800 p-2 rounded-2xl grid gap-1 shadow-2xl relative border-4 border-slate-700"
-          style={{ 
-            gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-            width: 'min(90vw, 360px)', 
-            height: 'min(90vw, 360px)' 
-          }}
-        >
+        <div ref={gridRef} className="bg-slate-800 p-2 rounded-2xl grid gap-1 shadow-2xl relative border-4 border-slate-700"
+             style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`, width: 'min(90vw, 360px)', height: 'min(90vw, 360px)' }}>
           {grid.map((cell, i) => (
-            <div 
-              key={i} 
-              className={`w-full h-full rounded-md border-b-4 ${cell ? 'border-black/20' : 'bg-slate-900/50 border-transparent'}`}
-              style={{ backgroundColor: cell || undefined }}
-            />
+            <div key={i} className={`w-full h-full rounded-md border-b-4 ${cell ? 'border-black/20' : 'bg-slate-900/50 border-transparent'}`}
+                 style={{ backgroundColor: cell || undefined }} />
           ))}
 
-          {/* Placement Preview */}
-          {draggingPiece && previewPos !== null && (
-             <div 
-                className="absolute inset-0 pointer-events-none p-2 grid gap-1"
-                style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
-             >
+          {draggingPiece && previewPos && (
+             <div className="absolute inset-0 pointer-events-none p-2 grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
                 {Array(GRID_SIZE * GRID_SIZE).fill(null).map((_, i) => {
                   const r = Math.floor(i / GRID_SIZE);
                   const c = i % GRID_SIZE;
-                  const pr = Math.floor(previewPos / GRID_SIZE);
-                  const pc = previewPos % GRID_SIZE;
-                  
-                  const isPart = r >= pr && r < pr + draggingPiece.shape.length && 
-                                 c >= pc && c < pc + draggingPiece.shape[0].length &&
-                                 draggingPiece.shape[r - pr][c - pc];
-                  
-                  return (
-                    <div 
-                      key={i} 
-                      className={`w-full h-full rounded-md ${isPart ? 'opacity-40' : ''}`}
-                      style={{ backgroundColor: isPart ? draggingPiece.color : 'transparent' }}
-                    />
-                  );
+                  const isPart = r >= previewPos.r && r < previewPos.r + draggingPiece.shape.length && 
+                                 c >= previewPos.c && c < previewPos.c + draggingPiece.shape[0].length &&
+                                 draggingPiece.shape[r - previewPos.r][c - previewPos.c];
+                  return <div key={i} className={`w-full h-full rounded-md ${isPart ? 'opacity-40 ring-4 ring-white/30' : ''}`}
+                             style={{ backgroundColor: isPart ? draggingPiece.color : 'transparent' }} />;
                 })}
              </div>
           )}
         </div>
 
-        {/* Available Pieces */}
         <div className="flex gap-4 justify-around w-full max-w-sm h-32 items-center bg-slate-800/30 rounded-[2rem] p-4">
           {pieces.map((p) => (
-            <div 
-              key={p.id}
-              className={`cursor-grab active:cursor-grabbing p-2 transition-opacity ${draggingPiece?.id === p.id ? 'opacity-0' : 'opacity-100'}`}
-              onMouseDown={(e) => handleDragStart(e, p)}
-              onTouchStart={(e) => handleDragStart(e, p)}
-            >
-              {renderPiece(p)}
+            <div key={p.id} className={`p-2 transition-opacity ${draggingPiece?.id === p.id ? 'opacity-0' : 'opacity-100'}`}
+                 onMouseDown={(e) => handleDragStart(e, p)} onTouchStart={(e) => handleDragStart(e, p)}>
+              {renderPiece(p, 0.8)}
             </div>
           ))}
         </div>
 
-        {/* Dragging Piece Visual Overlay */}
         {draggingPiece && (
-          <div 
-            className="fixed pointer-events-none z-50 transform -translate-x-1/2"
-            style={{ 
-              left: dragPosition.x, 
-              top: dragPosition.y - 100, // Show above touch point
-              transform: 'scale(1.5) translateX(-33%)' 
-            }}
-          >
-             {renderPiece(draggingPiece)}
+          <div className="fixed pointer-events-none z-50 transform -translate-x-1/2"
+               style={{ left: dragPosition.x, top: dragPosition.y - 120 }}>
+             {renderPiece(draggingPiece, 1.2)}
           </div>
         )}
-
       </div>
 
-      {/* Game Over Screen */}
       {gameState === GameState.GAME_OVER && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md animate-fade-in p-8 text-center">
-            <Trophy size={80} className="text-yellow-400 mb-4 animate-bounce drop-shadow-[0_0_20px_rgba(250,204,21,0.5)]" />
+            <Trophy size={80} className="text-yellow-400 mb-4 animate-bounce" />
             <h2 className="text-5xl font-black text-white mb-2">FIM DE JOGO!</h2>
-            <p className="text-2xl text-sky-400 mb-8 font-bold">Incríveis {score} pontos!</p>
-            <button 
-              onClick={initGame} 
-              className="bg-sky-500 hover:bg-sky-400 text-white px-12 py-5 rounded-3xl font-black text-2xl flex items-center gap-3 active:scale-95 transition-transform shadow-xl border-b-8 border-sky-700"
-            >
-                <RefreshCw /> JOGAR DE NOVO
-            </button>
-            <button 
-              onClick={() => navigate(AppRoute.ARCADE)} 
-              className="mt-6 text-slate-400 font-bold hover:text-white"
-            >
-                Voltar para o Arcade
+            <p className="text-2xl text-sky-400 mb-8 font-bold">{score} pontos!</p>
+            <button onClick={initGame} className="bg-sky-500 text-white px-12 py-5 rounded-3xl font-black text-2xl shadow-xl border-b-8 border-sky-700 active:border-b-0 active:translate-y-2">
+                JOGAR DE NOVO
             </button>
         </div>
       )}
