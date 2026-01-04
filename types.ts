@@ -8,8 +8,8 @@ export enum AppRoute {
   MATH = '/math',
   ART = '/art', 
   COLORING = '/coloring',
-  CHALLENGE_HUB = '/challenge-hub', // Nova Rota
-  CHALLENGE = '/challenge', // Labirinto
+  CHALLENGE_HUB = '/challenge-hub',
+  CHALLENGE = '/challenge', 
   WORD_SEARCH = '/challenge/word-search',
   PUZZLE = '/challenge/puzzle',
   SHADOW = '/challenge/shadow',
@@ -21,32 +21,33 @@ export enum AppRoute {
   GAME_SNAKE = '/arcade/snake',
   GAME_SPACE = '/arcade/space',
   GAME_RACING = '/arcade/racing',
+  GAME_BLOCKS = '/arcade/blocks',
 }
 
 export interface ChildProfile {
-  id: string; // UUID from Supabase
-  user_id?: string; // Parent ID
+  id: string;
+  user_id?: string;
   name: string;
   age: number;
   gender: 'boy' | 'girl';
-  hairColor: string; // Mapped to snake_case in DB manually if needed, or keeping camelCase in logic
+  hairColor: string;
   hairStyle: string;
   eyeColor: string;
   skinTone: string;
   avatarBase?: string; 
-  photoUrl?: string; // New field for real photo
+  photoUrl?: string;
 }
 
 export interface DailyProgress {
-  profileId?: string; // Link to profile
+  profileId?: string;
   date: string;
-  mathCount: number;      // Target: 20
-  wordLevel: number;      // Target: 4
-  faithDone: boolean;     // Target: true
-  mazesSolved: number;    // Target: 3
-  wordSearchSolved: number; // Target: 3
-  puzzlesSolved: number;  // Target: 3
-  shadowSolved: number;   // Target: 5 (New)
+  mathCount: number;
+  wordLevel: number;
+  faithDone: boolean;
+  mazesSolved: number;
+  wordSearchSolved: number;
+  puzzlesSolved: number;
+  shadowSolved: number;
   arcadeUnlocked: boolean;
 }
 

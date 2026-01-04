@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
-import { ArrowLeft, Gamepad2, Brain, Rocket, Activity, Flag } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Brain, Rocket, Activity, Flag, LayoutGrid } from 'lucide-react';
 
 const ArcadeHub: React.FC = () => {
   const navigate = useNavigate();
@@ -38,6 +38,24 @@ const ArcadeHub: React.FC = () => {
           </h2>
           <p className="text-indigo-400 font-bold text-sm">Escolha seu jogo favorito</p>
         </div>
+
+        {/* BLOCK PUZZLE - NOVO */}
+        <button 
+          onClick={() => navigate(AppRoute.GAME_BLOCKS)}
+          className="group relative bg-gradient-to-br from-blue-500 to-sky-600 rounded-[2.5rem] p-6 border-b-8 border-blue-800 active:border-b-0 active:translate-y-2 transition-all shadow-lg shadow-blue-900/50 overflow-hidden"
+        >
+           <div className="flex items-center gap-6 relative z-10">
+              <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-white backdrop-blur-sm">
+                 <LayoutGrid size={40} />
+              </div>
+              <div className="text-left">
+                 <span className="block text-xs font-bold text-sky-200 uppercase tracking-widest">Estratégia</span>
+                 <span className="block text-3xl font-black text-white leading-none">Blocos Mágicos</span>
+                 <span className="block text-sm text-sky-100 mt-1 opacity-80">Encaixe e relaxe!</span>
+              </div>
+           </div>
+           <LayoutGrid className="absolute -right-4 -bottom-4 w-32 h-32 text-sky-400/20 rotate-12 group-hover:rotate-45 transition-transform" />
+        </button>
 
         {/* RACING GAME */}
         <button 
