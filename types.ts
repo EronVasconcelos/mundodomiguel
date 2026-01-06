@@ -48,7 +48,6 @@ export interface DailyProgress {
   wordSearchSolved: number;
   puzzlesSolved: number;
   shadowSolved: number;
-  // Added missing property used in progressService.ts
   memorySolved: number;
   arcadeUnlocked: boolean;
 }

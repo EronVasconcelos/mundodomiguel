@@ -34,7 +34,7 @@ const ArcadeHub: React.FC = () => {
           <p className="text-indigo-400 font-bold text-sm">Escolha seu jogo favorito</p>
         </div>
 
-        {/* PUZZLE BLOCOS - RENOMEADO */}
+        {/* PUZZLE BLOCOS */}
         <button 
           onClick={() => navigate(AppRoute.GAME_BLOCKS)}
           className="group relative bg-gradient-to-br from-blue-500 to-sky-600 rounded-[2.5rem] p-6 border-b-8 border-blue-800 active:border-b-0 active:translate-y-2 transition-all shadow-lg shadow-blue-900/50 overflow-hidden"

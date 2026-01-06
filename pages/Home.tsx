@@ -17,8 +17,8 @@ declare global {
     openSelectKey: () => Promise<void>;
   }
   interface Window {
-    // Fix: Using optional modifier to match potential existing global declarations
-    aistudio?: AIStudio;
+    // Removed readonly to ensure identical modifiers with platform declarations.
+    aistudio: AIStudio;
   }
 }
 
@@ -51,34 +51,34 @@ const Home: React.FC = () => {
   }, []);
 
   const initApp = async () => {
-    // 1. Verifica se a chave de IA está ativa
+    await updateAIStatus();
+    const localP = getDailyProgress();
+    setProgress(localP);
+    fetchRemoteProgress().then(remoteP => {
+        if (remoteP) setProgress(remoteP);
+    });
+  };
+
+  const updateAIStatus = async () => {
     if (window.aistudio) {
         const hasKey = await window.aistudio.hasSelectedApiKey();
         setAiActive(hasKey);
     } else {
         setAiActive(isAIAvailable());
     }
-
-    // 2. Carrega progresso local
-    const localP = getDailyProgress();
-    setProgress(localP);
-
-    // 3. Sincroniza com servidor (se logado)
-    fetchRemoteProgress().then(remoteP => {
-        if (remoteP) setProgress(remoteP);
-    });
   };
 
-  const handleActivateAI = async () => {
+  const handleAIConnect = async () => {
     if (window.aistudio) {
         await window.aistudio.openSelectKey();
-        setAiActive(true);
+        await updateAIStatus();
+    } else {
+        alert("Modo IA Online não detectado.");
     }
   };
 
   if (!progress) return null;
 
-  // Verificações de conclusão
   const isMathDone = progress.mathCount >= GOALS.MATH;
   const isWordsDone = progress.wordLevel >= GOALS.WORDS_LEVEL;
   const isFaithDone = progress.faithDone;
@@ -122,23 +122,6 @@ const Home: React.FC = () => {
     <Layout title="Home">
       <div className="flex flex-col gap-4 pb-6">
         
-        {/* --- BANNER DE ATIVAÇÃO IA --- */}
-        {!aiActive && (
-            <button 
-                onClick={handleActivateAI}
-                className="bg-gradient-to-r from-indigo-600 to-fuchsia-600 p-4 rounded-[2rem] text-white flex items-center gap-4 shadow-lg animate-pulse border-b-4 border-indigo-800 active:scale-95 transition-transform"
-            >
-                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                    <Sparkles className="text-yellow-300" fill="currentColor" />
-                </div>
-                <div className="text-left">
-                    <span className="block font-black text-lg leading-tight">ATIVAR MÁGICA (IA)</span>
-                    <span className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Conectar para histórias e áudio</span>
-                </div>
-                <ChevronRight className="ml-auto opacity-50" />
-            </button>
-        )}
-
         {/* --- MISSÃO DIÁRIA --- */}
         <button 
            onClick={() => setShowMissionModal(true)}
@@ -161,10 +144,13 @@ const Home: React.FC = () => {
                         <span className="text-2xl font-black text-slate-800">{completedTasks}</span>
                         <span className="text-xs font-bold text-slate-400">/{totalTasks}</span>
                     </div>
-                    <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter ${aiActive ? 'text-emerald-500' : 'text-slate-400'}`}>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); handleAIConnect(); }}
+                        className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full border transition-colors ${aiActive ? 'text-emerald-500 border-emerald-200 bg-emerald-50' : 'text-red-500 border-red-200 bg-red-50'}`}
+                    >
                         {aiActive ? <Zap size={10} className="fill-emerald-500" /> : <ZapOff size={10} />}
-                        {aiActive ? 'IA Online' : 'IA Offline'}
-                    </div>
+                        {aiActive ? 'IA Conectada' : 'IA Desconectada'}
+                    </button>
                 </div>
             </div>
 
@@ -228,7 +214,7 @@ const Home: React.FC = () => {
             </div>
         </div>
 
-        {/* --- SEÇÃO: DESAFIOS (RESTAURADA) --- */}
+        {/* --- SEÇÃO: DESAFIOS --- */}
         <div className="bg-orange-50 rounded-3xl p-4 py-4">
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2">Jogos de Lógica</h3>
             <button 
@@ -285,7 +271,7 @@ const Home: React.FC = () => {
         </button>
 
         <footer className="text-center mt-6 opacity-30 pb-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em]">v2.5 AI-Engine Fixed</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em]">v1.8 AI-Studio-Fixed</p>
         </footer>
 
         {/* --- MODAL DE MISSÕES --- */}
