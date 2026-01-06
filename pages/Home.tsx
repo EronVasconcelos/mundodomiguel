@@ -58,30 +58,25 @@ const Home: React.FC = () => {
   };
 
   const updateAIStatus = async () => {
-    // Prioriza isAIAvailable se a chave já estiver injetada no process.env
-    const envKeyAvailable = isAIAvailable();
-    if (envKeyAvailable) {
-        setAiActive(true);
-        return;
-    }
+    // Check if the hardcoded key or environmental key is active
+    const available = isAIAvailable();
+    setAiActive(available);
 
-    // Caso contrário, verifica via AIStudio (se disponível)
-    if (window.aistudio) {
+    // If not available and in AI Studio environment, check their dialog
+    if (!available && window.aistudio) {
         const hasKey = await window.aistudio.hasSelectedApiKey();
         setAiActive(hasKey);
-    } else {
-        setAiActive(envKeyAvailable);
     }
   };
 
   const handleAIConnect = async () => {
-    if (window.aistudio) {
+    if (window.aistudio && !aiActive) {
         await window.aistudio.openSelectKey();
         await updateAIStatus();
+    } else if (aiActive) {
+        // Silently do nothing or show a "IA Ativa" toast
     } else {
-        if (!isAIAvailable()) {
-            alert("O Mundo Mágico requer conexão com a IA para histórias e orações.");
-        }
+        alert("O Mundo Mágico está operando em modo offline. Conecte-se à internet para as funções de IA.");
     }
   };
 

@@ -40,7 +40,14 @@ export const FALLBACK_DEVOTIONAL: DevotionalData = {
     imagePrompt: "cute little lamb in a green field Disney Pixar style"
 };
 
-// --- API AVAILABILITY CHECK ---
+// --- API CONFIGURATION ---
+const SAFETY_SETTINGS = [
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+];
+
 export const isAIAvailable = (): boolean => {
     const key = process.env.API_KEY;
     return !!key && key !== "" && key !== "undefined" && key.length > 5;
@@ -65,6 +72,7 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
       contents: prompt,
       config: {
         responseMimeType: "application/json",
+        safetySettings: SAFETY_SETTINGS,
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -79,7 +87,6 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     return JSON.parse(response.text || '{}') as StoryData;
   } catch (error: any) {
     console.warn("Erro na geração de história, usando fallback:", error);
-    // Retorna uma história aleatória da lista estática se a IA falhar
     return STATIC_STORIES[Math.floor(Math.random() * STATIC_STORIES.length)];
   }
 };
@@ -93,6 +100,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
       contents: prompt,
       config: {
         responseMimeType: "application/json",
+        safetySettings: SAFETY_SETTINGS,
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -123,6 +131,7 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
       contents: [{ parts: [{ text: `Diga com voz doce e calma para uma criança: ${text}` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
+        safetySettings: SAFETY_SETTINGS,
         speechConfig: { 
           voiceConfig: { prebuiltVoiceConfig: { voiceName: gender === 'girl' ? 'Kore' : 'Puck' } } 
         },
@@ -143,7 +152,10 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts: [{ text: prompt }] },
-      config: { imageConfig: { aspectRatio: "1:1" } }
+      config: { 
+        imageConfig: { aspectRatio: "1:1" },
+        safetySettings: SAFETY_SETTINGS
+      }
     });
     return `data:image/png;base64,${response.candidates?.[0]?.content?.parts.find(p => p.inlineData)?.inlineData?.data}`;
   } catch (error) { 
