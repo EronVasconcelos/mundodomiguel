@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
@@ -15,15 +16,28 @@ export const STATIC_STORIES: StoryData[] = [
     title: "A Lebre e a Tartaruga",
     content: "A Lebre vivia zombando da Tartaruga por ser lenta. Um dia, a Tartaruga desafiou a Lebre para uma corrida. A Lebre aceitou rindo e saiu disparada na frente.\n\nConfiante de que ganharia fácil, a Lebre parou para tirar uma soneca no meio do caminho. A Tartaruga, devagar e sempre, continuou andando sem parar. Quando a Lebre acordou, viu que a Tartaruga já estava cruzando a linha de chegada! A Lebre correu o máximo que pôde, mas foi tarde demais.",
     moral: "Devagar e sempre se vai ao longe. A persistência vence a arrogância."
+  },
+  {
+    title: "O Patinho Feio",
+    content: "Dentre vários patinhos amarelos, nasceu um patinho cinza e diferente. Todos riam dele por não ser igual aos outros. Triste, ele fugiu para o lago.\n\nO tempo passou e ele cresceu. Um dia, ao olhar seu reflexo na água, ele não viu mais um patinho feio, mas sim um lindo cisne branco! Ele descobriu que sempre pertenceu a uma família de cisnes maravilhosos e viveu feliz para sempre.",
+    moral: "A beleza verdadeira vem de quem realmente somos, não do que os outros pensam."
+  },
+  {
+    title: "Pinóquio",
+    content: "Gepeto era um carpinteiro que fez um boneco de madeira chamado Pinóquio. Uma fada deu vida a ele, mas avisou: para ser um menino de verdade, ele teria que ser corajoso e honesto.\n\nToda vez que Pinóquio mentia, seu nariz crescia! Depois de muitas aventuras e de aprender que falar a verdade é sempre o melhor caminho, a fada o transformou em um menino de verdade para a alegria de Gepeto.",
+    moral: "A honestidade é a base do caráter e nos transforma em pessoas melhores."
   }
 ];
 
-const FALLBACK_DEVOTIONAL: DevotionalData = {
+export const FALLBACK_DEVOTIONAL: DevotionalData = {
     date: new Date().toDateString(),
-    verse: "O Senhor é o meu pastor...", reference: "Salmos 23:1",
-    devotional: "IA desconectada. Verifique sua chave.",
-    storyTitle: "Ovelhinha", storyContent: "A IA está offline agora.",
-    prayer: "Amém", imagePrompt: "fallback"
+    verse: "O Senhor é o meu pastor e nada me faltará.", 
+    reference: "Salmos 23:1",
+    devotional: "Oi Miguel! Hoje vamos lembrar que o Papai do Céu cuida de nós em todos os momentos, como um pastor cuida de suas ovelhinhas. Você nunca está sozinho!",
+    storyTitle: "A Ovelhinha Segura", 
+    storyContent: "Havia uma ovelhinha que adorava brincar no campo. Às vezes ela se afastava um pouquinho, mas logo ouvia a voz do seu pastor chamando e voltava feliz, sabendo que ele sempre a protegeria de qualquer perigo.",
+    prayer: "Papai do Céu, muito obrigado por cuidar de mim e da minha família hoje e sempre. Amém!", 
+    imagePrompt: "cute little lamb in a green field Disney Pixar style"
 };
 
 // --- API AVAILABILITY CHECK ---
@@ -64,9 +78,9 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     });
     return JSON.parse(response.text || '{}') as StoryData;
   } catch (error: any) {
-    console.error("Erro na geração de história:", error);
-    if (error.message === "API_KEY_MISSING") throw new Error("A chave da IA não foi configurada. Toque no ícone de rede na Home para conectar.");
-    throw new Error("Não consegui criar a história. Tente novamente em instantes!");
+    console.warn("Erro na geração de história, usando fallback:", error);
+    // Retorna uma história aleatória da lista estática se a IA falhar
+    return STATIC_STORIES[Math.floor(Math.random() * STATIC_STORIES.length)];
   }
 };
 
@@ -96,7 +110,8 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
     });
     return { ...JSON.parse(response.text || '{}'), date: new Date().toDateString() };
   } catch (error) {
-    return FALLBACK_DEVOTIONAL;
+    console.warn("IA Falhou no devocional, usando fallback.");
+    return { ...FALLBACK_DEVOTIONAL, date: new Date().toDateString() };
   }
 };
 
@@ -114,7 +129,10 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
       },
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
-  } catch (error) { return null; }
+  } catch (error) { 
+    console.warn("Erro ao gerar áudio TTS");
+    return null; 
+  }
 };
 
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string | null> => {
@@ -128,7 +146,10 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
       config: { imageConfig: { aspectRatio: "1:1" } }
     });
     return `data:image/png;base64,${response.candidates?.[0]?.content?.parts.find(p => p.inlineData)?.inlineData?.data}`;
-  } catch (error) { return null; }
+  } catch (error) { 
+    console.warn("Erro ao gerar imagem");
+    return null; 
+  }
 };
 
 export const getFallbackStoryImage = () => STATIC_STORY_IMAGE;
