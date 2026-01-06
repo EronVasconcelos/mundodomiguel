@@ -5,10 +5,9 @@ import { AppRoute, DailyProgress } from '../types';
 import { Layout } from '../components/Layout';
 import { 
   Gamepad2, Heart, Lock, CheckCircle, Target, X, Trophy, Rocket, 
-  Palette, Brush, BookOpen, Play, ChevronRight, Zap, ZapOff, Sparkles,
-  Brain, Search, Puzzle, Ghost
+  Palette, Brush, BookOpen, ChevronRight, Zap, ZapOff, Brain, Search, Puzzle, Ghost
 } from 'lucide-react';
-import { getDailyProgress, getGoals, checkUnlock, fetchRemoteProgress } from '../services/progressService';
+import { getDailyProgress, getGoals, fetchRemoteProgress } from '../services/progressService';
 import { isAIAvailable } from '../services/geminiService';
 
 declare global {
@@ -17,8 +16,7 @@ declare global {
     openSelectKey: () => Promise<void>;
   }
   interface Window {
-    // Removed readonly to ensure identical modifiers with platform declarations.
-    aistudio: AIStudio;
+    aistudio?: AIStudio;
   }
 }
 
@@ -60,11 +58,19 @@ const Home: React.FC = () => {
   };
 
   const updateAIStatus = async () => {
+    // Prioriza isAIAvailable se a chave já estiver injetada no process.env
+    const envKeyAvailable = isAIAvailable();
+    if (envKeyAvailable) {
+        setAiActive(true);
+        return;
+    }
+
+    // Caso contrário, verifica via AIStudio (se disponível)
     if (window.aistudio) {
         const hasKey = await window.aistudio.hasSelectedApiKey();
         setAiActive(hasKey);
     } else {
-        setAiActive(isAIAvailable());
+        setAiActive(envKeyAvailable);
     }
   };
 
@@ -73,7 +79,9 @@ const Home: React.FC = () => {
         await window.aistudio.openSelectKey();
         await updateAIStatus();
     } else {
-        alert("Modo IA Online não detectado.");
+        if (!isAIAvailable()) {
+            alert("O Mundo Mágico requer conexão com a IA para histórias e orações.");
+        }
     }
   };
 
@@ -122,7 +130,6 @@ const Home: React.FC = () => {
     <Layout title="Home">
       <div className="flex flex-col gap-4 pb-6">
         
-        {/* --- MISSÃO DIÁRIA --- */}
         <button 
            onClick={() => setShowMissionModal(true)}
            className="bg-amber-50 rounded-[2rem] p-4 shadow-sm border-b-4 border-amber-200 relative overflow-hidden active:scale-[0.98] transition-all text-left"
@@ -149,7 +156,7 @@ const Home: React.FC = () => {
                         className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full border transition-colors ${aiActive ? 'text-emerald-500 border-emerald-200 bg-emerald-50' : 'text-red-500 border-red-200 bg-red-50'}`}
                     >
                         {aiActive ? <Zap size={10} className="fill-emerald-500" /> : <ZapOff size={10} />}
-                        {aiActive ? 'IA Conectada' : 'IA Desconectada'}
+                        {aiActive ? 'Mundo Conectado' : 'Conectar IA'}
                     </button>
                 </div>
             </div>
@@ -162,22 +169,15 @@ const Home: React.FC = () => {
             </div>
         </button>
 
-        {/* --- SEÇÃO: APRENDER --- */}
         <div className="bg-emerald-50 rounded-3xl p-4 py-4">
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2">Escola Encantada</h3>
             <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => navigate(AppRoute.MATH)} 
-                  className="bg-white border-b-4 border-emerald-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-2 h-32 relative"
-                >
+                <button onClick={() => navigate(AppRoute.MATH)} className="bg-white border-b-4 border-emerald-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-2 h-32 relative">
                     {isMathDone && <div className="absolute top-2 right-2 text-emerald-500 bg-white rounded-full p-1 shadow-sm"><CheckCircle size={14} /></div>}
                     <div className="w-14 h-14"><MathIcon /></div>
                     <span className="font-black text-emerald-700">Matemática</span>
                 </button>
-                <button 
-                  onClick={() => navigate(AppRoute.WORDS)} 
-                  className="bg-white border-b-4 border-sky-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-2 h-32 relative"
-                >
+                <button onClick={() => navigate(AppRoute.WORDS)} className="bg-white border-b-4 border-sky-200 p-4 rounded-3xl active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center gap-2 h-32 relative">
                     {isWordsDone && <div className="absolute top-2 right-2 text-sky-500 bg-white rounded-full p-1 shadow-sm"><CheckCircle size={14} /></div>}
                     <div className="w-14 h-14"><WordsIcon /></div>
                     <span className="font-black text-sky-700">Palavras</span>
@@ -185,7 +185,6 @@ const Home: React.FC = () => {
             </div>
         </div>
 
-        {/* --- SEÇÃO: RELAXAR & IMAGINAR (IA) --- */}
         <div className="bg-violet-50 rounded-3xl p-4 py-4">
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2">Mundo da Imaginação</h3>
             <div className="space-y-3">
@@ -214,27 +213,20 @@ const Home: React.FC = () => {
             </div>
         </div>
 
-        {/* --- SEÇÃO: DESAFIOS --- */}
         <div className="bg-orange-50 rounded-3xl p-4 py-4">
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2">Jogos de Lógica</h3>
-            <button 
-                onClick={() => navigate(AppRoute.CHALLENGE_HUB)}
-                className="w-full bg-white border-b-4 border-orange-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 transition-all flex items-center gap-5 relative group"
-            >
+            <button onClick={() => navigate(AppRoute.CHALLENGE_HUB)} className="w-full bg-white border-b-4 border-orange-200 p-5 rounded-[2rem] active:border-b-0 active:translate-y-1 transition-all flex items-center gap-5 relative">
                 <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-500 shrink-0">
                     <Brain size={36} />
                 </div>
                 <div className="text-left flex-1">
                     <span className="block font-black text-orange-800 text-xl">Desafios Mentais</span>
-                    <span className="text-xs text-orange-500 font-bold uppercase tracking-widest">Labirinto, Puzzle e mais</span>
+                    <span className="text-xs text-orange-500 font-bold uppercase tracking-widest">Puzzles e Mistérios</span>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-300">
-                    <ChevronRight size={20} />
-                </div>
+                <ChevronRight className="text-orange-200" />
             </button>
         </div>
 
-        {/* --- SEÇÃO: ARTE --- */}
         <div className="bg-pink-50 rounded-3xl p-4 py-4">
             <h3 className="text-lg font-black text-slate-800 mb-2 px-2">Atelier de Arte</h3>
             <div className="flex gap-3">
@@ -249,7 +241,6 @@ const Home: React.FC = () => {
             </div>
         </div>
 
-        {/* --- ARCADE --- */}
         <button 
           onClick={() => isArcadeUnlocked ? navigate(AppRoute.ARCADE) : setShowMissionModal(true)}
           className={`w-full rounded-[2.5rem] p-6 text-left relative overflow-hidden flex items-center gap-6 shadow-md transition-all active:scale-95 border-b-8
@@ -270,19 +261,14 @@ const Home: React.FC = () => {
            {isArcadeUnlocked && <Rocket className="text-yellow-400 w-24 h-24 absolute -right-4 -bottom-4 rotate-12 opacity-10" />}
         </button>
 
-        <footer className="text-center mt-6 opacity-30 pb-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em]">v1.8 AI-Studio-Fixed</p>
-        </footer>
-
-        {/* --- MODAL DE MISSÕES --- */}
         {showMissionModal && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in" onClick={() => setShowMissionModal(false)}>
+           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in" onClick={() => setShowMissionModal(false)}>
               <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl relative animate-slide-up border-4 border-indigo-100" onClick={e => e.stopPropagation()}>
                  <button onClick={() => setShowMissionModal(false)} className="absolute top-4 right-4 text-slate-400 bg-slate-100 rounded-full p-2"><X size={20}/></button>
                  
                  <div className="text-center mb-6">
                     <h2 className="text-2xl font-black text-indigo-900">Missão do Dia 🚀</h2>
-                    <p className="text-slate-500 text-sm font-bold">Complete tudo para abrir o Arcade!</p>
+                    <p className="text-slate-500 text-sm font-bold">Ganhe estrelas para abrir o Arcade!</p>
                  </div>
 
                  <div className="space-y-2 mb-6 max-h-[50vh] overflow-y-auto scrollbar-hide">

@@ -96,7 +96,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
 
   const handleDeleteProfile = async () => {
       if (!activeProfile) return;
-      const confirm = window.confirm(`Tem certeza que deseja excluir o perfil de ${activeProfile.name}? Isso apagará todo o progresso dele.`);
+      const confirm = window.confirm(`Deseja excluir o perfil de ${activeProfile.name}? Isso apagará todo o progresso deste perfil.`);
       if (!confirm) return;
 
       try {
@@ -140,11 +140,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
         <header className="bg-white/80 backdrop-blur-md rounded-[2rem] shadow-sm border border-slate-100 p-2 relative h-16 flex items-center justify-between">
           <div className="flex-shrink-0 z-10 w-12 pl-1">
              {isHome ? (
-                 <button onClick={() => setIsMenuOpen(true)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95">
+                 <button onClick={() => setIsMenuOpen(true)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95 transition-all">
                     <Menu size={24} strokeWidth={2.5} />
                  </button>
              ) : (
-                <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95">
+                <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full active:scale-95 transition-all">
                     <ArrowLeft size={24} strokeWidth={3} />
                 </button>
              )}
@@ -168,7 +168,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
           </div>
 
           <div className="flex-shrink-0 z-10 w-12 flex justify-end pr-1">
-             <div className="w-10 h-10 rounded-full border-2 border-slate-100 overflow-hidden shadow-sm">
+             <div className="w-10 h-10 rounded-full border-2 border-slate-100 overflow-hidden shadow-sm bg-slate-50">
                  <img src={getProfileImage(activeProfile)} className="w-full h-full object-cover" alt="Profile" />
              </div>
           </div>
@@ -176,11 +176,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
       </div>
 
       {isMenuOpen && (
-         <div className="fixed inset-0 z-50 flex">
+         <div className="fixed inset-0 z-[60] flex">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
             <div className="relative w-[320px] h-full bg-[#f8fafc] shadow-2xl flex flex-col p-6 animate-slide-right overflow-y-auto scrollbar-hide">
                 
-                {/* Header do Menu */}
                 <div className="flex justify-between items-center mb-8 px-2">
                    <h2 className="text-[28px] font-black text-[#1e293b]">Menu</h2>
                    <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-blue-50 text-blue-600 rounded-full active:scale-95 transition-transform">
@@ -188,7 +187,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                    </button>
                 </div>
 
-                {/* Card do Perfil Ativo (Exatamente como na imagem) */}
                 {activeProfile && (
                    <div className="bg-white rounded-[2.5rem] p-8 mb-8 flex flex-col items-center shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-slate-100/50">
                       <div className="w-28 h-28 rounded-full border-4 border-slate-50 shadow-sm overflow-hidden mb-4 p-1 bg-white">
@@ -201,27 +199,26 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                       <div className="flex items-center gap-2 w-full">
                           <button 
                             onClick={() => fileInputRef.current?.click()} 
-                            className="flex-1 py-3 bg-white border border-slate-200 rounded-2xl text-slate-500 font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+                            className="flex-1 py-3 bg-white border border-slate-200 rounded-2xl text-slate-500 font-bold text-[12px] flex items-center justify-center gap-1.5 active:scale-95 transition-all"
                           >
-                             {uploading ? <Loader2 className="animate-spin" size={16} /> : <Camera size={16} />} Foto
+                             {uploading ? <Loader2 className="animate-spin" size={14} /> : <Camera size={14} />} Foto
                           </button>
                           <button 
                             onClick={() => navigate(AppRoute.PROFILE, { state: { profile: activeProfile } })} 
-                            className="flex-1 py-3 bg-blue-50 border border-blue-100 rounded-2xl text-blue-600 font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+                            className="flex-1 py-3 bg-blue-50 border border-blue-100 rounded-2xl text-blue-600 font-bold text-[12px] flex items-center justify-center gap-1.5 active:scale-95 transition-all"
                           >
-                             <Pencil size={16} /> Editar
+                             <Pencil size={14} /> Editar
                           </button>
                           <button 
                             onClick={handleDeleteProfile} 
-                            className="flex-1 py-3 bg-red-50 border border-red-100 rounded-2xl text-red-500 font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+                            className="flex-1 py-3 bg-red-50 border border-red-100 rounded-2xl text-red-500 font-bold text-[12px] flex items-center justify-center gap-1.5 active:scale-95 transition-all"
                           >
-                             <Trash2 size={16} /> Excluir
+                             <Trash2 size={14} /> Excluir
                           </button>
                       </div>
                    </div>
                 )}
 
-                {/* Seção Trocar Perfil */}
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-4 px-2">Trocar Perfil</h3>
                 <div className="space-y-3 mb-8">
                     {profiles.map(p => (
@@ -230,14 +227,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, color = "text-s
                          onClick={() => handleSwitchProfile(p)} 
                          className={`w-full flex items-center gap-4 p-3 rounded-[1.5rem] border-2 transition-all ${activeProfile?.id === p.id ? 'bg-blue-50 border-blue-400' : 'bg-white border-transparent'}`}
                        >
-                          <div className="w-12 h-12 rounded-full border-2 border-slate-100 overflow-hidden shadow-sm flex-shrink-0">
+                          <div className="w-12 h-12 rounded-full border-2 border-slate-100 overflow-hidden shadow-sm flex-shrink-0 bg-slate-50">
                             <img src={getProfileImage(p)} className="w-full h-full object-cover" alt="Thumb" />
                           </div>
                           <span className={`font-black text-lg ${activeProfile?.id === p.id ? 'text-blue-600' : 'text-slate-600'}`}>{p.name}</span>
                        </button>
                     ))}
                     
-                    {/* Adicionar Novo (Tracejado como na imagem) */}
                     <button 
                       onClick={() => navigate(AppRoute.PROFILE)} 
                       className="w-full flex items-center justify-center gap-3 p-4 rounded-[1.5rem] border-2 border-dashed border-slate-300 text-slate-400 font-bold text-lg active:scale-95 transition-all bg-transparent"
