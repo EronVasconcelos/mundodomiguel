@@ -58,25 +58,22 @@ const Home: React.FC = () => {
   };
 
   const updateAIStatus = async () => {
-    // Check if the hardcoded key or environmental key is active
+    // Verificação robusta
     const available = isAIAvailable();
     setAiActive(available);
 
-    // If not available and in AI Studio environment, check their dialog
+    // No ambiente do AI Studio, tenta sincronizar a chave se não houver
     if (!available && window.aistudio) {
         const hasKey = await window.aistudio.hasSelectedApiKey();
-        setAiActive(hasKey);
+        if (hasKey) setAiActive(true);
     }
   };
 
   const handleAIConnect = async () => {
+    // Apenas tenta abrir se o ambiente permitir, sem travar o app com alertas
     if (window.aistudio && !aiActive) {
         await window.aistudio.openSelectKey();
         await updateAIStatus();
-    } else if (aiActive) {
-        // Silently do nothing or show a "IA Ativa" toast
-    } else {
-        alert("O Mundo Mágico está operando em modo offline. Conecte-se à internet para as funções de IA.");
     }
   };
 
@@ -148,10 +145,10 @@ const Home: React.FC = () => {
                     </div>
                     <button 
                         onClick={(e) => { e.stopPropagation(); handleAIConnect(); }}
-                        className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full border transition-colors ${aiActive ? 'text-emerald-500 border-emerald-200 bg-emerald-50' : 'text-red-500 border-red-200 bg-red-50'}`}
+                        className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full border transition-colors ${aiActive ? 'text-emerald-500 border-emerald-200 bg-emerald-50' : 'text-slate-400 border-slate-200 bg-slate-50'}`}
                     >
                         {aiActive ? <Zap size={10} className="fill-emerald-500" /> : <ZapOff size={10} />}
-                        {aiActive ? 'Mundo Conectado' : 'Conectar IA'}
+                        {aiActive ? 'Mundo Conectado' : 'Aguardando Magia'}
                     </button>
                 </div>
             </div>

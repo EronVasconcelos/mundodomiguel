@@ -49,12 +49,13 @@ const SAFETY_SETTINGS = [
 ];
 
 export const isAIAvailable = (): boolean => {
-    const key = process.env.API_KEY;
-    return !!key && key !== "" && key !== "undefined" && key.length > 5;
+    // Busca redundante da chave
+    const key = process?.env?.API_KEY || (window as any).GEMINI_API_KEY;
+    return !!key && key !== "" && key !== "undefined" && key.length > 10;
 };
 
 const getAIClient = () => {
-    const apiKey = process.env.API_KEY;
+    const apiKey = process?.env?.API_KEY || (window as any).GEMINI_API_KEY;
     if (!apiKey || apiKey === "undefined") {
         throw new Error("API_KEY_MISSING");
     }
