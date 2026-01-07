@@ -21,18 +21,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // --- DEFINITIVE API KEY INJECTION ---
-      // Forçamos a chave em múltiplos objetos globais para o SDK encontrar
-      const API_KEY_VAL = "AIzaSyC6Pbp0_GDPqWl-VWA5iBOGgdj1dJJs1hU";
+      // Defensive shim for process.env in production environments like Vercel
+      window.process = window.process || { env: {} };
       
-      window.process = window.process || {};
-      window.process.env = window.process.env || {};
-      window.process.env.API_KEY = API_KEY_VAL;
-      
-      globalThis.process = window.process;
-      window.GEMINI_API_KEY = API_KEY_VAL;
-    </script>
-    <script>
       tailwind.config = {
         theme: {
           extend: {

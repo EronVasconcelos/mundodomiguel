@@ -19,7 +19,7 @@ export const STATIC_STORIES: StoryData[] = [
   },
   {
     title: "O Patinho Feio",
-    content: "Dentre vários patinhos amarelos, nasceu um patinho cinza e diferente. Todos riam dele por não ser igual aos outros. Triste, ele fugiu para o lago.\n\nO tempo passou e ele cresceu. Um dia, ao olhar seu reflexo na água, ele não viu mais um patinho feio, mas sim um lindo cisne branco! Ele descobriu que sempre pertenceu a uma família de cisnes maravilhosos e viveu feliz para sempre.",
+    content: "Dentre vários patinhos amarelos, nasceu um patinho cinza e diferente. Todos riam dele por não ser igual aos outros. Triste, ele fugiu para o lago.\n\nO tempo passou e ele cresceu. Um dia, ao olhar seu reflexo na água, ele não viu mais um patinho feio, mas sim um lindo cisne branco! Ele descobriu que sempre pertenceu a uma família de cisnes maravihosos e viveu feliz para sempre.",
     moral: "A beleza verdadeira vem de quem realmente somos, não do que os outros pensam."
   },
   {
@@ -40,7 +40,6 @@ export const FALLBACK_DEVOTIONAL: DevotionalData = {
     imagePrompt: "cute little lamb in a green field Disney Pixar style"
 };
 
-// --- API CONFIGURATION ---
 const SAFETY_SETTINGS = [
     { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
     { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -49,17 +48,25 @@ const SAFETY_SETTINGS = [
 ];
 
 export const isAIAvailable = (): boolean => {
-    // Busca redundante da chave
-    const key = process?.env?.API_KEY || (window as any).GEMINI_API_KEY;
-    return !!key && key !== "" && key !== "undefined" && key.length > 10;
+    try {
+        const key = process.env.API_KEY;
+        // Validação rigorosa: Chaves Google possuem mais de 30 caracteres e não devem ser strings de erro de build
+        return !!key && 
+               key !== "" && 
+               key !== "undefined" && 
+               key !== "null" && 
+               key.length > 20;
+    } catch {
+        return false;
+    }
 };
 
 const getAIClient = () => {
-    const apiKey = process?.env?.API_KEY || (window as any).GEMINI_API_KEY;
-    if (!apiKey || apiKey === "undefined") {
-        throw new Error("API_KEY_MISSING");
+    const apiKey = process.env.API_KEY;
+    if (!isAIAvailable()) {
+        throw new Error("API_KEY_NOT_CONFIGURED");
     }
-    return new GoogleGenAI({ apiKey });
+    return new GoogleGenAI({ apiKey: apiKey! });
 };
 
 // --- CONTENT GENERATION ---
