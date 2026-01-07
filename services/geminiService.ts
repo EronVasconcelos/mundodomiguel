@@ -13,41 +13,29 @@ const SAFETY_SETTINGS = [
 const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
 const STATIC_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop"; 
 
-// Variável de controle de erro em runtime
-let runtimeAIFailure = false;
-
 export const isAIAvailable = (): boolean => {
-    if (runtimeAIFailure) return false;
     try {
-        // No Vite em produção, as variáveis podem estar em import.meta.env ou process.env
-        const key = (import.meta as any).env?.VITE_API_KEY || 
-                    process.env.API_KEY || 
-                    (window as any).process?.env?.API_KEY;
-                    
-        const valid = !!key && typeof key === 'string' && key.length > 30 && key.startsWith("AIza");
-        return valid;
+        // Acesso estrito via process.env conforme diretrizes da SDK
+        const key = process.env.API_KEY;
+        return !!key && key !== "undefined" && key.length > 20;
     } catch {
         return false;
     }
 };
 
-const getAIClient = () => {
-    const key = (import.meta as any).env?.VITE_API_KEY || 
-                process.env.API_KEY || 
-                (window as any).process?.env?.API_KEY;
-                
-    if (!key || runtimeAIFailure) throw new Error("IA_OFFLINE");
-    return new GoogleGenAI({ apiKey: key });
+const getAI = () => {
+    if (!isAIAvailable()) throw new Error("API_KEY_MISSING");
+    return new GoogleGenAI({ apiKey: process.env.API_KEY! });
 };
 
 // --- CONTENT GENERATION ---
 
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
   try {
-    const ai = getAIClient();
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Você é um contador de histórias mágico. Crie uma história curta para ${profile.name}, ${profile.age} anos. Tema: ${topic}. Retorne JSON: title, content, moral.`,
+      contents: `Você é um contador de histórias infantil mágico. Crie uma história curta, educativa e feliz para ${profile.name}, que tem ${profile.age} anos. O tema é: ${topic}. Retorne APENAS um JSON com os campos: title, content, moral.`,
       config: {
         responseMimeType: "application/json",
         safetySettings: SAFETY_SETTINGS,
@@ -62,20 +50,23 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
         },
       },
     });
-    return JSON.parse(response.text || '{}') as StoryData;
+    
+    const text = response.text;
+    if (!text) throw new Error("Empty response from Gemini");
+    return JSON.parse(text) as StoryData;
   } catch (error: any) {
-    console.warn("IA Story Error:", error);
-    if (error.message?.includes("403") || error.message?.includes("API_KEY")) runtimeAIFailure = true;
+    console.error("Gemini Story Error Details:", error);
+    // Retorna uma história estática em caso de falha para não travar a experiência da criança
     return STATIC_STORIES[Math.floor(Math.random() * STATIC_STORIES.length)];
   }
 };
 
 export const generateDevotionalContent = async (profile: ChildProfile): Promise<DevotionalData> => {
   try {
-    const ai = getAIClient();
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Crie um devocional cristão para uma criança de ${profile.age} anos chamada ${profile.name}. Retorne JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt.`,
+      contents: `Crie um devocional cristão muito doce para uma criança de ${profile.age} anos chamada ${profile.name}. Retorne JSON com: verse (um versículo curto), reference (capítulo e versículo), devotional (explicação simples), storyTitle, storyContent (uma historinha curta sobre o tema), prayer (uma oração curta), imagePrompt (descrição para gerar uma imagem estilo Disney Pixar).`,
       config: {
         responseMimeType: "application/json",
         safetySettings: SAFETY_SETTINGS,
@@ -94,60 +85,70 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
         },
       },
     });
-    return { ...JSON.parse(response.text || '{}'), date: new Date().toDateString() };
+    const text = response.text;
+    if (!text) throw new Error("Empty response");
+    return { ...JSON.parse(text), date: new Date().toDateString() };
   } catch (error: any) {
-    console.warn("IA Devotional Error:", error);
-    if (error.message?.includes("403")) runtimeAIFailure = true;
+    console.error("Gemini Devotional Error:", error);
     return { ...FALLBACK_DEVOTIONAL, date: new Date().toDateString() };
   }
 };
 
 export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'girl' = 'boy'): Promise<string | null> => {
   try {
-    const ai = getAIClient();
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-preview-tts',
-      contents: [{ parts: [{ text: `Diga com voz doce: ${text}` }] }],
+      contents: [{ parts: [{ text: `Leia este texto para uma criança com voz carinhosa: ${text}` }] }],
       config: {
-        responseModalities: [Modality.AUDIO],
+        responseModalalities: [Modality.AUDIO],
         speechConfig: { 
           voiceConfig: { prebuiltVoiceConfig: { voiceName: gender === 'girl' ? 'Kore' : 'Puck' } } 
         },
       },
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
-  } catch { return null; }
+  } catch (error) { 
+    console.error("TTS Error:", error);
+    return null; 
+  }
 };
 
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string | null> => {
   try {
-    const ai = getAIClient();
-    const charDesc = profile ? `${profile.age} year old ${profile.gender === 'boy' ? 'boy' : 'girl'}, ${profile.hairColor} hair, ${profile.skinTone} skin` : "cute child";
+    const ai = getAI();
+    const charDesc = profile ? `a cute ${profile.age} year old ${profile.gender === 'boy' ? 'boy' : 'girl'}, ${profile.hairColor} hair, ${profile.skinTone} skin` : "a cute happy child";
+    const fullPrompt = `Disney Pixar 3D style, high quality, colorful. ${charDesc} in a scene about: ${storyPrompt.substring(0, 200)}.`;
+    
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: `Disney Pixar 3D style. Subject: ${charDesc}. Scene: ${storyPrompt.substring(0, 200)}` }] },
+      contents: { parts: [{ text: fullPrompt }] },
       config: { imageConfig: { aspectRatio: "1:1" } }
     });
+    
     const imgPart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
     return imgPart ? `data:image/png;base64,${imgPart.inlineData?.data}` : null;
-  } catch { return null; }
+  } catch (error) { 
+    console.error("Image Gen Error:", error);
+    return null; 
+  }
 };
 
 // --- DATA ---
 export const STATIC_STORIES: StoryData[] = [
-  { title: "Os Três Porquinhos", content: "Cícero, Heitor e Prático construíram casas de palha, madeira e tijolos. O lobo soprou as duas primeiras, mas a de tijolos protegeu a todos!", moral: "O trabalho bem feito traz segurança." },
-  { title: "O Patinho Feio", content: "Um patinho era diferente e sofria por isso, até descobrir que era um lindo cisne!", moral: "A beleza real está dentro de nós." }
+  { title: "Os Três Porquinhos", content: "Cícero, Heitor e Prático construíram casas de palha, madeira e tijolos. O lobo soprou as duas primeiras, mas a de tijolos protegeu a todos!", moral: "O trabalho bem feito e a paciência nos deixam seguros." },
+  { title: "O Patinho Diferente", content: "Um patinho nasceu diferente e todos achavam estranho, até que ele cresceu e descobriu que era um lindo cisne branco!", moral: "Cada um de nós é especial do jeitinho que Deus criou." }
 ];
 
 export const FALLBACK_DEVOTIONAL: DevotionalData = {
     date: new Date().toDateString(),
     verse: "O Senhor é o meu pastor e nada me faltará.", 
     reference: "Salmos 23:1",
-    devotional: "Oi! Hoje o Papai do Céu quer te lembrar que Ele cuida de você como um pastor cuida da sua ovelhinha.",
-    storyTitle: "A Ovelhinha Segura", 
-    storyContent: "A pequena ovelhinha estava feliz porque sabia que o pastor estava sempre por perto para protegê-la.",
-    prayer: "Papai do Céu, obrigado por cuidar de mim. Amém!", 
-    imagePrompt: "cute lamb in field Pixar style"
+    devotional: "Oi Miguel! Hoje o Papai do Céu quer te lembrar que Ele cuida de você em cada detalhe, como um pastor cuida da sua ovelhinha favorita.",
+    storyTitle: "A Ovelhinha Saltitante", 
+    storyContent: "Havia uma ovelhinha que amava pular. Um dia ela se perdeu, mas o bom pastor a encontrou e a trouxe de volta nos braços, com muito carinho.",
+    prayer: "Papai do Céu, obrigado por me proteger e por estar sempre comigo. Amém!", 
+    imagePrompt: "cute lamb in a green field Disney Pixar style"
 };
 
 export const getFallbackStoryImage = () => STATIC_STORY_IMAGE;
