@@ -21,8 +21,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Garante que o objeto process.env esteja disponível para o SDK
+      // Ponte de ambiente robusta
       window.process = window.process || { env: {} };
+      
+      // Captura a chave independentemente do prefixo (VITE_ ou direto)
+      const rawKey = (typeof process !== 'undefined' && process.env && (process.env.API_KEY || process.env.VITE_API_KEY)) || "";
+      
+      // Garante que o SDK da Google encontre a chave em process.env.API_KEY
+      window.process.env.API_KEY = rawKey;
 
       tailwind.config = {
         theme: {
