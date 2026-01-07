@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
-// Configuração de segurança padrão para conteúdo infantil
+// Configurações de segurança para conteúdo infantil
 const SAFETY_SETTINGS = [
   { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
   { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -14,30 +14,23 @@ const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2
 const STATIC_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop";
 
 /**
- * Verifica se a IA está realmente disponível.
- * Tenta ler de process.env.API_KEY (padrão SDK) ou de um bridge injetado.
+ * Verifica se a chave de API está presente no ambiente.
+ * O process.env.API_KEY é injetado automaticamente pela plataforma.
  */
 export const isAIAvailable = (): boolean => {
   try {
-    // Busca a chave de várias fontes possíveis em ambientes web
-    const key = process.env.API_KEY || (window as any).process?.env?.API_KEY;
-    
-    // Validação estrita: deve ser uma string longa e começar com o padrão da Google (AIza)
-    return !!key && typeof key === 'string' && key.length > 30 && key.startsWith("AIza");
+    const key = process.env.API_KEY;
+    return !!key && typeof key === 'string' && key.length > 20;
   } catch {
     return false;
   }
 };
 
 /**
- * Inicializa o cliente Gemini com tratamento de erro
+ * Inicializa a IA usando a chave do ambiente
  */
 const getAI = () => {
-  const key = process.env.API_KEY || (window as any).process?.env?.API_KEY;
-  if (!key || key === "undefined") {
-    throw new Error("Chave de API não configurada ou inválida no ambiente.");
-  }
-  return new GoogleGenAI({ apiKey: key });
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
 // --- GERAÇÃO DE CONTEÚDO ---
@@ -64,7 +57,7 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     });
     return JSON.parse(response.text || '{}') as StoryData;
   } catch (error) {
-    console.error("Erro na IA (História):", error);
+    console.warn("IA Story Fallback:", error);
     return STATIC_STORIES[Math.floor(Math.random() * STATIC_STORIES.length)];
   }
 };
@@ -95,7 +88,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
     });
     return { ...JSON.parse(response.text || '{}'), date: new Date().toDateString() };
   } catch (error) {
-    console.error("Erro na IA (Devocional):", error);
+    console.warn("IA Devotional Fallback:", error);
     return { ...FALLBACK_DEVOTIONAL, date: new Date().toDateString() };
   }
 };
@@ -105,7 +98,7 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Diga com voz doce e lenta: ${text}` }] }],
+      contents: [{ parts: [{ text: `Diga com voz doce: ${text}` }] }],
       config: {
         responseModalalities: [Modality.AUDIO],
         speechConfig: {
@@ -135,7 +128,7 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
   } catch { return null; }
 };
 
-// --- DADOS DE BACKUP (OFFLINE) ---
+// --- DADOS DE BACKUP ---
 export const STATIC_STORIES: StoryData[] = [
   { title: "Os Três Porquinhos", content: "Cícero, Heitor e Prático construíram casas de palha, madeira e tijolos. O lobo soprou as duas primeiras, mas a de tijolos protegeu a todos!", moral: "O trabalho bem feito traz segurança." },
   { title: "O Patinho Feio", content: "Um patinho era diferente e sofria por isso, até descobrir que era um lindo cisne!", moral: "A beleza real está dentro de nós." }
