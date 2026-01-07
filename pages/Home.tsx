@@ -49,7 +49,7 @@ const Home: React.FC = () => {
   }, []);
 
   const initApp = async () => {
-    await updateAIStatus();
+    const available = await updateAIStatus();
     const localP = getDailyProgress();
     setProgress(localP);
     fetchRemoteProgress().then(remoteP => {
@@ -63,8 +63,12 @@ const Home: React.FC = () => {
 
     if (!available && window.aistudio) {
         const hasKey = await window.aistudio.hasSelectedApiKey();
-        if (hasKey) setAiActive(true);
+        if (hasKey) {
+            setAiActive(true);
+            return true;
+        }
     }
+    return available;
   };
 
   const handleAIConnect = async () => {
@@ -142,9 +146,9 @@ const Home: React.FC = () => {
                     </div>
                     <button 
                         onClick={(e) => { e.stopPropagation(); handleAIConnect(); }}
-                        className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full border transition-all ${aiActive ? 'text-emerald-500 border-emerald-200 bg-emerald-50' : 'text-red-400 border-red-200 bg-red-50'}`}
+                        className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full border transition-all duration-300 ${aiActive ? 'text-emerald-600 border-emerald-300 bg-emerald-50' : 'text-red-500 border-red-300 bg-red-50 ring-2 ring-red-100'}`}
                     >
-                        {aiActive ? <Zap size={10} className="fill-emerald-500" /> : <ZapOff size={10} className="fill-red-400" />}
+                        {aiActive ? <Zap size={10} className="fill-emerald-500" /> : <ZapOff size={10} className="fill-red-500" />}
                         {aiActive ? 'Mundo Conectado' : 'Mundo Offline'}
                     </button>
                 </div>

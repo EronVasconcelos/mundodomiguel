@@ -21,9 +21,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Defensive shim for process.env in production environments like Vercel
+      // Defensive shim for environment variables in Vite/Vercel
       window.process = window.process || { env: {} };
       
+      // Caso o Vite não tenha substituído, tentamos buscar de meta.env (comum em builds Vite)
+      if (typeof import !== 'undefined' && import.meta && import.meta.env) {
+         window.process.env = { ...window.process.env, ...import.meta.env };
+      }
+
       tailwind.config = {
         theme: {
           extend: {

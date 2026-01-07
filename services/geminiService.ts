@@ -36,7 +36,7 @@ export const FALLBACK_DEVOTIONAL: DevotionalData = {
     devotional: "Oi Miguel! Hoje vamos lembrar que o Papai do Céu cuida de nós em todos os momentos, como um pastor cuida de suas ovelhinhas. Você nunca está sozinho!",
     storyTitle: "A Ovelhinha Segura", 
     storyContent: "Havia uma ovelhinha que adorava brincar no campo. Às vezes ela se afastava um pouquinho, mas logo ouvia a voz do seu pastor chamando e voltava feliz, sabendo que ele sempre a protegeria de qualquer perigo.",
-    prayer: "Papai do Céu, muito obrigado por cuidar de mim e da minha família hoje e sempre. Amém!", 
+    prayer: "Papai do Céu, muito obrigado por cuidar de mi e da minha família hoje e sempre. Amém!", 
     imagePrompt: "cute little lamb in a green field Disney Pixar style"
 };
 
@@ -49,24 +49,31 @@ const SAFETY_SETTINGS = [
 
 export const isAIAvailable = (): boolean => {
     try {
-        const key = process.env.API_KEY;
-        // Validação rigorosa: Chaves Google possuem mais de 30 caracteres e não devem ser strings de erro de build
+        // Busca a chave de qualquer fonte possível injetada pelo Vite/Vercel
+        const rawKey = process.env.API_KEY || (window as any).process?.env?.API_KEY || (window as any).VITE_API_KEY;
+        const key = String(rawKey || "").trim();
+        
+        // Critérios rigorosos para ser uma chave Gemini válida:
+        // 1. Deve existir
+        // 2. Não pode ser as strings "undefined", "null" ou "[object Object]"
+        // 3. Chaves Google AI começam com "AIza" e têm aprox. 39 caracteres
         return !!key && 
-               key !== "" && 
+               key.length > 30 && 
                key !== "undefined" && 
                key !== "null" && 
-               key.length > 20;
+               !key.includes("object") &&
+               key.startsWith("AIza");
     } catch {
         return false;
     }
 };
 
 const getAIClient = () => {
-    const apiKey = process.env.API_KEY;
+    const key = process.env.API_KEY || (window as any).process?.env?.API_KEY || (window as any).VITE_API_KEY;
     if (!isAIAvailable()) {
-        throw new Error("API_KEY_NOT_CONFIGURED");
+        throw new Error("IA_OFFLINE");
     }
-    return new GoogleGenAI({ apiKey: apiKey! });
+    return new GoogleGenAI({ apiKey: String(key).trim() });
 };
 
 // --- CONTENT GENERATION ---
