@@ -21,14 +21,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // SHIM DE AMBIENTE SÊNIOR
-      // Resolve o problema de variáveis de ambiente no frontend de uma vez por todas
+      // SOLUÇÃO DEFINITIVA DE AMBIENTE
+      // Captura a chave de todas as fontes possíveis injetadas pelo build
+      const __API_KEY__ = (typeof process !== 'undefined' && process.env && (process.env.API_KEY || process.env.VITE_API_KEY)) 
+                         || (typeof window !== 'undefined' && window.VITE_API_KEY)
+                         || "";
+
+      // Injeta no objeto global que a SDK da Google e o Vite utilizam
       window.process = window.process || { env: {} };
-      
-      // Tenta capturar a chave injetada pelo sistema de build
-      // O SDK da Google procura especificamente em process.env.API_KEY
-      const key = (typeof process !== 'undefined' && process.env && (process.env.API_KEY || process.env.VITE_API_KEY)) || "";
-      window.process.env.API_KEY = key;
+      window.process.env = window.process.env || {};
+      window.process.env.API_KEY = __API_KEY__;
+      window.VITE_API_KEY = __API_KEY__;
 
       tailwind.config = {
         theme: {
