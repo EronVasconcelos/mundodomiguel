@@ -21,8 +21,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Shim básico para compatibilidade com bibliotecas que esperam process.env
+      // SHIM DE AMBIENTE SÊNIOR
+      // Resolve o problema de variáveis de ambiente no frontend de uma vez por todas
       window.process = window.process || { env: {} };
+      
+      // Tenta capturar a chave injetada pelo sistema de build
+      // O SDK da Google procura especificamente em process.env.API_KEY
+      const key = (typeof process !== 'undefined' && process.env && (process.env.API_KEY || process.env.VITE_API_KEY)) || "";
+      window.process.env.API_KEY = key;
 
       tailwind.config = {
         theme: {

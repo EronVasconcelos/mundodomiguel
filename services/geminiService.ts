@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
-// Configurações de segurança para conteúdo infantil
+// Configurações de segurança para o público infantil
 const SAFETY_SETTINGS = [
   { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
   { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -10,37 +10,38 @@ const SAFETY_SETTINGS = [
   { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
 ];
 
-const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop";
-const STATIC_DEVOTIONAL_IMAGE = "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000&auto=format&fit=crop";
-
 /**
- * Verifica se a chave de API está presente no ambiente.
- * O process.env.API_KEY é injetado automaticamente pela plataforma.
+ * Pega a chave de API de forma resiliente. 
+ * Tenta o padrão do SDK, o padrão do Vite e o objeto global.
  */
+const getRawKey = (): string => {
+  return (
+    process.env.API_KEY || 
+    (import.meta as any).env?.VITE_API_KEY || 
+    (window as any).process?.env?.API_KEY ||
+    ""
+  );
+};
+
 export const isAIAvailable = (): boolean => {
-  try {
-    const key = process.env.API_KEY;
-    return !!key && typeof key === 'string' && key.length > 20;
-  } catch {
-    return false;
-  }
+  const key = getRawKey();
+  return typeof key === 'string' && key.length > 30 && key.startsWith("AIza");
 };
 
-/**
- * Inicializa a IA usando a chave do ambiente
- */
 const getAI = () => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const key = getRawKey();
+  if (!key) throw new Error("API_KEY_NOT_FOUND");
+  return new GoogleGenAI({ apiKey: key });
 };
 
-// --- GERAÇÃO DE CONTEÚDO ---
+// --- GERAÇÃO DE CONTEÚDO (MÉTRICAS SÊNIOR) ---
 
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Você é um contador de histórias mágico. Crie uma história curta para ${profile.name}, ${profile.age} anos. Tema: ${topic}. Retorne JSON: title, content, moral.`,
+      contents: `Você é um contador de histórias mágico. Crie uma história para ${profile.name}, ${profile.age} anos. Tema: ${topic}. Retorne APENAS JSON: title, content, moral.`,
       config: {
         responseMimeType: "application/json",
         safetySettings: SAFETY_SETTINGS,
@@ -57,8 +58,8 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     });
     return JSON.parse(response.text || '{}') as StoryData;
   } catch (error) {
-    console.warn("IA Story Fallback:", error);
-    return STATIC_STORIES[Math.floor(Math.random() * STATIC_STORIES.length)];
+    console.error("Erro Crítico Story IA:", error);
+    return STATIC_STORIES[0];
   }
 };
 
@@ -67,7 +68,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Crie um devocional cristão para uma criança de ${profile.age} anos chamada ${profile.name}. Retorne JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt.`,
+      contents: `Crie um devocional cristão doce para ${profile.name}, ${profile.age} anos. Retorne APENAS JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt.`,
       config: {
         responseMimeType: "application/json",
         safetySettings: SAFETY_SETTINGS,
@@ -88,7 +89,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
     });
     return { ...JSON.parse(response.text || '{}'), date: new Date().toDateString() };
   } catch (error) {
-    console.warn("IA Devotional Fallback:", error);
+    console.error("Erro Crítico Devocional IA:", error);
     return { ...FALLBACK_DEVOTIONAL, date: new Date().toDateString() };
   }
 };
@@ -98,7 +99,7 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Diga com voz doce: ${text}` }] }],
+      contents: [{ parts: [{ text: `Leia com carinho: ${text}` }] }],
       config: {
         responseModalalities: [Modality.AUDIO],
         speechConfig: {
@@ -115,11 +116,11 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string | null> => {
   try {
     const ai = getAI();
-    const charDesc = profile ? `${profile.age} year old ${profile.gender === 'boy' ? 'boy' : 'girl'}, ${profile.hairColor} hair, ${profile.skinTone} skin` : "cute child";
+    const char = profile ? `${profile.age}yo ${profile.gender}, ${profile.hairColor} hair` : "child";
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
-        parts: [{ text: `Disney Pixar 3D style. Subject: ${charDesc}. Scene: ${storyPrompt.substring(0, 200)}` }],
+        parts: [{ text: `Disney Pixar 3D style. ${char} in scene: ${storyPrompt.substring(0, 150)}` }],
       },
       config: { imageConfig: { aspectRatio: "1:1" } },
     });
@@ -128,22 +129,21 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
   } catch { return null; }
 };
 
-// --- DADOS DE BACKUP ---
+// --- FALLBACKS ---
 export const STATIC_STORIES: StoryData[] = [
-  { title: "Os Três Porquinhos", content: "Cícero, Heitor e Prático construíram casas de palha, madeira e tijolos. O lobo soprou as duas primeiras, mas a de tijolos protegeu a todos!", moral: "O trabalho bem feito traz segurança." },
-  { title: "O Patinho Feio", content: "Um patinho era diferente e sofria por isso, até descobrir que era um lindo cisne!", moral: "A beleza real está dentro de nós." }
+  { title: "Aventura no Jardim", content: "Miguel encontrou um pequeno grilo que tocava violino. Eles dançaram juntos sob a luz da lua.", moral: "A música está em todo lugar." }
 ];
 
 export const FALLBACK_DEVOTIONAL: DevotionalData = {
   date: new Date().toDateString(),
-  verse: "O Senhor é o meu pastor e nada me faltará.",
-  reference: "Salmos 23:1",
-  devotional: "Oi! Hoje o Papai do Céu quer te lembrar que Ele cuida de você em cada detalhe.",
-  storyTitle: "A Ovelhinha Segura",
-  storyContent: "A pequena ovelhinha estava feliz porque sabia que o pastor estava sempre por perto para protegê-la.",
-  prayer: "Papai do Céu, obrigado por cuidar de mim. Amém!",
-  imagePrompt: "cute lamb in field Pixar style"
+  verse: "Deixai vir a mim as criancinhas.",
+  reference: "Mateus 19:14",
+  devotional: "Jesus ama muito você e quer ser seu melhor amigo todos os dias!",
+  storyTitle: "O Convite Especial",
+  storyContent: "Jesus estava conversando com muitas pessoas, mas parou tudo só para abraçar as crianças.",
+  prayer: "Obrigado Jesus por me amar tanto. Amém!",
+  imagePrompt: "Jesus hugging children Pixar style"
 };
 
-export const getFallbackStoryImage = () => STATIC_STORY_IMAGE;
-export const getFallbackDevotionalImage = () => STATIC_DEVOTIONAL_IMAGE;
+export const getFallbackStoryImage = () => "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000";
+export const getFallbackDevotionalImage = () => "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=1000";
