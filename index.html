@@ -22,13 +22,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // SHIM DE AMBIENTE SÊNIOR
-      // Resolve o problema de variáveis de ambiente no frontend de uma vez por todas
       window.process = window.process || { env: {} };
       
-      // Tenta capturar a chave injetada pelo sistema de build
-      // O SDK da Google procura especificamente em process.env.API_KEY
-      const key = (typeof process !== 'undefined' && process.env && (process.env.API_KEY || process.env.VITE_API_KEY)) || "";
-      window.process.env.API_KEY = key;
+      // Captura a chave de API de múltiplas fontes possíveis
+      // No Vite, as variáveis de ambiente em tempo de execução residem em import.meta.env
+      // mas o shim garante que window.process.env.API_KEY também esteja lá.
+      const rawKey = (typeof process !== 'undefined' && process.env && (process.env.VITE_API_KEY || process.env.API_KEY)) || "";
+      
+      window.process.env.API_KEY = rawKey;
+      window.VITE_API_KEY = rawKey;
 
       tailwind.config = {
         theme: {

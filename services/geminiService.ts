@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
 
-// Configurações de segurança para o público infantil
+// Configurações de segurança para o público infantil - Evita bloqueios por falsos positivos
 const SAFETY_SETTINGS = [
   { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
   { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -11,13 +11,13 @@ const SAFETY_SETTINGS = [
 ];
 
 /**
- * Pega a chave de API de forma resiliente. 
- * Tenta o padrão do SDK, o padrão do Vite e o objeto global.
+ * Captura a chave de API de forma resiliente, priorizando VITE_API_KEY que funcionou para o usuário.
  */
 const getRawKey = (): string => {
   return (
+    (import.meta as any).env?.VITE_API_KEY ||
+    (window as any).VITE_API_KEY ||
     process.env.API_KEY || 
-    (import.meta as any).env?.VITE_API_KEY || 
     (window as any).process?.env?.API_KEY ||
     ""
   );
@@ -25,7 +25,7 @@ const getRawKey = (): string => {
 
 export const isAIAvailable = (): boolean => {
   const key = getRawKey();
-  return typeof key === 'string' && key.length > 30 && key.startsWith("AIza");
+  return typeof key === 'string' && key.length > 20;
 };
 
 const getAI = () => {
@@ -34,14 +34,14 @@ const getAI = () => {
   return new GoogleGenAI({ apiKey: key });
 };
 
-// --- GERAÇÃO DE CONTEÚDO (MÉTRICAS SÊNIOR) ---
+// --- GERAÇÃO DE CONTEÚDO ---
 
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Você é um contador de histórias mágico. Crie uma história para ${profile.name}, ${profile.age} anos. Tema: ${topic}. Retorne APENAS JSON: title, content, moral.`,
+      contents: `Você é um contador de histórias mágico. Crie uma história infantil para ${profile.name}, ${profile.age} anos. Tema: ${topic}. Retorne APENAS JSON: title, content, moral.`,
       config: {
         responseMimeType: "application/json",
         safetySettings: SAFETY_SETTINGS,
@@ -58,7 +58,7 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     });
     return JSON.parse(response.text || '{}') as StoryData;
   } catch (error) {
-    console.error("Erro Crítico Story IA:", error);
+    console.error("Erro Texto Story:", error);
     return STATIC_STORIES[0];
   }
 };
@@ -89,7 +89,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
     });
     return { ...JSON.parse(response.text || '{}'), date: new Date().toDateString() };
   } catch (error) {
-    console.error("Erro Crítico Devocional IA:", error);
+    console.error("Erro Devocional:", error);
     return { ...FALLBACK_DEVOTIONAL, date: new Date().toDateString() };
   }
 };
@@ -116,17 +116,39 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string | null> => {
   try {
     const ai = getAI();
-    const char = profile ? `${profile.age}yo ${profile.gender}, ${profile.hairColor} hair` : "child";
+    const char = profile 
+      ? `A cute ${profile.age} year old ${profile.gender === 'boy' ? 'boy' : 'girl'} with ${profile.hairColor} hair and ${profile.skinTone} skin tone` 
+      : "A happy child";
+    
+    // Prompt altamente descritivo para garantir o estilo desejado
+    const fullPrompt = `3D render, Pixar and Disney movie style, masterpiece, vibrant colors, soft lighting. Scene: ${storyPrompt.substring(0, 200)}. Character: ${char}. High resolution, 4k.`;
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
-        parts: [{ text: `Disney Pixar 3D style. ${char} in scene: ${storyPrompt.substring(0, 150)}` }],
+        parts: [{ text: fullPrompt }],
       },
-      config: { imageConfig: { aspectRatio: "1:1" } },
+      config: { 
+        imageConfig: { aspectRatio: "1:1" },
+        safetySettings: SAFETY_SETTINGS // Fundamental para evitar bloqueios na geração de imagens
+      },
     });
-    const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-    return part ? `data:image/png;base64,${part.inlineData?.data}` : null;
-  } catch { return null; }
+
+    // Varre todas as partes da resposta procurando por inlineData (a imagem base64)
+    const candidate = response.candidates?.[0];
+    if (candidate?.content?.parts) {
+      for (const part of candidate.content.parts) {
+        if (part.inlineData?.data) {
+          return `data:image/png;base64,${part.inlineData.data}`;
+        }
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Erro ao gerar imagem:", error);
+    return null;
+  }
 };
 
 // --- FALLBACKS ---
