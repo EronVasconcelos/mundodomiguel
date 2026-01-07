@@ -21,12 +21,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Força a existência do objeto process.env para o SDK do Google
+      // Shim robusto para variáveis de ambiente no browser
       window.process = window.process || { env: {} };
       
-      // Tenta capturar a API_KEY de diferentes fontes de injeção comuns em CD/CI
-      const injectedKey = (typeof process !== 'undefined' && process.env && process.env.API_KEY) || "";
-      window.process.env.API_KEY = injectedKey;
+      // Captura de múltiplas fontes possíveis (Vite/Vercel)
+      const apiKey = (typeof process !== 'undefined' && process.env && (process.env.VITE_API_KEY || process.env.API_KEY)) || "";
+      window.process.env.API_KEY = apiKey;
+      window.process.env.VITE_API_KEY = apiKey;
 
       tailwind.config = {
         theme: {
