@@ -21,13 +21,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Defensive shim for environment variables in Vite/Vercel
+      // Força a existência do objeto process.env para o SDK do Google
       window.process = window.process || { env: {} };
       
-      // Caso o Vite não tenha substituído, tentamos buscar de meta.env (comum em builds Vite)
-      if (typeof import !== 'undefined' && import.meta && import.meta.env) {
-         window.process.env = { ...window.process.env, ...import.meta.env };
-      }
+      // Tenta capturar a API_KEY de diferentes fontes de injeção comuns em CD/CI
+      const injectedKey = (typeof process !== 'undefined' && process.env && process.env.API_KEY) || "";
+      window.process.env.API_KEY = injectedKey;
 
       tailwind.config = {
         theme: {

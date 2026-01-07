@@ -49,31 +49,26 @@ const SAFETY_SETTINGS = [
 
 export const isAIAvailable = (): boolean => {
     try {
-        // Busca a chave de qualquer fonte possível injetada pelo Vite/Vercel
-        const rawKey = process.env.API_KEY || (window as any).process?.env?.API_KEY || (window as any).VITE_API_KEY;
-        const key = String(rawKey || "").trim();
-        
-        // Critérios rigorosos para ser uma chave Gemini válida:
-        // 1. Deve existir
-        // 2. Não pode ser as strings "undefined", "null" ou "[object Object]"
-        // 3. Chaves Google AI começam com "AIza" e têm aprox. 39 caracteres
-        return !!key && 
-               key.length > 30 && 
-               key !== "undefined" && 
-               key !== "null" && 
-               !key.includes("object") &&
-               key.startsWith("AIza");
+        const key = process.env.API_KEY || (window as any).process?.env?.API_KEY;
+        // Validação rigorosa: Não pode ser vazio, "undefined", "null" e deve ter o formato de chave Google (geralmente começa com AIza e tem > 30 chars)
+        const isValidKey = !!key && 
+                          typeof key === 'string' && 
+                          key.length > 30 && 
+                          key !== "undefined" && 
+                          key !== "null" &&
+                          key.startsWith("AIza");
+        return isValidKey;
     } catch {
         return false;
     }
 };
 
 const getAIClient = () => {
-    const key = process.env.API_KEY || (window as any).process?.env?.API_KEY || (window as any).VITE_API_KEY;
+    const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
     if (!isAIAvailable()) {
-        throw new Error("IA_OFFLINE");
+        throw new Error("MUNDO_OFFLINE: API_KEY não configurada corretamente.");
     }
-    return new GoogleGenAI({ apiKey: String(key).trim() });
+    return new GoogleGenAI({ apiKey });
 };
 
 // --- CONTENT GENERATION ---

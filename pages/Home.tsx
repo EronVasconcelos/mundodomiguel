@@ -49,7 +49,7 @@ const Home: React.FC = () => {
   }, []);
 
   const initApp = async () => {
-    const available = await updateAIStatus();
+    await updateAIStatus();
     const localP = getDailyProgress();
     setProgress(localP);
     fetchRemoteProgress().then(remoteP => {
@@ -63,12 +63,8 @@ const Home: React.FC = () => {
 
     if (!available && window.aistudio) {
         const hasKey = await window.aistudio.hasSelectedApiKey();
-        if (hasKey) {
-            setAiActive(true);
-            return true;
-        }
+        if (hasKey) setAiActive(true);
     }
-    return available;
   };
 
   const handleAIConnect = async () => {
