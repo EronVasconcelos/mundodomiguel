@@ -21,16 +21,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // SHIM DE AMBIENTE SÊNIOR
-      window.process = window.process || { env: {} };
+      // SHIM DE AMBIENTE MINIMALISTA E SEGURO
+      window.process = { env: { API_KEY: "" } };
       
-      // Captura a chave de API de múltiplas fontes possíveis
-      // No Vite, as variáveis de ambiente em tempo de execução residem em import.meta.env
-      // mas o shim garante que window.process.env.API_KEY também esteja lá.
-      const rawKey = (typeof process !== 'undefined' && process.env && (process.env.VITE_API_KEY || process.env.API_KEY)) || "";
-      
-      window.process.env.API_KEY = rawKey;
-      window.VITE_API_KEY = rawKey;
+      // Captura a chave de forma robusta
+      const getEnvKey = () => {
+        try {
+          return (typeof process !== 'undefined' && process.env && (process.env.API_KEY || process.env.VITE_API_KEY)) || "";
+        } catch(e) { return ""; }
+      };
+
+      window.process.env.API_KEY = getEnvKey();
 
       tailwind.config = {
         theme: {
@@ -69,7 +70,7 @@
       }
     </script>
     <style>
-      html { height: 100%; width: 100%; background-color: #1e293b; }
+      html { height: 100%; width: 100%; background-color: #0f172a; }
       body {
         height: 100%; width: 100%; margin: 0; overflow: hidden;
         overscroll-behavior-y: none; user-select: none;
@@ -87,9 +88,6 @@
       }
       .scrollbar-hide::-webkit-scrollbar { display: none; }
       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      input, textarea { user-select: text; -webkit-user-select: text; }
-      button { cursor: pointer; touch-action: manipulation; }
-      img { -webkit-user-drag: none; pointer-events: none; }
     </style>
     <script type="importmap">
     {
