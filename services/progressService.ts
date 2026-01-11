@@ -11,14 +11,15 @@ const GOALS = {
   MAZES: 3,
   WORD_SEARCH: 3,
   PUZZLES: 3,
-  SHADOW: 5,
-  MEMORY: 2
+  SHADOW: 5 // New Goal
 };
 
+// Helper to get active profile ID
 const getActiveProfileId = () => {
   return localStorage.getItem('active_profile_id') || 'guest';
 };
 
+// Helper to sync to Supabase (Fire and Forget)
 const syncToSupabase = async (progress: DailyProgress) => {
   const profileId = getActiveProfileId();
   if (profileId === 'guest' || !profileId) return;
@@ -35,8 +36,7 @@ const syncToSupabase = async (progress: DailyProgress) => {
         mazes_solved: progress.mazesSolved,
         word_search_solved: progress.wordSearchSolved,
         puzzles_solved: progress.puzzlesSolved,
-        shadow_solved: progress.shadowSolved,
-        memory_solved: progress.memorySolved || 0,
+        shadow_solved: progress.shadowSolved, // Sync new field
         arcade_unlocked: progress.arcadeUnlocked
       }, { onConflict: 'profile_id, date' });
 
@@ -56,13 +56,11 @@ export const getDailyProgress = (): DailyProgress => {
   if (stored) {
     const parsed = JSON.parse(stored) as DailyProgress;
     if (parsed.date === today && parsed.profileId === profileId) {
-      return {
-        ...parsed,
-        wordSearchSolved: parsed.wordSearchSolved || 0,
-        puzzlesSolved: parsed.puzzlesSolved || 0,
-        shadowSolved: parsed.shadowSolved || 0,
-        memorySolved: parsed.memorySolved || 0
-      };
+      // Robust initialization for new fields
+      if (typeof parsed.wordSearchSolved === 'undefined') parsed.wordSearchSolved = 0;
+      if (typeof parsed.puzzlesSolved === 'undefined') parsed.puzzlesSolved = 0;
+      if (typeof parsed.shadowSolved === 'undefined') parsed.shadowSolved = 0;
+      return parsed;
     }
   }
 
@@ -76,7 +74,6 @@ export const getDailyProgress = (): DailyProgress => {
     wordSearchSolved: 0,
     puzzlesSolved: 0,
     shadowSolved: 0,
-    memorySolved: 0,
     arcadeUnlocked: false
   };
   
@@ -101,7 +98,6 @@ export const fetchRemoteProgress = async (): Promise<DailyProgress | null> => {
     if (error) return null;
 
     if (data) {
-        // Tradução de snake_case para camelCase
         const remoteProgress: DailyProgress = {
             date: data.date,
             mathCount: data.math_count,
@@ -111,7 +107,6 @@ export const fetchRemoteProgress = async (): Promise<DailyProgress | null> => {
             wordSearchSolved: data.word_search_solved || 0,
             puzzlesSolved: data.puzzles_solved || 0,
             shadowSolved: data.shadow_solved || 0,
-            memorySolved: data.memory_solved || 0,
             arcadeUnlocked: data.arcade_unlocked,
             profileId: data.profile_id
         };
@@ -141,10 +136,9 @@ export const checkUnlock = (progress: DailyProgress): boolean => {
     progress.wordLevel >= GOALS.WORDS_LEVEL &&
     progress.faithDone === true &&
     progress.mazesSolved >= GOALS.MAZES &&
-    progress.wordSearchSolved >= GOALS.WORD_SEARCH &&
-    progress.puzzlesSolved >= GOALS.PUZZLES &&
-    progress.shadowSolved >= GOALS.SHADOW &&
-    progress.memorySolved >= GOALS.MEMORY;
+    (progress.wordSearchSolved || 0) >= GOALS.WORD_SEARCH &&
+    (progress.puzzlesSolved || 0) >= GOALS.PUZZLES &&
+    (progress.shadowSolved || 0) >= GOALS.SHADOW;
 
   if (isUnlocked) {
     progress.arcadeUnlocked = true;
@@ -167,8 +161,10 @@ export const incrementMath = (): boolean => {
 
 export const incrementWordSearch = (): boolean => {
   const p = getDailyProgress();
-  if (p.wordSearchSolved < GOALS.WORD_SEARCH) {
-    p.wordSearchSolved += 1;
+  const current = p.wordSearchSolved || 0;
+  
+  if (current < GOALS.WORD_SEARCH) {
+    p.wordSearchSolved = current + 1;
     checkUnlock(p);
     saveProgress(p);
     if (p.wordSearchSolved === GOALS.WORD_SEARCH) return true;
@@ -178,8 +174,10 @@ export const incrementWordSearch = (): boolean => {
 
 export const incrementPuzzle = (): boolean => {
   const p = getDailyProgress();
-  if (p.puzzlesSolved < GOALS.PUZZLES) {
-    p.puzzlesSolved += 1;
+  const current = p.puzzlesSolved || 0;
+  
+  if (current < GOALS.PUZZLES) {
+    p.puzzlesSolved = current + 1;
     checkUnlock(p);
     saveProgress(p);
     if (p.puzzlesSolved === GOALS.PUZZLES) return true;
@@ -189,22 +187,13 @@ export const incrementPuzzle = (): boolean => {
 
 export const incrementShadow = (): boolean => {
   const p = getDailyProgress();
-  if (p.shadowSolved < GOALS.SHADOW) {
-    p.shadowSolved += 1;
+  const current = p.shadowSolved || 0;
+  
+  if (current < GOALS.SHADOW) {
+    p.shadowSolved = current + 1;
     checkUnlock(p);
     saveProgress(p);
     if (p.shadowSolved === GOALS.SHADOW) return true;
-  }
-  return false;
-};
-
-export const incrementMemory = (): boolean => {
-  const p = getDailyProgress();
-  if (p.memorySolved < GOALS.MEMORY) {
-    p.memorySolved += 1;
-    checkUnlock(p);
-    saveProgress(p);
-    if (p.memorySolved === GOALS.MEMORY) return true;
   }
   return false;
 };

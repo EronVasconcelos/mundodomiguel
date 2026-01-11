@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, GameState } from '../../types';
 import { ArrowLeft, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 
 const GRID_SIZE = 15;
-const INITIAL_SPEED = 350; // Deixando mais lento no início (era 200)
+const INITIAL_SPEED = 200;
 
 type Point = { x: number, y: number };
 
@@ -64,9 +63,9 @@ const SnakeGame: React.FC = () => {
       const newScore = score + 1;
       setScore(newScore);
       spawnFood();
-      // Velocidade aumenta gradualmente, mas com um teto mais amigável
+      // Increase speed every 2 points, capping at 80ms
       if (newScore % 2 === 0) {
-        setCurrentSpeed(prev => Math.max(120, prev - 15));
+        setCurrentSpeed(prev => Math.max(80, prev - 10));
       }
     } else {
       newSnake.pop(); 
@@ -85,7 +84,7 @@ const SnakeGame: React.FC = () => {
     <div className="h-full flex flex-col font-sans bg-emerald-950 text-white">
       {/* Header */}
       <div className="p-4 flex items-center justify-between bg-emerald-900/50 backdrop-blur-md border-b border-emerald-800">
-         <button onClick={() => navigate(-1)} className="w-10 h-10 bg-emerald-800 rounded-full flex items-center justify-center active:scale-95 transition-transform"><ArrowLeft size={24} strokeWidth={3} /></button>
+         <button onClick={() => navigate(AppRoute.ARCADE)} className="w-10 h-10 bg-emerald-800 rounded-full flex items-center justify-center active:scale-95"><ArrowLeft /></button>
          <h1 className="text-xl font-black uppercase">Cobrinha</h1>
          <div className="bg-emerald-800 px-3 py-1 rounded-full text-sm font-bold">🍎 {score}</div>
       </div>

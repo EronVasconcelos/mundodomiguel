@@ -10,7 +10,7 @@ import Home from './pages/Home';
 import MathBlocks from './pages/MathBlocks';
 import ArtStudio from './pages/ArtStudio';
 import ColoringBook from './pages/ColoringBook';
-import ChallengeHub from './pages/ChallengeHub';
+import ChallengeHub from './pages/ChallengeHub'; // Novo
 import ChallengeArena from './pages/ChallengeArena';
 import WordSearch from './pages/WordSearch';
 import PuzzleGame from './pages/PuzzleGame';
@@ -23,15 +23,13 @@ import MemoryGame from './pages/games/MemoryGame';
 import SnakeGame from './pages/games/SnakeGame';
 import SpaceShooter from './pages/games/SpaceShooter';
 import RacingGame from './pages/games/RacingGame';
-import BlockPuzzle from './pages/games/BlockPuzzle';
-import SplashScreen from './pages/SplashScreen';
 import { AppRoute } from './types';
 
+// Auth Guard Component
 const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [checking, setChecking] = useState(true);
-  const [showSplash, setShowSplash] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -44,39 +42,33 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         if (!session && !isPublic) {
           navigate(AppRoute.WELCOME);
-          setChecking(false);
         } else if (session) {
-           if (location.pathname === AppRoute.HOME || location.pathname === '/') {
-              setShowSplash(true);
-              setTimeout(() => {
-                setShowSplash(false);
-                setChecking(false);
-              }, 2500);
-           } else {
-              setChecking(false);
-           }
-
+           // Logged in, check if has profiles
            const storedProfiles = localStorage.getItem('child_profiles');
            if (!storedProfiles || JSON.parse(storedProfiles).length === 0) {
+              // If no local profiles, double check DB (in case of fresh login on new device)
               const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true });
               if ((count || 0) === 0 && location.pathname !== AppRoute.PROFILE) {
                  navigate(AppRoute.PROFILE);
               }
            }
-        } else {
-           setChecking(false);
         }
       } catch (e) {
-        console.warn("Auth check failed", e);
+        console.warn("Auth check failed, assuming offline/logged out", e);
+        // Fallback: If auth fails entirely (e.g. invalid URL), go to welcome if not public
+        const publicRoutes = [AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER];
+        if (!publicRoutes.includes(location.pathname as AppRoute)) {
+            navigate(AppRoute.WELCOME);
+        }
+      } finally {
         setChecking(false);
       }
     };
 
     checkAuth();
-  }, []);
+  }, [location, navigate]);
 
-  if (showSplash) return <SplashScreen />;
-  if (checking) return null; 
+  if (checking) return null; // Or a loading spinner
 
   return <>{children}</>;
 };
@@ -106,12 +98,12 @@ function App() {
           <Route path={AppRoute.STORY} element={<StoryTime />} />
           <Route path={AppRoute.FAITH} element={<FaithCorner />} />
           
+          {/* Arcade Routes */}
           <Route path={AppRoute.ARCADE} element={<ArcadeHub />} />
           <Route path={AppRoute.GAME_MEMORY} element={<MemoryGame />} />
           <Route path={AppRoute.GAME_SNAKE} element={<SnakeGame />} />
           <Route path={AppRoute.GAME_SPACE} element={<SpaceShooter />} />
           <Route path={AppRoute.GAME_RACING} element={<RacingGame />} />
-          <Route path={AppRoute.GAME_BLOCKS} element={<BlockPuzzle />} />
         </Routes>
       </AuthGuard>
     </HashRouter>
