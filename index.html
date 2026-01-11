@@ -5,15 +5,16 @@
     <meta charset="utf-8" />
     <!-- Viewport otimizado para mobile: sem zoom, cobre cortes (notch), escala fixa -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#f0f9ff" />
+    <meta name="theme-color" content="#3b82f6" />
+    
+    <!-- Android/Chrome Support -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Mundo Miguel" />
     
     <!-- iOS Support -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Mundo Miguel" />
-    
-    <!-- Favicon: Foguete no círculo azul (Estilo Welcome Screen) -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%233b82f6%22/><text x=%2250%22 y=%2270%22 font-size=%2255%22 text-anchor=%22middle%22>🚀</text></svg>">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
@@ -25,7 +26,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // --- MOBILE POLYFILL ---
-      // Evita crash em celulares que não possuem 'process' definido, se algum pacote usar
       window.process = window.process || { env: {} };
     </script>
     <script>
@@ -35,7 +35,7 @@
             colors: {
               'brand-blue': '#0ea5e9',
               'brand-dark': '#0f172a',
-              'ui-bg': '#f0f9ff',
+              'ui-bg': '#0f172a',
             },
             fontFamily: {
               sans: ['"Baloo 2"', 'cursive'],
@@ -70,29 +70,19 @@
       html {
         height: 100%;
         width: 100%;
-        background-color: #1e293b; /* Fundo escuro para Desktop (fora da área do app) */
+        background-color: #1e293b;
       }
 
       body {
         height: 100%;
         width: 100%;
         margin: 0;
-        overflow: hidden; /* O body não rola, quem rola é o #root ou divs internas */
-        
-        /* Comportamento Nativo */
+        overflow: hidden;
         overscroll-behavior-y: none;
         user-select: none;
         -webkit-user-select: none;
         -webkit-tap-highlight-color: transparent;
         -webkit-touch-callout: none;
-        
-        /* Variáveis para Safe Area (Notch do iPhone) */
-        --sat: env(safe-area-inset-top);
-        --sab: env(safe-area-inset-bottom);
-        --sal: env(safe-area-inset-left);
-        --sar: env(safe-area-inset-right);
-
-        /* Centralização no Desktop */
         display: flex;
         justify-content: center;
         align-items: center;
@@ -101,17 +91,16 @@
       #root {
         height: 100%;
         width: 100%;
-        max-width: 480px; /* Largura máxima de um celular grande */
-        background-color: #f0f9ff; /* Cor de fundo do app */
+        max-width: 480px;
+        background-color: #0f172a;
         position: relative;
-        box-shadow: 0 0 50px rgba(0,0,0,0.5); /* Sombra para destacar no desktop */
+        box-shadow: 0 0 50px rgba(0,0,0,0.5);
         overflow: hidden;
       }
 
-      /* Em telas pequenas (celulares reais), removemos a limitação para ocupar tudo */
       @media (max-width: 480px) {
         body {
-          background-color: #f0f9ff;
+          background-color: #0f172a;
         }
         #root {
           max-width: none;
@@ -119,7 +108,6 @@
         }
       }
 
-      /* Esconde scrollbar mas permite rolar */
       .scrollbar-hide::-webkit-scrollbar {
           display: none;
       }
@@ -128,7 +116,6 @@
           scrollbar-width: none;
       }
 
-      /* Garante que inputs ainda sejam selecionáveis */
       input, textarea {
         user-select: text;
         -webkit-user-select: text;

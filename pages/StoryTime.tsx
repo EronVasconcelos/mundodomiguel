@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { generateStoryText, generateStoryImage, STATIC_STORIES, isAIAvailable } from '../services/geminiService';
-import { Sparkles, Loader2, BookOpen, Moon, WifiOff, Download, Gift, Pencil, Wand2, Book } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, Moon, WifiOff, Download, Gift, Pencil, Wand2, Book, ArrowLeft } from 'lucide-react';
 import { StoryData, ChildProfile } from '../types';
 
 const StoryTime: React.FC = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   
   const [activeTab, setActiveTab] = useState<'kids' | 'ai'>('kids');
@@ -98,12 +100,20 @@ const StoryTime: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const handleBack = () => {
+    if (story) {
+      resetStoryState();
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col font-sans relative bg-[#0f172a] text-white">
        <div className="px-4 pt-6 pb-2">
          <header className="bg-slate-800/50 backdrop-blur-md rounded-3xl px-4 py-3 flex items-center justify-between border border-slate-700">
-            <button onClick={() => { if(story) resetStoryState(); else window.history.back(); }} className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300">
-               <BookOpen />
+            <button onClick={handleBack} className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300 active:scale-95 transition-transform">
+               <ArrowLeft size={24} strokeWidth={3} />
             </button>
             <h1 className="text-xl font-black uppercase text-yellow-400">Hora da História</h1>
             <div className="w-10 flex items-center justify-center">

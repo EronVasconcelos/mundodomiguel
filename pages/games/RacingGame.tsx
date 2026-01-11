@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, GameState } from '../../types';
@@ -14,7 +15,7 @@ const RacingGame: React.FC = () => {
   const playerXRef = useRef(0); 
   const enemiesRef = useRef<{ x: number, y: number, color: string }[]>([]);
   const coinsRef = useRef<{ x: number, y: number }[]>([]);
-  const speedRef = useRef(5);
+  const speedRef = useRef(3.5); // Slower initial speed (was 6)
   const frameIdRef = useRef<number>(0);
   const lastSpawnRef = useRef(0);
   const playerSmoothXRef = useRef(0.5); // 0 to 1 (position in road width)
@@ -23,7 +24,7 @@ const RacingGame: React.FC = () => {
 
   const initGame = () => {
     setScore(0);
-    speedRef.current = 6;
+    speedRef.current = 3.5; // Resets to slow
     enemiesRef.current = [];
     coinsRef.current = [];
     roadOffsetRef.current = 0;
@@ -127,11 +128,11 @@ const RacingGame: React.FC = () => {
     roadOffsetRef.current += speedRef.current;
     if (roadOffsetRef.current > 40) roadOffsetRef.current = 0;
 
-    // Increase difficulty slowly based on SCORE + Base increment
-    speedRef.current = 6 + (score / 50);
+    // Increase difficulty slowly based on SCORE (slower increment: /80 vs /50)
+    speedRef.current = 3.5 + (score / 80);
 
-    // Spawn Enemies & Coins
-    if (time - lastSpawnRef.current > (20000 / speedRef.current)) {
+    // Spawn Entities & Coins - Adjusted frequency based on lower speed
+    if (time - lastSpawnRef.current > (18000 / speedRef.current)) {
        const lane = Math.floor(Math.random() * 3); // 0, 1, 2
        const spawnX = lane; // Store logical lane
        
@@ -153,7 +154,7 @@ const RacingGame: React.FC = () => {
     }
 
     // Move Entities
-    enemiesRef.current.forEach(e => e.y += (speedRef.current * 0.8)); // Enemies move slightly slower than road (player is faster)
+    enemiesRef.current.forEach(e => e.y += (speedRef.current * 0.7)); // Even slower enemies (0.7 vs 0.8)
     coinsRef.current.forEach(c => c.y += speedRef.current);
 
     // Cleanup
@@ -163,8 +164,8 @@ const RacingGame: React.FC = () => {
     // Collision Detection
     const playerCarW = laneW * 0.6;
     const playerCarH = playerCarW * 1.6;
-    const playerPixelX = roadX + (playerSmoothXRef.current * roadW) - (playerCarW / 2); // Center of car at position
-    const playerPixelY = H - 180; // Moved player up slightly
+    const playerPixelX = roadX + (playerSmoothXRef.current * roadW) - (playerCarW / 2); 
+    const playerPixelY = H - 180; 
 
     // Check Enemy Collision
     let crash = false;
@@ -174,12 +175,12 @@ const RacingGame: React.FC = () => {
         const enemyPixelX = roadX + (enemyPct * roadW) - (playerCarW / 2);
         const enemyPixelY = e.y;
 
-        // Simple Rect Collision (reduced bounding box for forgiveness)
+        // Simple Rect Collision (more forgiving bounding box for child)
         if (
-            playerPixelX + 5 < enemyPixelX + playerCarW - 5 &&
-            playerPixelX + playerCarW - 5 > enemyPixelX + 5 &&
-            playerPixelY + 5 < enemyPixelY + playerCarH - 5 &&
-            playerPixelY + playerCarH - 5 > enemyPixelY + 5
+            playerPixelX + 8 < enemyPixelX + playerCarW - 8 &&
+            playerPixelX + playerCarW - 8 > enemyPixelX + 8 &&
+            playerPixelY + 10 < enemyPixelY + playerCarH - 10 &&
+            playerPixelY + playerCarH - 10 > enemyPixelY + 10
         ) {
             crash = true;
         }
@@ -195,12 +196,12 @@ const RacingGame: React.FC = () => {
         const c = coinsRef.current[i];
         const coinPct = (c.x * 0.333) + 0.166;
         const coinPixelX = roadX + (coinPct * roadW);
-        const coinPixelY = c.y + 20; // Center offset
+        const coinPixelY = c.y + 20; 
 
-        // Distance check
+        // Distance check (increased range for easier collection)
         const dx = (playerPixelX + playerCarW/2) - coinPixelX;
         const dy = (playerPixelY + playerCarH/2) - coinPixelY;
-        if (Math.sqrt(dx*dx + dy*dy) < 50) {
+        if (Math.sqrt(dx*dx + dy*dy) < 60) {
             coinsRef.current.splice(i, 1);
             setScore(s => s + 10);
         }
@@ -277,8 +278,6 @@ const RacingGame: React.FC = () => {
     enemiesRef.current.forEach(e => {
         const enemyPct = (e.x * 0.333) + 0.166;
         const ex = roadX + (enemyPct * roadW) - (playerCarW / 2);
-        // Note: Enemies are drawn upside down implicitly by the shape, we might want to rotate if we get fancy, but simple rects are fine for now. 
-        // Actually, for the sport car design, let's keep them facing down (same direction) as if user is overtaking.
         drawSportCar(ctx, ex, e.y, playerCarW, playerCarH, e.color, false);
     });
 
@@ -318,7 +317,7 @@ const RacingGame: React.FC = () => {
     <div className="h-full flex flex-col font-sans bg-slate-900 text-white overflow-hidden">
       {/* Header */}
       <div className="p-4 flex items-center justify-between bg-slate-800/80 backdrop-blur-md border-b border-slate-700 z-20">
-         <button onClick={() => navigate(AppRoute.ARCADE)} className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center active:scale-95"><ArrowLeft /></button>
+         <button onClick={() => navigate(-1)} className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center active:scale-95 transition-transform"><ArrowLeft size={24} strokeWidth={3} /></button>
          <h1 className="text-xl font-black uppercase text-yellow-400">Super Corrida</h1>
          <div className="bg-slate-700 px-3 py-1 rounded-full text-sm font-bold border border-slate-600">🏆 {score}</div>
       </div>

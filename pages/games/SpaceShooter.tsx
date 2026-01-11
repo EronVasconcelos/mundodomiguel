@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, GameState } from '../../types';
@@ -37,8 +38,8 @@ const SpaceShooter: React.FC = () => {
 
     // --- LOGIC ---
     
-    // Auto Shoot every 300ms
-    if (time - lastShotRef.current > 300) {
+    // Auto Shoot every 450ms (slower auto-fire for child focus)
+    if (time - lastShotRef.current > 450) {
       bulletsRef.current.push({ 
          x: playerRef.current.x + playerRef.current.width / 2 - 2, 
          y: playerRef.current.y 
@@ -46,21 +47,21 @@ const SpaceShooter: React.FC = () => {
       lastShotRef.current = time;
     }
 
-    // Spawn Enemies - Increase spawn rate slightly with score
-    const spawnRate = Math.max(400, 1000 - (score * 5)); 
+    // Spawn Enemies - Slower initial rate (1800ms vs 1000ms)
+    const spawnRate = Math.max(500, 1800 - (score * 4)); 
     if (time - spawnTimerRef.current > spawnRate) {
        enemiesRef.current.push({
           x: Math.random() * (canvas.width - 30),
           y: -30,
-          // Speed increases with score
-          speed: 2 + Math.random() * 2 + (score / 100)
+          // Slower base speed (1.2 vs 2)
+          speed: 1.2 + Math.random() * 1.5 + (score / 150)
        });
        spawnTimerRef.current = time;
     }
 
-    // Move Bullets
+    // Move Bullets (slower: 5 vs 7)
     bulletsRef.current = bulletsRef.current.filter(b => b.y > -10);
-    bulletsRef.current.forEach(b => b.y -= 7);
+    bulletsRef.current.forEach(b => b.y -= 5);
 
     // Move Enemies
     let gameOver = false;
@@ -176,7 +177,7 @@ const SpaceShooter: React.FC = () => {
     <div className="h-full flex flex-col font-sans bg-[#0f0e17] text-white">
       {/* Header */}
       <div className="p-4 flex items-center justify-between bg-indigo-900/20 backdrop-blur-md border-b border-indigo-900/50 absolute top-0 w-full z-20">
-         <button onClick={() => navigate(AppRoute.ARCADE)} className="w-10 h-10 bg-indigo-800/80 rounded-full flex items-center justify-center active:scale-95"><ArrowLeft /></button>
+         <button onClick={() => navigate(-1)} className="w-10 h-10 bg-indigo-800/80 rounded-full flex items-center justify-center active:scale-95 transition-transform"><ArrowLeft size={24} strokeWidth={3} /></button>
          <div className="bg-indigo-600/50 px-4 py-1 rounded-full text-lg font-black tracking-widest flex items-center gap-2">
             <Target size={16} /> {score}
          </div>
@@ -187,7 +188,7 @@ const SpaceShooter: React.FC = () => {
          <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(white 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.2 }}></div>
 
          {gameState === GameState.IDLE && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                <button onClick={initGame} className="flex flex-col items-center animate-pulse">
                   <div className="w-24 h-24 bg-indigo-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.6)]">
                     <Play size={48} fill="white" className="ml-2"/>
