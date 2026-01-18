@@ -41,9 +41,12 @@ const StoryTime: React.FC = () => {
     const stored = localStorage.getItem('child_profile');
     if (stored) setProfile(JSON.parse(stored));
     
-    // Verifica se a IA está disponível na inicialização
-    const isAvailable = isAIAvailable();
-    setAiEnabled(isAvailable);
+    // Verifica disponibilidade da IA
+    const available = isAIAvailable();
+    setAiEnabled(available);
+    if (available) {
+      setActiveTab('ai'); // Se houver IA, foca na aba mágica por padrão
+    }
   }, []);
 
   const handleTabSwitch = (tab: 'kids' | 'ai') => {
@@ -58,15 +61,16 @@ const StoryTime: React.FC = () => {
     setImageLoading(false);
   };
 
-  // Handler for STATIC stories (Livro Kids)
   const handleSelectStaticStory = (selectedStory: StoryData) => {
     resetStoryState();
     setStory(selectedStory);
   };
   
-  // Handler for AI stories
   const handleCreateAIStory = async (topic: string) => {
-    if (!profile || !aiEnabled) return;
+    if (!profile || !isAIAvailable()) {
+      alert("A IA mágica está descansando. Tente o Livro Kids!");
+      return;
+    }
     if (!topic.trim()) return;
 
     setLoading(true);
@@ -79,12 +83,11 @@ const StoryTime: React.FC = () => {
 
       setImageLoading(true);
       const img = await generateStoryImage(storyData.content, profile);
-      // Se img for null (offline/erro), a UI lidará
       setImageUrl(img);
       setImageLoading(false);
     } catch (e) {
       console.error(e);
-      alert("Ops! Não consegui criar a história agora.");
+      alert("Ops! A mágica falhou. Verifique sua conexão.");
       setLoading(false);
       setImageLoading(false);
     }
@@ -125,7 +128,6 @@ const StoryTime: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4 pb-20 scroll-smooth">
         {!story && !loading && (
           <div className="space-y-6">
-            {/* TABS - Só mostra opção de troca se IA estiver disponível */}
             {aiEnabled ? (
                 <div className="flex bg-slate-800 p-1 rounded-2xl border border-slate-700">
                 <button onClick={() => handleTabSwitch('kids')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeTab === 'kids' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
@@ -143,7 +145,6 @@ const StoryTime: React.FC = () => {
                 </div>
             )}
 
-            {/* TAB CONTENT: LIVRO KIDS (Lista Estática) */}
             {(activeTab === 'kids' || !aiEnabled) && (
                <div className="animate-slide-up space-y-4">
                   <div className="text-center mb-6">
@@ -169,13 +170,11 @@ const StoryTime: React.FC = () => {
                </div>
             )}
 
-            {/* TAB CONTENT: IA MÁGICA (Gerador) - Só renderiza se AI enabled */}
             {activeTab === 'ai' && aiEnabled && (
                <div className="animate-slide-up space-y-6">
                   <div className="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700">
                      <h2 className="text-xl font-black text-center mb-4 text-fuchsia-300">O que vamos imaginar?</h2>
                      
-                     {/* INPUT CUSTOMIZADO */}
                      <div className="space-y-3 mb-8">
                         <label className="text-xs font-bold text-slate-400 uppercase ml-2">Criar História</label>
                         <div className="flex gap-2">
@@ -196,7 +195,6 @@ const StoryTime: React.FC = () => {
                         </div>
                      </div>
 
-                     {/* SUGESTÕES */}
                      <div>
                         <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 ml-2">Sugestões de Personagens</h3>
                         <div className="grid grid-cols-2 gap-3">
@@ -217,7 +215,6 @@ const StoryTime: React.FC = () => {
           </div>
         )}
 
-        {/* LOADING STATE */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
             <Loader2 className="w-16 h-16 animate-spin text-fuchsia-400 mb-4" />
@@ -227,7 +224,6 @@ const StoryTime: React.FC = () => {
           </div>
         )}
 
-        {/* STORY DISPLAY */}
         {story && (
           <div className="space-y-6 animate-slide-up pb-8">
             <h2 className="text-3xl font-black text-yellow-400 text-center leading-tight mt-2">{story.title}</h2>
@@ -240,7 +236,6 @@ const StoryTime: React.FC = () => {
                 ✨ Moral: {story.moral}
             </div>
             
-            {/* AREA DA IMAGEM (Apenas se for Modo IA e a imagem foi gerada com sucesso) */}
             {activeTab === 'ai' && aiEnabled && (
                 <div className="mt-8">
                     {!showImageReveal ? (
@@ -274,7 +269,7 @@ const StoryTime: React.FC = () => {
                                                 <p className="font-bold text-center px-6">Pintando o desenho...<br/>Quase pronto!</p>
                                             </>
                                         ) : (
-                                            <p className="font-bold text-center px-6 text-sm">Imagem não disponível offline.</p>
+                                            <p className="font-bold text-center px-6 text-sm">A mágica da imagem falhou.</p>
                                         )}
                                     </div>
                                 )}

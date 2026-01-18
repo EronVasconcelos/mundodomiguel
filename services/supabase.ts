@@ -1,7 +1,19 @@
+
 import { createClient } from '@supabase/supabase-js';
 
-// Configuração do Supabase com as credenciais fornecidas
-const supabaseUrl = 'https://lermkipuanltuuxieaqq.supabase.co';
-const supabaseAnonKey = 'sb_publishable_1tJqKdRakxgCldSoGaO-2w_zGJ75UPO';
+// As credenciais devem ser configuradas no Vercel como SUPABASE_URL e SUPABASE_ANON_KEY
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Verificamos se o Supabase está realmente configurado com URLs válidas
+export const isSupabaseConfigured = 
+  !!supabaseUrl && 
+  !!supabaseAnonKey && 
+  !supabaseUrl.includes('placeholder');
+
+// Inicializamos com fallbacks apenas para evitar erro de construção do objeto, 
+// mas usaremos isSupabaseConfigured para bloquear chamadas de rede.
+export const supabase = createClient(
+  supabaseUrl || 'https://tmp.supabase.co', 
+  supabaseAnonKey || 'tmp'
+);

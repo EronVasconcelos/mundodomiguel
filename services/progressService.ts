@@ -1,6 +1,6 @@
 
 import { DailyProgress } from '../types';
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 const STORAGE_KEY_PREFIX = 'miguel_daily_progress_';
 
@@ -11,16 +11,15 @@ const GOALS = {
   MAZES: 3,
   WORD_SEARCH: 3,
   PUZZLES: 3,
-  SHADOW: 5 // New Goal
+  SHADOW: 5
 };
 
-// Helper to get active profile ID
 const getActiveProfileId = () => {
   return localStorage.getItem('active_profile_id') || 'guest';
 };
 
-// Helper to sync to Supabase (Fire and Forget)
 const syncToSupabase = async (progress: DailyProgress) => {
+  if (!isSupabaseConfigured) return;
   const profileId = getActiveProfileId();
   if (profileId === 'guest' || !profileId) return;
 
@@ -34,16 +33,15 @@ const syncToSupabase = async (progress: DailyProgress) => {
         word_level: progress.wordLevel,
         faith_done: progress.faithDone,
         mazes_solved: progress.mazesSolved,
-        // Fix: Property names in DailyProgress interface are camelCase (wordSearchSolved, puzzlesSolved, shadowSolved)
         word_search_solved: progress.wordSearchSolved,
         puzzles_solved: progress.puzzlesSolved,
         shadow_solved: progress.shadowSolved,
-        arcade_unlocked: true // Forçamos true no banco também
+        arcade_unlocked: true
       }, { onConflict: 'profile_id, date' });
 
     if (error) console.error("Error syncing progress:", error.message);
   } catch (e) {
-    console.warn("Sync failed (offline or misconfigured)");
+    console.warn("Sync failed (offline)");
   }
 };
 
@@ -57,7 +55,6 @@ export const getDailyProgress = (): DailyProgress => {
   if (stored) {
     const parsed = JSON.parse(stored) as DailyProgress;
     if (parsed.date === today && parsed.profileId === profileId) {
-      // Forçamos o desbloqueio mesmo em dados recuperados
       parsed.arcadeUnlocked = true;
       if (typeof parsed.wordSearchSolved === 'undefined') parsed.wordSearchSolved = 0;
       if (typeof parsed.puzzlesSolved === 'undefined') parsed.puzzlesSolved = 0;
@@ -76,7 +73,7 @@ export const getDailyProgress = (): DailyProgress => {
     wordSearchSolved: 0,
     puzzlesSolved: 0,
     shadowSolved: 0,
-    arcadeUnlocked: true // Arcade sempre livre por padrão
+    arcadeUnlocked: true
   };
   
   localStorage.setItem(key, JSON.stringify(newProgress));
@@ -84,6 +81,7 @@ export const getDailyProgress = (): DailyProgress => {
 };
 
 export const fetchRemoteProgress = async (): Promise<DailyProgress | null> => {
+  if (!isSupabaseConfigured) return null;
   const profileId = getActiveProfileId();
   if (profileId === 'guest') return null;
   
@@ -109,7 +107,7 @@ export const fetchRemoteProgress = async (): Promise<DailyProgress | null> => {
             wordSearchSolved: data.word_search_solved || 0,
             puzzlesSolved: data.puzzles_solved || 0,
             shadowSolved: data.shadow_solved || 0,
-            arcadeUnlocked: true, // Forçamos true na recuperação remota
+            arcadeUnlocked: true,
             profileId: data.profile_id
         };
         const key = `${STORAGE_KEY_PREFIX}${profileId}`;
@@ -125,14 +123,13 @@ export const fetchRemoteProgress = async (): Promise<DailyProgress | null> => {
 const saveProgress = (progress: DailyProgress) => {
   const profileId = getActiveProfileId();
   progress.profileId = profileId; 
-  progress.arcadeUnlocked = true; // Garantia extra no salvamento
+  progress.arcadeUnlocked = true;
   const key = `${STORAGE_KEY_PREFIX}${profileId}`;
   localStorage.setItem(key, JSON.stringify(progress));
   syncToSupabase(progress);
 };
 
 export const checkUnlock = (progress: DailyProgress): boolean => {
-  // Otimização Sênior: Retorno imediato sem necessidade de cálculos complexos
   return true;
 };
 

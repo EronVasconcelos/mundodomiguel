@@ -1,6 +1,15 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StoryData, DevotionalData, ChildProfile } from '../types';
+
+/**
+ * Rule: The API key must be obtained exclusively from the environment variable process.env.API_KEY.
+ * Use this process.env.API_KEY string directly when initializing the @google/genai client instance.
+ */
+const getApiKey = () => {
+  const key = process.env.API_KEY;
+  if (!key || key === 'undefined' || key.trim() === '') return null;
+  return key.trim();
+};
 
 // --- FALLBACK DATA ---
 const STATIC_STORY_IMAGE = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop"; 
@@ -38,13 +47,14 @@ const FALLBACK_DEVOTIONAL: DevotionalData = {
 
 // --- API AVAILABILITY CHECK ---
 export const isAIAvailable = (): boolean => {
-    return !!process.env.API_KEY;
+    return !!getApiKey();
 };
 
 // --- CONTENT GENERATION ---
 
 export const generateStoryText = async (topic: string, profile: ChildProfile): Promise<StoryData> => {
-  if (!process.env.API_KEY) throw new Error("API Key missing");
+  // Use process.env.API_KEY directly as required by the coding guidelines
+  if (!process.env.API_KEY) throw new Error("IA offline: Chave de API não configurada.");
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const prompt = `Você é um contador de histórias mágico. Crie uma história infantil curta e cativante para ${profile.name}, de ${profile.age} anos. Tema: ${topic}. Retorne JSON: title, content, moral.`;
@@ -66,12 +76,14 @@ export const generateStoryText = async (topic: string, profile: ChildProfile): P
     },
   });
   
+  // Directly access the .text property of GenerateContentResponse as per rules
   return JSON.parse(response.text || '{}') as StoryData;
 };
 
 export const generateDevotionalContent = async (profile: ChildProfile): Promise<DevotionalData> => {
   if (!process.env.API_KEY) return FALLBACK_DEVOTIONAL;
 
+  // Use process.env.API_KEY directly as required by the coding guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const prompt = `Crie um devocional cristão para uma criança de ${profile.age} anos chamada ${profile.name}. Retorne JSON: verse, reference, devotional, storyTitle, storyContent, prayer, imagePrompt (visual description only).`;
 
@@ -96,6 +108,7 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
         },
       },
     });
+    // Directly access the .text property of GenerateContentResponse as per rules
     return { ...JSON.parse(response.text || '{}'), date: new Date().toDateString() };
   } catch (error) {
     return FALLBACK_DEVOTIONAL;
@@ -105,10 +118,11 @@ export const generateDevotionalContent = async (profile: ChildProfile): Promise<
 export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'girl' = 'boy'): Promise<string | null> => {
   if (!process.env.API_KEY) return null;
 
+  // Use process.env.API_KEY directly as required by the coding guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-preview-tts',
+      model: "gemini-2.5-flash-preview-tts",
       contents: [{ parts: [{ text: text }] }],
       config: {
         responseModalities: [Modality.AUDIO],
@@ -126,6 +140,7 @@ export const generateDevotionalAudio = async (text: string, gender: 'boy' | 'gir
 export const generateStoryImage = async (storyPrompt: string, profile?: ChildProfile): Promise<string | null> => {
   if (!process.env.API_KEY) return null;
 
+  // Use process.env.API_KEY directly as required by the coding guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const charDesc = profile ? `a cute ${profile.age} year old ${profile.gender} with ${profile.hairColor} hair and ${profile.skinTone} skin` : "a cute child";
   const prompt = `Disney Pixar animation style, 3D render. Subject: ${charDesc}. Scene: ${storyPrompt.substring(0, 300)}. Vibrant colors, magical lighting, high detail. NO TEXT.`;
@@ -137,6 +152,7 @@ export const generateStoryImage = async (storyPrompt: string, profile?: ChildPro
       config: { imageConfig: { aspectRatio: "1:1" } }
     });
     
+    // Find the image part by iterating through candidates' content parts as per guidelines
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData?.data) {
         return `data:image/png;base64,${part.inlineData.data}`;

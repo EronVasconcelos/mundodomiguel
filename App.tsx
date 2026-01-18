@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from './services/supabase';
+import { supabase, isSupabaseConfigured } from './services/supabase';
 import Welcome from './pages/Welcome';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -35,6 +35,12 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
+      // Se o Supabase não estiver configurado, operamos em modo local/convidado
+      if (!isSupabaseConfigured) {
+        setChecking(false);
+        return;
+      }
+
       try {
         const { data } = await supabase.auth.getSession();
         const session = data?.session;
@@ -67,13 +73,13 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
            setChecking(false);
         }
       } catch (e) {
-        console.warn("Auth check failed", e);
+        console.warn("Auth check failed or bypassed (offline mode)");
         setChecking(false);
       }
     };
 
     checkAuth();
-  }, []);
+  }, [location.pathname, navigate]);
 
   if (showSplash) return <SplashScreen />;
   if (checking) return null; 
